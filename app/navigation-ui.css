@@ -378,3 +378,5 @@ body{background:var(--bg);color:var(--ink)}
 }
 
 @media(max-width:900px){.sunny-mobile-brand-copy .sunny-brand-red-s{color:#e53935!important}}
+
+@media(max-width:900px){.sunny-mobile-brand-symbol.sunny-taegeuk-sun{display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 42px;width:42px;height:42px}.sunny-taegeuk-sun svg{display:block;width:42px;height:42px;max-width:none}}
