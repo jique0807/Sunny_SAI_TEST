@@ -174,3 +174,17 @@ body{background:var(--bg);color:var(--ink)}
  .topbar .brand small{display:none}
 }
 @media(prefers-reduced-motion:reduce){.nav-search-sheet,.nav-route-result{animation:none!important}}
+
+
+@media(max-width:900px){
+ .nav-favorites{padding-top:15px;margin-top:14px;border-top:1px solid #e9edf3}
+ #navFavoritesList,#navRecentList{display:flex;flex-direction:column}
+ .nav-place-row{display:flex;align-items:center;border-bottom:1px solid #edf1f5;background:#fff;min-height:62px}
+ .nav-place-row .nav-place-pick{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;padding:12px 6px;border:0;background:transparent;text-align:left;border-radius:0}
+ .nav-place-row .nav-place-pick strong{font-size:14px;color:#27384b}
+ .nav-place-row .nav-place-pick small{font-size:11px;color:#8190a0}
+ .nav-favorite-toggle{flex:0 0 43px!important;width:43px!important;min-height:45px!important;border:0!important;background:transparent!important;color:#1768ed!important;font-size:25px!important;padding:4px!important}
+ .nav-suggestion-row .nav-place-row{width:100%}
+ .nav-search-sheet .places li.nav-suggestion-row button.nav-place-pick{width:auto!important}
+ .nav-local-note{font-size:11px;color:#8a96a4;line-height:1.5}
+}
