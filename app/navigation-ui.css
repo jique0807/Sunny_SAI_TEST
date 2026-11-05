@@ -239,3 +239,24 @@ body{background:var(--bg);color:var(--ink)}
 
 /* Place the road/satellite selector at the lower-left of the map. */
 @media(max-width:900px){.nav-map-layer-control{left:12px!important;right:auto!important}}
+
+
+/* Four-function bottom navigation and truthful map layer controls. */
+@media(max-width:900px){
+ .nav-bottom-bar{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+ .nav-bottom-bar button{min-width:0!important;font-size:22px!important}
+ .nav-bottom-bar button span{font-size:10px!important;white-space:nowrap}
+ .nav-layers-sheet:not([hidden]){display:block;position:fixed;left:0;right:0;bottom:calc(68px + env(safe-area-inset-bottom));z-index:840;background:#fff;border-radius:22px 22px 0 0;padding:18px 18px 22px;box-shadow:0 -8px 28px #172b4733;max-height:65dvh;overflow-y:auto;animation:navRise .22s ease-out}
+ .nav-layers-head{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:18px}
+ .nav-layers-head button{width:34px;height:34px;border:0;border-radius:50%;background:#f0f3f8;font-size:17px}
+ .nav-layers-sheet>p{font-size:12px;color:#6a7c8e;margin:9px 0 15px}
+ .nav-layer-row{display:flex;justify-content:space-between;align-items:center;gap:14px;min-height:72px;border-top:1px solid #edf1f5;padding:12px 2px}
+ .nav-layer-row span{display:flex;flex-direction:column;gap:5px}
+ .nav-layer-row b{font-size:15px;color:#263a50}
+ .nav-layer-row small{font-size:11px;color:#738499;line-height:1.4}
+ .nav-layer-row input{flex:none;appearance:auto;width:20px;height:20px;accent-color:#1768ed}
+ .nav-layer-unavailable{opacity:.55}
+ .nav-layers-sheet .nav-layer-note{border-top:1px solid #edf1f5;padding-top:12px;font-size:11px;line-height:1.5}
+ body:has(.nav-layers-sheet:not([hidden])) .nav-map-layer-control{display:none}
+}
+@media(min-width:901px){.nav-layers-sheet{display:none}}
