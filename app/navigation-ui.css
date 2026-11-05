@@ -432,8 +432,8 @@ body{background:var(--bg);color:var(--ink)}
  .drive-home-bar #navSearchOpen span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  .drive-home-bar #navSearchOpen .nav-search-symbol{font-size:22px!important;flex:none}
  .drive-home-bar #navMyLocation.nav-map-locate{
-  flex:0 0 40px!important;width:40px!important;min-width:40px!important;
-  height:40px!important;min-height:40px!important;
+  flex:0 0 43px!important;width:43px!important;min-width:43px!important;
+  height:43px!important;min-height:43px!important;
  }
  .drive-home-bar #navMyLocation.nav-map-locate svg{width:21px!important;height:21px!important}
 }
