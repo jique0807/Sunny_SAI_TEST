@@ -17,7 +17,7 @@ function makeZip(filename,source){
  end.writeUInt32LE(central.length+name.length,12);end.writeUInt32LE(offset,16);
  return Buffer.concat([local,name,data,central,name,end]);
 }
-const csv='LAT,LON,ICE_RISK,VISIBILITY_RISK,LINK_ID\n37.501,127.001,2,0,42001\n37.502,127.002,0,3,42002';
+const csv='LAT,LON,ICE_RISK,VISIBILITY_RISK,LINK_ID\n37.501,127.001,주의,안전,42001\n37.502,127.002,안전,위험,42002';
 test('KMA road risk official route codes and archive parser handle known text content',()=>{
  assert.equal(ROAD_NAMES['001'],'경부');
  const zip=makeZip('risk.csv',csv),files=extractZipFiles(zip),x=geolocatedRisks(files,'001');
@@ -30,10 +30,14 @@ test('KMA road risk official route codes and archive parser handle known text co
  assert.equal(displayableRisks(x.locations,false,false).length,0);
 });
 test('No node-link geographic coordinates must never create fictitious Kakao hazard markers',()=>{
- const f=extractZipFiles(makeZip('risk.csv','LINK_ID,ICE_RISK\n42001,3'));
+ const f=extractZipFiles(makeZip('risk.csv','LINK_ID,ICE_RISK\n42001,위험'));
  const d=geolocatedRisks(f,'001');
  assert.equal(d.locations.length,0);assert.equal(d.unmapped,1);
  assert.equal(displayableRisks(d.locations,true,true).length,0);
+});
+test('Numeric ice grade is intentionally not classified without KMA format-code definition',()=>{
+ const files=extractZipFiles(makeZip('risk.csv','LAT,LON,ICE_RISK\\n37.501,127.001,3'));
+ assert.equal(geolocatedRisks(files,'001').locations.length,0);
 });
 test('KMA road risk fetch remains on official host, provides metadata and never leaks key',async()=>{
  let calls=0;const key='secret+/&';
