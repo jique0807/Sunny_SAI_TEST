@@ -236,3 +236,6 @@ body{background:var(--bg);color:var(--ink)}
  body.nav-sheet-open .nav-map-layer-control{display:none}
  body.nav-route-open .nav-map-layer-control{bottom:calc(330px + env(safe-area-inset-bottom))}
 }
+
+/* Place the road/satellite selector at the lower-left of the map. */
+@media(max-width:900px){.nav-map-layer-control{left:12px!important;right:auto!important}}
