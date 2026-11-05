@@ -294,3 +294,26 @@ body{background:var(--bg);color:var(--ink)}
  body.nav-route-open .nav-map-layer-control{bottom:calc(var(--sunny-bottom-nav-height) + 260px)!important}
  .nav-search-sheet:not([hidden]){bottom:var(--sunny-bottom-nav-height)!important;padding-bottom:24px!important}
 }
+
+
+/* Ensure map type controls stay tappable above Leaflet/Kakao map gesture layers. */
+@media(max-width:900px){
+ .nav-map-layer-control{
+  position:fixed!important;
+  z-index:1200!important;
+  pointer-events:auto!important;
+  isolation:isolate!important;
+  touch-action:manipulation!important;
+ }
+ .nav-map-layer-control button{
+  position:relative!important;
+  z-index:1!important;
+  pointer-events:auto!important;
+  cursor:pointer!important;
+  touch-action:manipulation!important;
+  -webkit-tap-highlight-color:rgba(23,104,237,.16);
+ }
+ .nav-map-layer-control button[aria-busy="true"]{opacity:.7}
+ body.nav-sheet-open .nav-map-layer-control,
+ body:has(.nav-layers-sheet:not([hidden])) .nav-map-layer-control{display:none!important}
+}
