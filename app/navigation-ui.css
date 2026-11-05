@@ -317,3 +317,32 @@ body{background:var(--bg);color:var(--ink)}
  body.nav-sheet-open .nav-map-layer-control,
  body:has(.nav-layers-sheet:not([hidden])) .nav-map-layer-control{display:none!important}
 }
+
+
+/* Thumbnail map-type switch, matching the supplied compact image-button layout. */
+@media(max-width:900px){
+ .nav-map-layer-control{gap:7px!important;padding:5px!important;border-radius:11px!important;background:rgba(255,255,255,.97)!important}
+ .nav-map-layer-control button{
+  display:flex!important;flex-direction:column!important;gap:0!important;
+  width:61px!important;min-width:61px!important;height:58px!important;min-height:58px!important;
+  padding:2px!important;border:2px solid transparent!important;border-radius:7px!important;
+  overflow:hidden!important;background:#fff!important;color:#14283f!important;
+  box-shadow:none!important;
+ }
+ .nav-map-layer-control button[aria-pressed="true"]{border-color:#1768ed!important;background:#fff!important;color:#1768ed!important}
+ .nav-map-layer-control button .nav-map-thumb{display:block!important;width:100%;height:38px;flex:0 0 38px;border-radius:3px 3px 0 0}
+ .nav-map-layer-control button .nav-map-thumb-label{display:block!important;width:100%;font-size:10px!important;line-height:14px!important;font-weight:800!important;text-align:center!important}
+ .nav-map-layer-control button .nav-road-thumb{
+  background:
+   linear-gradient(110deg,transparent 42%,#f3bd56 43% 48%,#fff 49% 51%,#f3bd56 52% 56%,transparent 57%),
+   linear-gradient(15deg,transparent 44%,#8ec9ed 45% 52%,transparent 53%),
+   repeating-linear-gradient(0deg,transparent 0 13px,#d5dce2 14px 15px,transparent 16px 23px),
+   #eef3e8;
+ }
+ .nav-map-layer-control button .nav-satellite-thumb{
+  background:
+   radial-gradient(ellipse at 20% 10%,#7fa9bb 0 17%,transparent 19%),
+   linear-gradient(130deg,#284a38 0 20%,#729077 22% 29%,#2e6047 32% 45%,#8da887 47% 54%,#315940 57% 70%,#24493b 75%),
+   #365c48;
+ }
+}
