@@ -255,8 +255,19 @@ function updatePick(){['origin','destination'].forEach(x=>$('pick'+(x==='origin'
 function mapClick(p){if(pickTarget){const place=coordinatePlace(p.lat+','+p.lng);if(!place){toast('대한민국 내 위치를 선택해주세요.');return;}if(pickTarget==='origin')originPlace=place;else destPlace=place;$(pickTarget).value=place.name;pickTarget=null;updatePick();toast('위치를 설정했어요. 출발·도착을 정한 뒤 경로 살펴보기를 누르세요.');return;}if(route&&!route.demo){const i=nearestSample(route.samples,p);if(i!==null){selectRoad(i);toast('누른 위치에서 가장 가까운 예보 구간을 표시했어요.');}}}
 ['origin','destination'].forEach(target=>$('pick'+(target==='origin'?'Origin':'Destination')).onclick=async()=>{pickTarget=pickTarget===target?null:target;updatePick();if(pickTarget&&activeMap==='schematic')await showMap(mapConfig.kakao?'kakao':'vworld');});
 function satelliteStatus(){const state=tileHealth(tileLoaded,tileFailed);providerState.vworld=state==='ready'?'타일 수신 확인':state==='failed'?'타일 수신 실패':'타일 확인 중';connectionStatus();if(activeMap!=='vworld')return;$('mapProvider').textContent=state==='ready'?'VWorld · 위성 배경 + 도로명':'VWorld · 타일 확인 중';if(state==='failed'){notice('브이월드 위성 타일을 받지 못했습니다. 도메인·키 또는 제공자 응답을 확인해주세요. 카카오 항공 버튼으로 다른 배경을 선택할 수 있습니다.');}else if(state==='ready')notice(route?.demo?'실제 도로 · 기상·공사 아이콘은 가상 시연입니다.':'');}
+function updateMobileMapLayer(){
+ const satellite=activeMap==='vworld'||activeMap==='skyview';
+ $('navRoadMap')?.setAttribute('aria-pressed',String(!satellite));
+ $('navSatelliteMap')?.setAttribute('aria-pressed',String(satellite));
+}
+$('navRoadMap')?.addEventListener('click',()=>showMap(mapConfig.kakao?'kakao':'osm'));
+$('navSatelliteMap')?.addEventListener('click',()=>{
+ if(mapConfig.vworld)showMap('vworld');
+ else if(mapConfig.kakao)showMap('skyview');
+ else toast('위성지도 연결을 위해 VWorld 또는 카카오 지도 API 설정이 필요합니다.');
+});
 async function showOpenStreetMap(){
- const run=++mapRun;activeMap='osm';
+ const run=++mapRun;activeMap='osm';updateMobileMapLayer();
  $('schematic').hidden=true;$('actualRoute').hidden=true;$('kakaoMap').hidden=true;$('vworldMap').hidden=true;$('osmMap').hidden=false;
  ['schematic','kakao','vworld','skyview'].forEach(x=>$(x+'Toggle').setAttribute('aria-pressed','false'));
  $('mapProvider').textContent='© OpenStreetMap contributors · 일반 도로지도';
@@ -270,7 +281,7 @@ async function showOpenStreetMap(){
   else centerHomeMap();
  }catch(e){if(run!==mapRun)return;notice('기본 도로지도 연결 실패: 네트워크 또는 지도 타일 접근을 확인해주세요.');$('osmMap').hidden=true;$('schematic').hidden=false;activeMap='schematic';}
 }
-async function showMap(type){if(type==='osm')return showOpenStreetMap();$('osmMap').hidden=true;const run=++mapRun;activeMap=type;await sessionPromise;if(run!==mapRun)return;clearDemoOverlays();clearFocus();const isKakao=type==='kakao'||type==='skyview';$('actualRoute').toggleAttribute('hidden',type!=='schematic'||!route);$('schematic').hidden=type!=='schematic'||!!route;$('kakaoMap').hidden=!isKakao;$('vworldMap').hidden=type!=='vworld';['schematic','kakao','vworld','skyview'].forEach(x=>$(x+'Toggle').setAttribute('aria-pressed',String(x===type)));notice('');$('mapProvider').textContent=type==='schematic'?'도로 형상 · 배경지도 아님':type==='vworld'?'VWorld · 연결 중':type==='skyview'?'Kakao · 항공 배경':'Kakao · 도로 지도';
+async function showMap(type){if(type==='osm')return showOpenStreetMap();$('osmMap').hidden=true;const run=++mapRun;activeMap=type;updateMobileMapLayer();await sessionPromise;if(run!==mapRun)return;clearDemoOverlays();clearFocus();const isKakao=type==='kakao'||type==='skyview';$('actualRoute').toggleAttribute('hidden',type!=='schematic'||!route);$('schematic').hidden=type!=='schematic'||!!route;$('kakaoMap').hidden=!isKakao;$('vworldMap').hidden=type!=='vworld';['schematic','kakao','vworld','skyview'].forEach(x=>$(x+'Toggle').setAttribute('aria-pressed',String(x===type)));notice('');$('mapProvider').textContent=type==='schematic'?'도로 형상 · 배경지도 아님':type==='vworld'?'VWorld · 연결 중':type==='skyview'?'Kakao · 항공 배경':'Kakao · 도로 지도';
  if(type==='schematic'){focusRoad();drawWeatherOverlays();drawDemoOverlays();moveCar();return;}
  if(route?.demo)notice('실제 도로 경로 · 자동차 이동·폭우·강풍·공사는 가상 시연입니다.');
  try{if(isKakao){if(!mapConfig.kakao)throw Error('운영자의 카카오 JavaScript 키가 필요합니다.');if(!kmap){await script('https://dapi.kakao.com/v2/maps/sdk.js?autoload=false&appkey='+encodeURIComponent(mapConfig.kakao));await new Promise((resolve,reject)=>{if(!window.kakao?.maps)return reject(Error('카카오 지도 SDK 응답을 확인해주세요.'));const timeout=setTimeout(()=>reject(Error('카카오 지도 초기화 시간 초과')),12000);kakao.maps.load(()=>{clearTimeout(timeout);resolve();});});if(run!==mapRun)return;kmap=new kakao.maps.Map($('kakaoMap'),{center:new kakao.maps.LatLng(36.85,127.44),level:10});kmap.addControl(new kakao.maps.ZoomControl(),kakao.maps.ControlPosition.RIGHT);kakao.maps.event.addListener(kmap,'click',e=>mapClick({lat:e.latLng.getLat(),lng:e.latLng.getLng()}));}
