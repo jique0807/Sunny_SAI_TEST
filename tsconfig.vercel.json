@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["next-env.d.ts", "app/**/*.ts", "app/**/*.tsx", "lib/ui.ts", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", "scripts", "worker", "dist", ".sites-runtime", ".wrangler"]
+}
