@@ -64,21 +64,17 @@ document.getElementById('navSettings')?.addEventListener('click',()=>{
 });
 document.getElementById('settings')?.addEventListener('close',()=>setNavTab('navHome'));
 document.getElementById('navLayerWeather')?.addEventListener('change',()=>drawWeatherOverlays());
-function updateDemoRainOverlay(){
- const canvas=document.querySelector('.map-canvas');
- if(!canvas)return;
- let layer=document.getElementById('navDemoRainOverlay');
- if(!layer){layer=document.createElement('div');layer.id='navDemoRainOverlay';layer.className='nav-demo-rain-overlay';layer.setAttribute('aria-label','시연용 강수 영역 · 실제 기상정보 아님');canvas.appendChild(layer);}
- const enabled=!!document.getElementById('navLayerDemoRain')?.checked;
- const opacity=Number(document.getElementById('navDemoOpacity')?.value||45);
- layer.hidden=!enabled;
- layer.style.opacity=String(Math.max(0,Math.min(90,opacity))/100);
+function updateMapLayerOpacity(){
+ const opacity=Number(document.getElementById('navDemoOpacity')?.value??45);
+ const value=Math.max(0,Math.min(100,Number.isFinite(opacity)?opacity:45));
  const label=document.getElementById('navDemoOpacityValue');
- if(label)label.textContent=opacity+'% · 시연용 강수 영역은 지도 좌표와 연결되지 않습니다. 실제 기상 위험 판단에 사용하지 마세요.';
+ if(label)label.textContent=value+'%';
+ document.documentElement.style.setProperty('--sunny-weather-layer-opacity',String(1-value/100));
+ const demo=document.getElementById('navDemoRainOverlay');
+ if(demo)demo.remove(); // Old non-georeferenced demonstration is no longer presented as a weather layer.
 }
-document.getElementById('navLayerDemoRain')?.addEventListener('change',updateDemoRainOverlay);
-document.getElementById('navDemoOpacity')?.addEventListener('input',updateDemoRainOverlay);
-updateDemoRainOverlay();
+document.getElementById('navDemoOpacity')?.addEventListener('input',updateMapLayerOpacity);
+updateMapLayerOpacity();
 
 const $=id=>document.getElementById(id),escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let csrf='',advanced=false,mapConfig={},connections={},originPlace=null,destPlace=null,route=null,weather=null,sessionPromise=null,searchSeq=0,routeSeq=0,progress=0,timer=null,playing=false,activeAudio=null,voiceSeq=0,finishVoice=null,recognition=null,kmap=null,lmap=null,routePolyline=null,lroute=null,kmarker=null,lmarker=null,installPrompt=null;
@@ -119,6 +115,7 @@ function drawWeatherOverlays(){
   if(!Number.isFinite(sample.lat)||!Number.isFinite(sample.lng))continue;
   const forecast=sample.forecast;
   const label=document.createElement('div');
+  label.classList.add('nav-forecast-map-label');
   label.style.cssText='background:white;color:#183c30;border:2px solid #426351;border-radius:10px;padding:7px 10px;font-size:12px;white-space:nowrap;box-shadow:0 2px 6px #0003;transform:translateX(24px)';
   const temperature=Number.isFinite(forecast?.temperature)?forecast.temperature+'°C':'기온 미제공';
   const rain=Number.isFinite(forecast?.rain)?forecast.rain+' mm':forecast?.rainText||'강수량 미제공';
