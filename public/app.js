@@ -219,7 +219,7 @@ async function findSuggestions(field,q){
  catch(e){if(run===suggestionRun){searchList.replaceChildren();const li=document.createElement('li');li.textContent='검색 실패: '+e.message;searchList.append(li);}}
 }
 for(const field of ['origin','destination']){
- $(field).addEventListener('input',()=>{if(field==='origin'){originPlace=null;searchList.parentNode!==$('origin').closest('.field')?.parentNode||$('origin').closest('.field')?.after(searchList);}else destPlace=null;clearSuggestions();const q=$(field).value.trim();if(q.length<2)return;suggestionTimer=setTimeout(()=>findSuggestions(field,q),350);});
+ $(field).addEventListener('input',()=>{if(field==='origin'){originPlace=null;$('origin').closest('.field')?.after(searchList);}else{destPlace=null;$('destination').closest('.field')?.after(searchList);}clearSuggestions();const q=$(field).value.trim();if(q.length<2)return;suggestionTimer=setTimeout(()=>findSuggestions(field,q),350);});
  $(field).addEventListener('focus',()=>{const q=$(field).value.trim();if(q.length>=2&&!(field==='origin'?originPlace:destPlace)){clearSuggestions();suggestionTimer=setTimeout(()=>findSuggestions(field,q),200);}});
  $(field).addEventListener('keydown',e=>{if(e.key==='Escape')clearSuggestions();if(e.key==='ArrowDown'){const b=searchList.querySelector('button');if(b){e.preventDefault();b.focus();}}});
 }
