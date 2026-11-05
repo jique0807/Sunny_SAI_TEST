@@ -48,6 +48,7 @@ document.getElementById('navHome')?.addEventListener('click',()=>{
  // Clear leftover focus from hidden search fields on mobile browsers.
  if(document.activeElement?.closest?.('#navSearchSheet'))document.activeElement.blur();
 });
+document.getElementById('sunnyBrandHome')?.addEventListener('click',()=>document.getElementById('navHome')?.click());
 document.getElementById('navRoute')?.addEventListener('click',()=>{
  showNavLayers(false);
  if(document.getElementById('navRouteResult')?.hidden===false){document.body.classList.add('nav-route-open');showNavSearch(false);}
