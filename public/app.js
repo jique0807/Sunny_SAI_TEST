@@ -19,7 +19,7 @@ const navPlannerHome=navPlanner?.parentElement;
 const navPlannerNext=navPlanner?.nextSibling;
 function showNavSearch(show){
  if(!navSheet||!navPlanner)return;
- if(show){if(typeof showNavLayers==='function')showNavLayers(false);setNavTab('navRoute');navSlot?.appendChild(navPlanner);navSheet.hidden=false;document.body.classList.add('nav-sheet-open');document.body.classList.remove('nav-route-open');document.getElementById('destination')?.focus();}
+ if(show){if(typeof showNavLayers==='function')showNavLayers(false);setNavTab('navRoute');navSlot?.appendChild(navPlanner);const destField=document.getElementById('destination')?.closest('.field');const suggestions=document.getElementById('places');if(destField&&suggestions&&destField.nextElementSibling!==suggestions)destField.after(suggestions);navSheet.hidden=false;document.body.classList.add('nav-sheet-open');document.body.classList.remove('nav-route-open');document.getElementById('destination')?.focus();}
  else{if(navPlannerHome){if(navPlannerNext?.parentNode===navPlannerHome)navPlannerHome.insertBefore(navPlanner,navPlannerNext);else navPlannerHome.insertBefore(navPlanner,navPlannerHome.firstChild);}navSheet.hidden=true;document.body.classList.remove('nav-sheet-open');}
  navOpen?.setAttribute('aria-expanded',String(show));
 }
