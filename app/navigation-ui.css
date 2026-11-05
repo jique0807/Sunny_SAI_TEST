@@ -60,3 +60,533 @@ body{background:var(--bg);color:var(--ink)}
 #places li>button:hover,#places li>button:focus-visible{background:#edf4ff}
 #places li>button strong{font-size:13px;color:#16243b}
 #places li>button small{font-size:11px;color:#64748b;line-height:1.5}
+
+
+/* Original navigation-first design. Weather services are retained for later. */
+.drive-home-bar,.nav-bottom-bar,.nav-search-sheet{display:none}
+@media(max-width:900px){
+ body{background:#f5f7fb}
+ .topbar{height:52px!important;position:relative;z-index:80}
+ .topbar .brand{font-size:20px}.topbar .sunmark{color:#1775ed}
+ .topbar nav #sourcesOpen,.topbar nav .nav-active{display:none}
+ .dashboard{display:block!important;padding:0!important;min-height:calc(100dvh - 52px)!important}
+ .dashboard>.planner{display:none!important}
+ .workspace{display:flex!important;flex-direction:column!important;width:100%;padding:0 0 80px}
+ .workspace-heading{display:none!important}
+ .map-panel{display:contents}
+ .map-canvas{order:1;height:calc(100dvh - 230px)!important;min-height:350px!important;border-radius:0!important}
+ .map-toolbar{order:2;padding:8px 10px;background:white}
+ .map-toolbar>div:first-child{display:none}
+ .map-switch{width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+ .map-switch button{font-size:10px!important;padding:8px 2px!important}
+ .map-legend{order:3}
+ .route-summary{order:4;padding:13px 12px;gap:10px;flex-wrap:wrap;background:#fff;border-top:1px solid #e2e9f2}
+ .route-summary b{font-size:19px}
+ .route-summary .drive-btn{background:#1768ed;color:white;border-color:#1768ed}
+ .map-actions{order:5}
+ .drive-controls{order:6}
+ .workspace>.road-inspector{order:7}
+ .workspace>.weather-provider-label{order:8}
+ .workspace>.hint{order:9}
+ .workspace>.section-title{order:10}
+ .workspace>.weather-cards{order:11}
+ .workspace>.data-strip{order:12}
+ .workspace>.data-footnote{order:13}
+ .map-floating{top:88px;left:12px;max-width:calc(100% - 24px);padding:9px 11px}
+ .drive-home-bar{display:flex;position:absolute;top:65px;left:12px;right:12px;z-index:600;gap:8px}
+ .drive-home-bar button{height:52px;background:#fff;box-shadow:0 5px 24px #1836522b;border:1px solid #e7edf5;border-radius:15px;font-size:16px}
+ #navSearchOpen{flex:1;display:flex;align-items:center;gap:11px;text-align:left;color:#64748b;font-weight:600;padding:0 15px}
+ .nav-search-symbol{font-size:29px;color:#1671e9}
+ #navMyLocation{width:54px;color:#1671e9;font-size:26px}
+ .nav-bottom-bar{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;bottom:0;left:0;right:0;z-index:650;min-height:68px;padding:5px 8px calc(5px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid #e5eaf1;box-shadow:0 -5px 24px #17314a12}
+ .nav-bottom-bar button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:transparent;border:0;font-size:21px;padding:4px;color:#657487}
+ .nav-bottom-bar button span{font-size:11px;font-weight:700}
+ .nav-bottom-bar button[aria-current=page]{color:#1768ed}
+ .nav-search-sheet:not([hidden]){display:block;position:fixed;inset:52px 0 0;z-index:850;background:#fff;overflow-y:auto;padding:12px 14px calc(85px + env(safe-area-inset-bottom))}
+ .nav-sheet-head{display:flex;align-items:center;justify-content:space-between;padding:7px 0 13px;font-size:17px}
+ .nav-sheet-head button{border:0;background:#f1f5f9;border-radius:50%;height:36px;width:36px;padding:0}
+ .nav-search-sheet .planner{display:block!important;position:static!important;width:100%;height:auto!important;max-height:none!important;overflow:visible!important;padding:0!important;border:0!important;box-shadow:none!important}
+ .nav-search-sheet .planner h1,.nav-search-sheet .planner>.eyebrow,.nav-search-sheet .planner .intro{display:none!important}
+ .nav-search-sheet .trybox,.nav-search-sheet .companion{display:none!important}
+ .nav-search-sheet .routeform{display:block}
+ .nav-search-sheet .routeform label{display:block}
+ .nav-search-sheet .routeform .field{margin-bottom:8px}
+ .nav-search-sheet #places{max-height:none}
+ body.nav-sheet-open{overflow:hidden}
+ footer{padding-bottom:80px}
+}
+
+
+@media(max-width:900px){
+.nav-bottom-bar{grid-template-columns:repeat(3,1fr)}
+.workspace>.weather-provider-label,.workspace>.hint,.workspace>.section-title,.workspace>.weather-cards,.workspace>.data-strip,.workspace>.data-footnote{display:none!important}
+.nav-search-sheet .planner .trybox,.nav-search-sheet .planner .companion,.nav-search-sheet .planner .subtle{display:none!important}
+.map-actions>span{display:none}
+}
+
+
+@media(max-width:900px){
+ .nav-recent{margin-top:18px;border-top:1px solid #e9edf3;padding-top:17px}
+ .nav-recent-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+ .nav-recent-title strong{font-size:15px}
+ .nav-recent-title button{border:0;background:transparent;font-size:12px;color:#68798b}
+ #navRecentList{display:flex;flex-direction:column}
+ #navRecentList button{border:0;border-bottom:1px solid #eef1f5;border-radius:0;text-align:left;padding:13px 6px;background:white;display:flex;flex-direction:column;gap:5px}
+ #navRecentList strong{font-size:14px;color:#26394e}
+ #navRecentList small{font-size:11px;color:#8491a0}
+ .nav-route-result:not([hidden]){display:block;position:fixed;bottom:calc(68px + env(safe-area-inset-bottom));left:0;right:0;z-index:640;background:white;padding:18px 19px 16px;border-radius:21px 21px 0 0;box-shadow:0 -8px 28px #172b472a}
+ .nav-route-result-head{display:flex;align-items:center;justify-content:space-between;font-size:15px}
+ .nav-route-result-head button{border:0;background:#f2f5f9;border-radius:50%;width:32px;height:32px;padding:0}
+ .nav-route-result-main{display:flex;align-items:baseline;gap:13px;margin:14px 0 7px;flex-wrap:wrap}
+ #navRouteDuration{font-size:29px;color:#1768ed}
+ #navRouteDistance,#navRouteArrival{font-size:13px;font-weight:700;color:#43566c}
+ #navRouteDescription{font-size:11px;color:#77879a;line-height:1.5}
+ #navStartGuidance{display:block;width:100%;background:#1768ed;color:white;border-color:#1768ed;border-radius:12px;font-size:16px;font-weight:700;min-height:49px}
+ .nav-search-sheet #places li>button{min-height:58px}
+}
+
+
+@media(max-width:900px){
+ .nav-search-sheet:not([hidden]){animation:navEnter .22s ease-out}
+ .nav-route-result:not([hidden]){animation:navRise .22s ease-out}
+ @keyframes navEnter{from{opacity:.55;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
+ @keyframes navRise{from{opacity:.6;transform:translateY(35px)}to{opacity:1;transform:translateY(0)}}
+ .nav-search-steps{display:flex;gap:6px;align-items:center;margin:3px 0 19px}
+ .nav-step{flex:1;padding:9px 3px;text-align:center;border-radius:8px;background:#f1f4f8;color:#8794a4;font-size:11px;font-weight:700}
+ .nav-step.active{background:#e7f0ff;color:#1768ed}
+ .nav-search-sheet .routeform .primary{min-height:52px;border-radius:12px;background:#1768ed!important;border-color:#1768ed!important;font-size:16px}
+ .nav-search-sheet .routeform .timefield{width:100%}
+ .nav-search-sheet .pick-controls{display:none}
+ .nav-search-sheet .privacy-note{font-size:11px}
+ .nav-search-sheet .places{padding:0}
+ .nav-search-sheet .places li button{width:100%;text-align:left;background:white;border:0;border-bottom:1px solid #e8edf3;border-radius:0;display:flex;flex-direction:column;gap:5px;padding:13px 8px}
+ .nav-search-sheet .places li button strong{font-size:15px}
+ .nav-search-sheet .places li button small{font-size:12px;color:#7b899a}
+ .nav-route-result:not([hidden]){bottom:calc(68px + env(safe-area-inset-bottom))}
+ body.nav-route-open .map-canvas{height:calc(100dvh - 425px)!important}
+ body.nav-route-open .map-legend,body.nav-route-open .map-actions,body.nav-route-open .route-summary{display:none!important}
+ .map-floating{display:none!important}
+ .workspace>.road-inspector{display:none!important}
+ .map-toolbar{display:none!important}
+ .map-canvas{height:calc(100dvh - 138px)!important;min-height:320px!important}
+ .map-legend,.map-actions,.route-summary{display:none!important}
+ body.nav-route-open .map-canvas{height:calc(100dvh - 365px)!important}
+ .topbar .brand small{display:none}
+}
+@media(prefers-reduced-motion:reduce){.nav-search-sheet,.nav-route-result{animation:none!important}}
+
+
+@media(max-width:900px){
+ .nav-favorites{padding-top:15px;margin-top:14px;border-top:1px solid #e9edf3}
+ #navFavoritesList,#navRecentList{display:flex;flex-direction:column}
+ .nav-place-row{display:flex;align-items:center;border-bottom:1px solid #edf1f5;background:#fff;min-height:62px}
+ .nav-place-row .nav-place-pick{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;padding:12px 6px;border:0;background:transparent;text-align:left;border-radius:0}
+ .nav-place-row .nav-place-pick strong{font-size:14px;color:#27384b}
+ .nav-place-row .nav-place-pick small{font-size:11px;color:#8190a0}
+ .nav-favorite-toggle{flex:0 0 43px!important;width:43px!important;min-height:45px!important;border:0!important;background:transparent!important;color:#1768ed!important;font-size:25px!important;padding:4px!important}
+ .nav-suggestion-row .nav-place-row{width:100%}
+ .nav-search-sheet .places li.nav-suggestion-row button.nav-place-pick{width:auto!important}
+ .nav-local-note{font-size:11px;color:#8a96a4;line-height:1.5}
+}
+
+
+@media(max-width:900px){
+ .nav-query-history{margin-top:15px;padding-top:15px;border-top:1px solid #e9edf3}
+ #navQueryHistoryList{display:flex;flex-direction:column}
+ #navQueryHistoryList button{border:0;border-bottom:1px solid #edf1f5;background:white;text-align:left;padding:13px 8px;font-size:14px;color:#33465b}
+}
+
+
+@media(max-width:900px){
+ .drive-home-bar #navMyLocation.nav-map-locate{display:flex!important;align-items:center;justify-content:center;flex:0 0 46px;width:46px;height:46px;min-width:46px;border-radius:50%!important;border:1px solid #e0e7ef!important;background:#fff!important;color:#273d55!important;box-shadow:0 3px 13px rgba(20,40,70,.16)!important;padding:0!important}
+ .drive-home-bar #navMyLocation.nav-map-locate svg{width:24px;height:24px;display:block}
+ .drive-home-bar #navMyLocation.nav-map-locate:active{background:#eaf2ff!important;transform:scale(.96)}
+ .drive-home-bar #navMyLocation.nav-map-locate:focus-visible{outline:3px solid #1768ed;outline-offset:3px}
+}
+
+
+/* Edge-to-edge navigation home: the street map is the entire mobile background. */
+@media(max-width:900px){
+ html,body{width:100%;min-height:100%;margin:0!important;overflow-x:hidden;background:#e9eff7!important}
+ .topbar{display:none!important}
+ .dashboard{position:relative!important;display:block!important;width:100%!important;height:100dvh!important;min-height:100dvh!important;margin:0!important;padding:0!important;overflow:hidden!important;background:transparent!important}
+ .dashboard .workspace{position:static!important;display:block!important;width:100%!important;height:100%!important;min-height:0!important;padding:0!important;margin:0!important;background:transparent!important}
+ .dashboard .map-panel{display:contents!important}
+ .dashboard .map-canvas{position:fixed!important;inset:0!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100vw!important;height:100dvh!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;overflow:hidden!important;z-index:0!important}
+ .dashboard .map-canvas>.real-map,.dashboard .map-canvas>.schematic,.dashboard .map-canvas>#actualRoute{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;border-radius:0!important}
+ .dashboard .map-canvas>[hidden]{display:none!important}
+ .drive-home-bar{position:fixed!important;top:calc(12px + env(safe-area-inset-top))!important;left:12px!important;right:12px!important;z-index:600!important}
+ .nav-bottom-bar{position:fixed!important;bottom:0!important;z-index:650!important}
+ .nav-search-sheet:not([hidden]){inset:0!important;padding-top:calc(14px + env(safe-area-inset-top))!important}
+ .nav-route-result:not([hidden]){z-index:640!important}
+ body.nav-route-open .dashboard .map-canvas{height:100dvh!important}
+ .map-notice{position:absolute;top:84px;left:12px;right:12px;z-index:20}
+ footer{display:none!important}
+}
+
+
+/* Floating road/satellite selector over the edge-to-edge mobile map. */
+.nav-map-layer-control{display:none}
+@media(max-width:900px){
+ .nav-map-layer-control{display:flex;position:fixed;right:12px;bottom:calc(83px + env(safe-area-inset-bottom));z-index:610;gap:0;align-items:center;padding:4px;border:1px solid #e0e6ee;border-radius:15px;background:rgba(255,255,255,.97);box-shadow:0 4px 18px #172b4733;backdrop-filter:blur(8px)}
+ .nav-map-layer-control button{display:flex;align-items:center;gap:5px;justify-content:center;min-height:42px;padding:0 11px;border:0;border-radius:11px;background:transparent;color:#4e6075;font-size:12px;font-weight:700;white-space:nowrap}
+ .nav-map-layer-control button span{font-size:18px;line-height:1}
+ .nav-map-layer-control button[aria-pressed="true"]{background:#1768ed;color:white}
+ .nav-map-layer-control button:focus-visible{outline:3px solid #1768ed;outline-offset:2px}
+ body.nav-sheet-open .nav-map-layer-control{display:none}
+ body.nav-route-open .nav-map-layer-control{bottom:calc(330px + env(safe-area-inset-bottom))}
+}
+
+/* Place the road/satellite selector at the lower-left of the map. */
+@media(max-width:900px){.nav-map-layer-control{left:12px!important;right:auto!important}}
+
+
+/* Four-function bottom navigation and truthful map layer controls. */
+@media(max-width:900px){
+ .nav-bottom-bar{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+ .nav-bottom-bar button{min-width:0!important;font-size:22px!important}
+ .nav-bottom-bar button span{font-size:10px!important;white-space:nowrap}
+ .nav-layers-sheet:not([hidden]){display:block;position:fixed;left:0;right:0;bottom:calc(68px + env(safe-area-inset-bottom));z-index:840;background:#fff;border-radius:22px 22px 0 0;padding:18px 18px 22px;box-shadow:0 -8px 28px #172b4733;max-height:65dvh;overflow-y:auto;animation:navRise .22s ease-out}
+ .nav-layers-head{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:18px}
+ .nav-layers-head button{width:34px;height:34px;border:0;border-radius:50%;background:#f0f3f8;font-size:17px}
+ .nav-layers-sheet>p{font-size:12px;color:#6a7c8e;margin:9px 0 15px}
+ .nav-layer-row{display:flex;justify-content:space-between;align-items:center;gap:14px;min-height:72px;border-top:1px solid #edf1f5;padding:12px 2px}
+ .nav-layer-row span{display:flex;flex-direction:column;gap:5px}
+ .nav-layer-row b{font-size:15px;color:#263a50}
+ .nav-layer-row small{font-size:11px;color:#738499;line-height:1.4}
+ .nav-layer-row input{flex:none;appearance:auto;width:20px;height:20px;accent-color:#1768ed}
+ .nav-layer-unavailable{opacity:.55}
+ .nav-layers-sheet .nav-layer-note{border-top:1px solid #edf1f5;padding-top:12px;font-size:11px;line-height:1.5}
+ body:has(.nav-layers-sheet:not([hidden])) .nav-map-layer-control{display:none}
+}
+@media(min-width:901px){.nav-layers-sheet{display:none}}
+
+
+/* Map and bottom navigation occupy separate, non-overlapping viewport regions. */
+@media(max-width:900px){
+ :root{--sunny-bottom-nav-height:calc(68px + env(safe-area-inset-bottom,0px))}
+ html,body{height:100%;overflow:hidden!important}
+ .dashboard{height:calc(100dvh - var(--sunny-bottom-nav-height))!important;min-height:0!important;overflow:hidden!important}
+ .dashboard .workspace{height:100%!important;min-height:0!important}
+ .dashboard .map-canvas,
+ body.nav-route-open .dashboard .map-canvas{
+  position:fixed!important;
+  top:0!important;right:0!important;
+  bottom:var(--sunny-bottom-nav-height)!important;left:0!important;
+  width:100%!important;
+  height:calc(100dvh - var(--sunny-bottom-nav-height))!important;
+  min-height:0!important;max-height:none!important;
+  box-sizing:border-box!important;
+ }
+ .nav-bottom-bar{
+  position:fixed!important;left:0!important;right:0!important;bottom:0!important;
+  height:var(--sunny-bottom-nav-height)!important;
+  min-height:0!important;
+  box-sizing:border-box!important;
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  padding:5px 8px calc(5px + env(safe-area-inset-bottom,0px))!important;
+  background:#fff!important;
+  z-index:650!important;
+ }
+ .nav-bottom-bar button{height:100%!important;min-height:0!important}
+ .nav-map-layer-control{bottom:calc(var(--sunny-bottom-nav-height) + 12px)!important}
+ .nav-layers-sheet:not([hidden]),.nav-route-result:not([hidden]){bottom:var(--sunny-bottom-nav-height)!important}
+ body.nav-route-open .nav-map-layer-control{bottom:calc(var(--sunny-bottom-nav-height) + 260px)!important}
+ .nav-search-sheet:not([hidden]){bottom:var(--sunny-bottom-nav-height)!important;padding-bottom:24px!important}
+}
+
+
+/* Ensure map type controls stay tappable above Leaflet/Kakao map gesture layers. */
+@media(max-width:900px){
+ .nav-map-layer-control{
+  position:fixed!important;
+  z-index:1200!important;
+  pointer-events:auto!important;
+  isolation:isolate!important;
+  touch-action:manipulation!important;
+ }
+ .nav-map-layer-control button{
+  position:relative!important;
+  z-index:1!important;
+  pointer-events:auto!important;
+  cursor:pointer!important;
+  touch-action:manipulation!important;
+  -webkit-tap-highlight-color:rgba(23,104,237,.16);
+ }
+ .nav-map-layer-control button[aria-busy="true"]{opacity:.7}
+ body.nav-sheet-open .nav-map-layer-control,
+ body:has(.nav-layers-sheet:not([hidden])) .nav-map-layer-control{display:none!important}
+}
+
+
+/* Thumbnail map-type switch, matching the supplied compact image-button layout. */
+@media(max-width:900px){
+ .nav-map-layer-control{gap:7px!important;padding:5px!important;border-radius:11px!important;background:rgba(255,255,255,.97)!important}
+ .nav-map-layer-control button{
+  display:flex!important;flex-direction:column!important;gap:0!important;
+  width:61px!important;min-width:61px!important;height:58px!important;min-height:58px!important;
+  padding:2px!important;border:2px solid transparent!important;border-radius:7px!important;
+  overflow:hidden!important;background:#fff!important;color:#14283f!important;
+  box-shadow:none!important;
+ }
+ .nav-map-layer-control button[aria-pressed="true"]{border-color:#1768ed!important;background:#fff!important;color:#1768ed!important}
+ .nav-map-layer-control button .nav-map-thumb{display:block!important;width:100%;height:38px;flex:0 0 38px;border-radius:3px 3px 0 0}
+ .nav-map-layer-control button .nav-map-thumb-label{display:block!important;width:100%;font-size:10px!important;line-height:14px!important;font-weight:800!important;text-align:center!important}
+ .nav-map-layer-control button .nav-road-thumb{
+  background:
+   linear-gradient(110deg,transparent 42%,#f3bd56 43% 48%,#fff 49% 51%,#f3bd56 52% 56%,transparent 57%),
+   linear-gradient(15deg,transparent 44%,#8ec9ed 45% 52%,transparent 53%),
+   repeating-linear-gradient(0deg,transparent 0 13px,#d5dce2 14px 15px,transparent 16px 23px),
+   #eef3e8;
+ }
+ .nav-map-layer-control button .nav-satellite-thumb{
+  background:
+   radial-gradient(ellipse at 20% 10%,#7fa9bb 0 17%,transparent 19%),
+   linear-gradient(130deg,#284a38 0 20%,#729077 22% 29%,#2e6047 32% 45%,#8da887 47% 54%,#315940 57% 70%,#24493b 75%),
+   #365c48;
+ }
+}
+
+
+/* Sunny SAI brand header stays above search without covering map controls. */
+.sunny-mobile-brand-banner{display:none}
+@media(max-width:900px){
+ .sunny-mobile-brand-banner{
+  display:flex!important;position:fixed;top:0;left:0;right:0;
+  height:calc(64px + env(safe-area-inset-top,0px));
+  padding:calc(8px + env(safe-area-inset-top,0px)) 17px 8px;
+  box-sizing:border-box;align-items:center;gap:10px;
+  background:rgba(255,255,255,.98);border-bottom:1px solid #e2e8f0;
+  box-shadow:0 2px 10px #203c5915;z-index:620;
+  pointer-events:none;
+ }
+ .sunny-mobile-brand-symbol{font-size:31px;color:#f7a928;line-height:1}
+ .sunny-mobile-brand-copy{display:flex;flex-direction:column;gap:1px;line-height:1}
+ .sunny-mobile-brand-copy strong{font-size:21px;font-weight:850;letter-spacing:-.6px;color:#152c47}
+ .sunny-mobile-brand-copy em{font-style:normal;color:#1768ed}
+ .sunny-mobile-brand-copy small{font-size:9px;letter-spacing:1.8px;font-weight:800;color:#61758d}
+ .drive-home-bar{top:calc(74px + env(safe-area-inset-top,0px))!important}
+ .nav-search-sheet:not([hidden]){padding-top:calc(78px + env(safe-area-inset-top,0px))!important}
+ .map-notice{top:calc(146px + env(safe-area-inset-top,0px))!important}
+}
+
+
+/* Place the tagline beside the Sunny SAI wordmark, aligned near its lower edge. */
+@media(max-width:900px){
+ .sunny-mobile-brand-copy{flex-direction:row!important;align-items:baseline!important;gap:9px!important;white-space:nowrap!important}
+ .sunny-mobile-brand-copy small{font-size:8px!important;letter-spacing:.75px!important;align-self:flex-end!important;margin-bottom:2px!important}
+}
+
+@media(max-width:900px){.sunny-mobile-brand-copy .sunny-brand-red-s{color:#e53935!important}}
+
+@media(max-width:900px){.sunny-mobile-brand-symbol.sunny-taegeuk-sun{display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 42px;width:42px;height:42px}.sunny-taegeuk-sun svg{display:block;width:42px;height:42px;max-width:none}}
+
+
+/* Mobile viewport partition: banner / usable map / bottom controls never overlap. */
+@media(max-width:900px){
+ :root{
+  --sunny-header-height:calc(64px + env(safe-area-inset-top,0px));
+  --sunny-map-bottom:var(--sunny-bottom-nav-height,calc(68px + env(safe-area-inset-bottom,0px)));
+ }
+ .sunny-mobile-brand-banner{height:var(--sunny-header-height)!important}
+ .dashboard .map-canvas,
+ body.nav-route-open .dashboard .map-canvas{
+  top:var(--sunny-header-height)!important;
+  bottom:var(--sunny-map-bottom)!important;
+  height:calc(100dvh - var(--sunny-header-height) - var(--sunny-map-bottom))!important;
+  max-height:calc(100dvh - var(--sunny-header-height) - var(--sunny-map-bottom))!important;
+ }
+ .nav-bottom-bar{bottom:0!important;z-index:1300!important}
+ .nav-map-layer-control{bottom:calc(var(--sunny-map-bottom) + 12px)!important}
+ body.nav-route-open .nav-map-layer-control{bottom:calc(var(--sunny-map-bottom) + 260px)!important}
+ .drive-home-bar{top:calc(var(--sunny-header-height) + 10px)!important}
+ .nav-search-sheet:not([hidden]){top:var(--sunny-header-height)!important;max-height:calc(100dvh - var(--sunny-header-height) - var(--sunny-map-bottom))!important}
+ .nav-layers-sheet:not([hidden]),.nav-route-result:not([hidden]){max-height:calc(100dvh - var(--sunny-header-height) - var(--sunny-map-bottom))!important;overflow-y:auto!important}
+}
+
+/* Reference-inspired bottom navigation: white background, line icons over labels. */
+@media(max-width:900px){
+ .nav-bottom-bar{background:#fff!important;border-top:1px solid #e5eaf0!important;box-shadow:0 -2px 10px rgba(18,40,70,.06)!important}
+ .nav-bottom-bar button{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:4px!important;padding:5px 2px!important;background:transparent!important;color:#4a5565!important;font-size:inherit!important;line-height:1.1!important}
+ .nav-bottom-bar .nav-bottom-icon{display:block;width:21px;height:21px;flex:none;stroke:currentColor}
+ .nav-bottom-bar button span{display:block;font-size:11px!important;font-weight:600!important;line-height:1.2!important}
+ .nav-bottom-bar button[aria-current="page"],.nav-bottom-bar button[aria-expanded="true"]{color:#1768ed!important}
+ .nav-bottom-bar button:focus-visible{outline:2px solid #1768ed;outline-offset:-3px;border-radius:8px}
+}
+
+/* Keep compact search and locate controls clear of right-side map zoom controls. */
+@media(max-width:900px){
+ .drive-home-bar{
+  left:12px!important;
+  right:clamp(66px,18vw,92px)!important;
+  gap:7px!important;
+  align-items:center!important;
+ }
+ .drive-home-bar #navSearchOpen{
+  min-width:0!important;flex:1 1 auto!important;
+  height:42px!important;min-height:42px!important;
+  padding:0 10px!important;gap:7px!important;
+  border-radius:12px!important;font-size:13px!important;
+  overflow:hidden!important;
+ }
+ .drive-home-bar #navSearchOpen span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .drive-home-bar #navSearchOpen .nav-search-symbol{font-size:22px!important;flex:none}
+ .drive-home-bar #navMyLocation.nav-map-locate{
+  flex:0 0 40px!important;width:40px!important;min-width:40px!important;
+  height:40px!important;min-height:40px!important;
+ }
+ .drive-home-bar #navMyLocation.nav-map-locate svg{width:21px!important;height:21px!important}
+}
+@media(max-width:360px){.drive-home-bar{right:58px!important;left:8px!important;gap:5px!important}.drive-home-bar #navSearchOpen{padding:0 7px!important;font-size:12px!important}}
+
+/* Final mobile alignment: reserve a full zoom-sidebar lane at the right edge. */
+@media(max-width:900px){
+ .drive-home-bar{
+  left:12px!important;
+  right:calc(88px + env(safe-area-inset-right,0px))!important;
+  max-width:none!important;
+  gap:8px!important;
+ }
+ .drive-home-bar #navSearchOpen{min-width:0!important;max-width:100%!important}
+ .drive-home-bar #navMyLocation.nav-map-locate{flex-shrink:0!important}
+}
+@media(max-width:390px){
+ .drive-home-bar{left:8px!important;right:calc(74px + env(safe-area-inset-right,0px))!important;gap:6px!important}
+ .drive-home-bar #navSearchOpen{padding:0 8px!important}
+}
+
+/* Destination search: six compact favorite slots, three recent places and inline suggestions. */
+@media(max-width:900px){
+ .nav-search-sheet #navFavoritesSection{display:block!important;margin-top:20px!important}
+ .nav-search-sheet #navFavoritesList{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:9px!important;margin-top:12px!important}
+ .nav-search-sheet .nav-favorite-tile,.nav-search-sheet .nav-favorite-empty{position:relative;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;min-width:0!important;height:88px!important;border:1px solid #e2e9f2!important;border-radius:13px!important;background:#f8faff!important;overflow:hidden!important}
+ .nav-search-sheet .nav-favorite-tile .nav-place-pick{width:100%!important;min-width:0!important;flex:1!important;align-items:center!important;text-align:center!important;gap:4px!important;padding:10px 6px 4px!important}
+ .nav-search-sheet .nav-favorite-tile .nav-place-pick strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px!important}
+ .nav-search-sheet .nav-favorite-tile .nav-place-pick small{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px!important}
+ .nav-search-sheet .nav-favorite-tile .nav-favorite-toggle{position:absolute;top:1px;right:1px;width:25px!important;min-height:25px!important;height:25px!important;flex:none!important;font-size:17px!important;padding:0!important}
+ .nav-search-sheet .nav-favorite-empty{gap:4px!important;color:#7d8da0!important;font-size:12px!important;cursor:pointer}
+ .nav-search-sheet .nav-favorite-empty span{font-size:24px!important;line-height:1!important;color:#1768ed!important}
+ .nav-search-sheet .nav-favorite-empty small{font-size:11px!important}
+ .nav-search-sheet #navRecentList{display:flex!important;flex-direction:column!important}
+ .nav-search-sheet .routeform #places{list-style:none!important;margin:3px 0 10px!important;padding:0!important;max-height:260px;overflow-y:auto;border-radius:10px;background:#fff}
+ .nav-search-sheet .routeform #places:empty{display:none!important}
+ .nav-search-sheet .routeform #places li{list-style:none!important}
+ .nav-search-sheet .routeform #places .nav-suggestion-row{border-bottom:1px solid #edf1f5}
+ .nav-search-sheet .routeform #places .nav-suggestion-row .nav-place-row{min-height:54px!important}
+ .nav-search-sheet .routeform #places .nav-suggestion-row .nav-place-pick{padding:9px 7px!important}
+ .nav-search-sheet .nav-recent-title strong{font-size:15px}
+}
+
+/* Clean destination-first navigation search; origin defaults to geolocation. */
+@media(max-width:900px){
+ .nav-search-sheet #navQueryHistorySection{display:none!important}
+ .nav-search-sheet .nav-origin-field{display:flex!important;align-items:center!important;gap:4px!important}
+ .nav-search-sheet .nav-origin-field #origin{flex:1 1 auto!important;min-width:0!important;text-overflow:ellipsis!important}
+ .nav-search-sheet .nav-origin-field #origin[readonly]{color:#405a75!important}
+ .nav-search-sheet .nav-origin-field #originSearchToggle{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;width:60px!important;min-width:60px!important;padding:0 5px!important;height:38px!important;font-size:12px!important;font-weight:700!important;border-radius:9px!important;background:#eaf2ff!important;color:#1768ed!important;border:1px solid #cfe1ff!important}
+ .nav-search-sheet .nav-origin-field #locate{flex:0 0 34px!important;width:34px!important;min-width:34px!important;height:38px!important;padding:0!important}
+ .nav-search-sheet #navFavoritesSection{margin-top:17px!important}
+ .nav-search-sheet #navRecentSection{margin-top:17px!important}
+}
+
+/* Sunny Route Studio — completely refreshed, purpose-built mobile search UI. */
+@media(max-width:900px){
+ .nav-search-sheet:not([hidden]){background:#f6f8fc!important;padding:0 17px calc(110px + env(safe-area-inset-bottom))!important}
+ .nav-search-sheet .nav-sheet-head{position:sticky;top:0;z-index:4;background:#f6f8fc;padding:19px 1px 12px!important;font-size:14px!important;color:#52657d}
+ .nav-search-sheet .nav-sheet-head strong{font-size:14px!important;letter-spacing:.02em}
+ .nav-search-sheet #navSearchSlot{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip-path:inset(50%)!important;pointer-events:none!important}
+ .nav-search-sheet .sunny-route-studio{display:block!important}
+ .studio-heading{padding:16px 2px 18px}
+ .studio-kicker{display:block;color:#2873e9;font-size:10px;font-weight:800;letter-spacing:.2em}
+ .studio-heading h2{margin:7px 0 5px!important;font-size:27px!important;font-weight:800!important;letter-spacing:-1.3px;color:#172b46}
+ .studio-heading p{margin:0!important;font-size:12px;color:#78899d}
+ .studio-search{height:55px;display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #dce6f3;border-radius:16px;padding:0 14px;box-shadow:0 5px 20px #163e6c0b}
+ .studio-search>span{font-size:27px;color:#2873e9;line-height:1}
+ .studio-search input{border:0!important;outline:none!important;box-shadow:none!important;background:transparent!important;min-width:0!important;width:100%!important;flex:1!important;font-size:15px!important;color:#193452!important;padding:0!important}
+ .studio-search input::-webkit-search-cancel-button{display:none}
+ .studio-search button{background:transparent!important;border:0!important;color:#91a0b3!important;font-size:23px!important;padding:0 4px!important}
+ .studio-results:not([hidden]){display:flex;flex-direction:column;gap:0;background:#fff;margin-top:9px;border:1px solid #e2eaf4;border-radius:15px;overflow:hidden;box-shadow:0 9px 28px #142d4a10;max-height:330px;overflow-y:auto}
+ .studio-result-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 11px;border-bottom:1px solid #edf1f6}
+ .studio-result-row:first-child{background:#eef5ff}
+ .studio-result-info{display:flex;flex-direction:column;min-width:0;flex:1;gap:4px}
+ .studio-result-info strong{font-size:13px;color:#233a57;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .studio-result-info small{font-size:10px;color:#7b8da3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .studio-result-actions{display:flex;flex-shrink:0;gap:5px}
+ .studio-action{border:0!important;border-radius:8px!important;background:#2873e9!important;color:white!important;padding:8px 10px!important;font-size:11px!important;font-weight:800!important;min-height:32px!important}
+ .studio-action.secondary{background:#e6eefb!important;color:#2873e9!important}
+ .studio-search-status{margin:0;padding:10px 12px;font-size:12px;color:#8795a5}
+ .studio-route{background:#fff;border:1px solid #e4ebf4;border-radius:20px;margin-top:19px;padding:17px 15px 15px;box-shadow:0 6px 25px #142d4a0b}
+ .studio-route-title{display:flex;justify-content:space-between;align-items:center}
+ .studio-route-title strong{font-size:15px;color:#1b3452}
+ .studio-route-title span{font-size:9px;letter-spacing:.13em;color:#a0aec0;font-weight:800}
+ .studio-route-points{display:flex;align-items:center;gap:6px;margin:19px 0 17px}
+ .studio-point{flex:1;display:flex;gap:7px;align-items:center;min-width:0}
+ .studio-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+ .studio-dot.origin{background:#23b68a}.studio-dot.dest{background:#ef6b5c}
+ .studio-point>div{min-width:0;display:flex;flex-direction:column;gap:4px}
+ .studio-point small{font-size:10px;color:#96a3b4}
+ .studio-point strong{font-size:12px;color:#263b56;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .studio-route-arrow{font-size:20px;color:#7a91af;flex-shrink:0}
+ .studio-route-button{display:flex!important;align-items:center;justify-content:center;gap:12px;width:100%!important;min-height:49px!important;border:0!important;border-radius:13px!important;background:#1768e9!important;color:#fff!important;font-weight:800!important;font-size:15px!important}
+ .studio-route-button span{font-size:20px}
+ .nav-search-sheet #navFavoritesSection{margin-top:25px!important;border:0!important;padding-top:0!important}
+ .nav-search-sheet #navFavoritesList{margin-top:12px!important}
+ .nav-search-sheet .nav-favorite-tile,.nav-search-sheet .nav-favorite-empty{background:#fff!important;border:1px solid #e3eaf4!important;border-radius:14px!important;box-shadow:0 4px 12px #142d4a08}
+ .studio-favorite-tile{gap:6px!important;padding:13px 5px 6px!important}
+ .studio-favorite-tile>strong{font-size:12px;color:#253d5b;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .studio-favorite-actions{display:flex;gap:3px;width:100%}
+ .studio-favorite-actions .studio-action{flex:1;min-width:0;padding:5px 1px!important;font-size:10px!important;min-height:27px!important}
+ .studio-favorite-remove{position:absolute;top:0;right:2px;border:0!important;background:transparent!important;font-size:17px!important;color:#a4b1c0!important;padding:0 3px!important}
+ .nav-search-sheet #navRecentSection{border-top:1px solid #e5ebf3;margin-top:24px!important;padding-top:19px}
+ .nav-search-sheet .nav-local-note{font-size:10px}
+}
+
+/* Approved reference layout: clean white search, blue route button, six favorite slots. */
+@media(max-width:900px){
+ .nav-search-sheet:not([hidden]){background:#fff!important;padding:0 16px calc(95px + env(safe-area-inset-bottom))!important}
+ .nav-search-sheet .nav-sheet-head{background:#fff!important;justify-content:center!important;position:sticky!important;min-height:54px!important;padding:10px 0 13px!important}
+ .nav-search-sheet .nav-sheet-head strong{font-size:22px!important;color:#101e38!important;font-weight:850!important}
+ .nav-search-sheet .nav-sheet-head button{position:absolute!important;right:0;top:9px}
+ .studio-search{border:1.5px solid #2674ff!important;border-radius:15px!important;height:54px!important;box-shadow:0 2px 9px #174fbd17!important}
+ .studio-results:not([hidden]){margin-top:13px!important;max-height:250px!important;border-radius:16px!important;box-shadow:0 5px 18px #18385b13!important}
+ .studio-result-row:first-child{background:#f2f7ff!important}
+ .studio-result-row{padding:12px!important}
+ .studio-result-info strong{font-size:14px!important}
+ .studio-result-info small{font-size:11px!important}
+ .studio-action{border-radius:10px!important;font-size:12px!important;padding:8px 12px!important}
+ .studio-action.secondary{border:1px solid #2773ee!important;background:#fff!important;color:#1768e9!important}
+ .studio-route{position:relative;margin-top:18px!important;padding:15px!important;border-radius:17px!important;box-shadow:0 5px 20px #173a6a12!important}
+ .studio-route-points{margin:0 0 16px!important;gap:8px!important}
+ .studio-point{background:#f3f7ff!important;border-radius:12px!important;padding:12px 9px!important;min-height:68px!important}
+ .studio-point:last-of-type{background:#fff3f6!important}
+ .studio-point small{font-size:11px!important;font-weight:700!important;color:#2b6de3!important}
+ .studio-point:last-of-type small{color:#df466b!important}
+ .studio-point strong{font-size:13px!important;color:#142746!important}
+ .studio-dot{width:9px!important;height:9px!important}
+ .studio-route-arrow{background:#f0f3f9;border-radius:50%;width:30px;height:30px;display:grid;place-items:center;font-size:18px!important}
+ .studio-swap{position:absolute;right:18px;top:16px;border:1px solid #d7e4f7!important;background:#fff!important;color:#547198!important;border-radius:50%!important;width:28px!important;height:28px!important;padding:0!important;line-height:1!important;font-size:18px!important}
+ .studio-route-button{background:linear-gradient(110deg,#38a5fa,#1760ed)!important;border-radius:12px!important;min-height:49px!important;box-shadow:0 5px 12px #1768ed1a}
+ .nav-search-sheet #navFavoritesSection{margin-top:22px!important}
+ .nav-search-sheet .nav-recent-title{display:flex!important;align-items:center!important;gap:8px!important}
+ .nav-search-sheet .nav-recent-title strong{font-size:17px!important;color:#182b48!important}
+ .nav-search-sheet .nav-recent-title small{margin-left:auto!important;font-size:11px!important;color:#8292aa!important}
+ .nav-search-sheet #navFavoritesList{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:9px!important}
+ .nav-search-sheet .nav-favorite-empty,.nav-search-sheet .nav-favorite-tile{height:83px!important;min-height:83px!important;border-radius:13px!important;background:#f4f8ff!important;border:1px solid #d4e3ff!important}
+ .nav-search-sheet .nav-favorite-empty span{font-size:29px!important;color:#4386ec!important}
+ .nav-search-sheet .nav-favorite-empty small{font-size:11px!important;color:#2a4163!important}
+ .studio-favorite-tile{position:relative!important;padding:18px 5px 5px!important}
+ .studio-favorite-tile>strong{font-size:11px!important}
+ .studio-favorite-actions{margin-top:3px!important}
+ .studio-favorite-actions .studio-action{font-size:10px!important;padding:5px 1px!important}
+ .nav-search-sheet #navRecentSection{margin-top:20px!important}
+ .nav-search-sheet #navRecentList .studio-recent-row{background:#fff!important;border-bottom:1px solid #e6ebf2!important;padding:13px 3px!important}
+ .nav-search-sheet #navRecentList .studio-recent-row .studio-result-info strong{font-size:14px!important}
+ .nav-search-sheet #navRecentList .studio-recent-row .studio-result-info small{font-size:11px!important}
+}
+
+/* Swap control belongs between route endpoints, never on the destination card. */
+@media(max-width:900px){
+ .studio-route-points .studio-swap{position:static!important;flex:0 0 34px!important;width:34px!important;height:34px!important;display:grid!important;place-items:center!important;border:1px solid #cbdcf7!important;border-radius:50%!important;background:#edf4ff!important;color:#1e6be7!important;font-size:21px!important;font-weight:800!important;line-height:1!important;padding:0!important;box-shadow:none!important}
+ .studio-route-points .studio-point{min-width:0!important;flex:1 1 0!important}
+ .studio-route-points .studio-point:last-of-type{background:#fff3f6!important}
+}

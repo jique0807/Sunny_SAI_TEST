@@ -8,8 +8,83 @@ const {voiceCatalog}=await import('/voice-catalog.mjs');
 const {pointAlong}=await import('/journey.mjs');
 const {ahead,locate,RainGate}=await import('/rain-monitor.mjs');
 let demoOverlays=[],carOverlay=null;
+
+/* Navigation-first mobile shell. Existing services remain available behind search. */
+const navSheet=document.getElementById('navSearchSheet');
+const navOpen=document.getElementById('navSearchOpen');
+const navClose=document.getElementById('navSearchClose');
+const navSlot=document.getElementById('navSearchSlot');
+const navPlanner=document.querySelector('.planner');
+const navPlannerHome=navPlanner?.parentElement;
+const navPlannerNext=navPlanner?.nextSibling;
+function showNavSearch(show){
+ if(!navSheet||!navPlanner)return;
+ if(show){if(typeof studioSync==='function')studioSync();if(typeof showNavLayers==='function')showNavLayers(false);setNavTab('navRoute');navSlot?.appendChild(navPlanner);const destField=document.getElementById('destination')?.closest('.field');const suggestions=document.getElementById('places');if(destField&&suggestions&&destField.nextElementSibling!==suggestions)destField.after(suggestions);navSheet.hidden=false;document.body.classList.add('nav-sheet-open');document.body.classList.remove('nav-route-open');if(!originPlace){const origin=document.getElementById('origin');if(origin)origin.value='현재 위치 확인 중…';document.getElementById('locate')?.click();}document.getElementById('destination')?.focus();}
+ else{if(navPlannerHome){if(navPlannerNext?.parentNode===navPlannerHome)navPlannerHome.insertBefore(navPlanner,navPlannerNext);else navPlannerHome.insertBefore(navPlanner,navPlannerHome.firstChild);}navSheet.hidden=true;document.body.classList.remove('nav-sheet-open');}
+ navOpen?.setAttribute('aria-expanded',String(show));
+}
+navOpen?.addEventListener('click',()=>showNavSearch(true));
+navClose?.addEventListener('click',()=>showNavSearch(false));
+const navLayersSheet=document.getElementById('navLayersSheet');
+function setNavTab(id){['navHome','navRoute','navLayers','navSettings'].forEach(x=>{const el=document.getElementById(x);if(el){if(x===id)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');}});}
+function showNavLayers(open){
+ if(!navLayersSheet)return;
+ navLayersSheet.hidden=!open;
+ document.getElementById('navLayers')?.setAttribute('aria-expanded',String(open));
+ if(open){showNavSearch(false);setNavTab('navLayers');}
+ else setNavTab(document.getElementById('navSearchSheet')?.hidden?'navHome':'navRoute');
+}
+document.getElementById('navHome')?.addEventListener('click',()=>{
+ // Home must restore the map, not merely change the active bottom tab.
+ showNavLayers(false);
+ const routeResult=document.getElementById('navRouteResult');if(routeResult)routeResult.hidden=true;
+ showNavSearch(false);
+ document.body.classList.remove('nav-route-open','nav-sheet-open');
+ const settings=document.getElementById('settings');if(settings?.open)settings.close();
+ setNavTab('navHome');
+ const map=document.getElementById('map');
+ if(map){map.scrollIntoView({block:'start',behavior:'smooth'});}
+ else window.scrollTo({top:0,behavior:'smooth'});
+ // Clear leftover focus from hidden search fields on mobile browsers.
+ if(document.activeElement?.closest?.('#navSearchSheet'))document.activeElement.blur();
+});
+document.getElementById('navRoute')?.addEventListener('click',()=>{
+ showNavLayers(false);
+ if(document.getElementById('navRouteResult')?.hidden===false){document.body.classList.add('nav-route-open');showNavSearch(false);}
+ else showNavSearch(true);
+ setNavTab('navRoute');
+});
+document.getElementById('navLayers')?.addEventListener('click',()=>showNavLayers(navLayersSheet?.hidden!==false));
+document.getElementById('navLayersClose')?.addEventListener('click',()=>showNavLayers(false));
+document.getElementById('navMyLocation')?.addEventListener('click',()=>requestHomeLocation(true));
+document.getElementById('navSettings')?.addEventListener('click',()=>{
+ showNavLayers(false);showNavSearch(false);setNavTab('navSettings');
+ document.getElementById('settingsOpen')?.click();
+});
+document.getElementById('settings')?.addEventListener('close',()=>setNavTab('navHome'));
+document.getElementById('navLayerWeather')?.addEventListener('change',()=>drawWeatherOverlays());
+
 const $=id=>document.getElementById(id),escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let csrf='',advanced=false,mapConfig={},connections={},originPlace=null,destPlace=null,route=null,weather=null,sessionPromise=null,searchSeq=0,routeSeq=0,progress=0,timer=null,playing=false,activeAudio=null,voiceSeq=0,finishVoice=null,recognition=null,kmap=null,lmap=null,routePolyline=null,lroute=null,kmarker=null,lmarker=null,installPrompt=null;
+let homePosition=null,homeLocationMarker=null,homeLocationPending=false,osmMap=null,osmMarker=null,osmRoute=null;
+function centerHomeMap(){
+ if(!homePosition||route?.vertices?.length)return;
+ if(kmap&&(activeMap==='kakao'||activeMap==='skyview')&&window.kakao?.maps){
+  const p=new kakao.maps.LatLng(homePosition.lat,homePosition.lng);
+  kmap.setCenter(p);kmap.setLevel(4);
+  if(homeLocationMarker)homeLocationMarker.setMap(null);
+  homeLocationMarker=new kakao.maps.Marker({map:kmap,position:p,title:'현재 위치'});
+ }else if(lmap&&activeMap==='vworld'){lmap.setView([homePosition.lat,homePosition.lng],15);}else if(osmMap&&activeMap==='osm'){osmMap.setView([homePosition.lat,homePosition.lng],15);if(osmMarker)osmMarker.remove();osmMarker=L.circleMarker([homePosition.lat,homePosition.lng],{radius:8,color:'#fff',weight:3,fillColor:'#1768ed',fillOpacity:1}).addTo(osmMap).bindTooltip('현재 위치');}
+}
+function requestHomeLocation(manual=false){
+ if(!navigator.geolocation){if(manual)toast('이 브라우저는 위치를 지원하지 않습니다.');return;}
+ if(homeLocationPending)return;homeLocationPending=true;
+ navigator.geolocation.getCurrentPosition(p=>{
+  homeLocationPending=false;homePosition={lat:p.coords.latitude,lng:p.coords.longitude};
+  centerHomeMap();
+  studioSync();if(manual)toast('현재 위치로 지도를 이동했습니다.');
+ },e=>{homeLocationPending=false;if(manual)toast(e.code===1?'위치 권한을 허용해주세요.':'현재 위치를 확인할 수 없습니다.');},{enableHighAccuracy:true,timeout:12000,maximumAge:30000});
+}
 let activeMap='schematic',selectedSample=null,kfocus=null,lfocus=null,ksection=null,lsection=null,mapRun=0,pickTarget=null,kend=null,lend=null,tileLoaded=0,tileFailed=0;
 let weatherSeq=0;
 
@@ -20,7 +95,7 @@ function clearWeatherOverlays(){
 }
 function drawWeatherOverlays(){
  clearWeatherOverlays();
- if(!kmap||!route||route.demo||!['kakao','skyview'].includes(activeMap))return;
+ if(document.getElementById('navLayerWeather')?.checked===false||!kmap||!route||route.demo||!['kakao','skyview'].includes(activeMap))return;
  const samples=weather?.samples||[];
  const count=Math.min(Number($('weatherMarkerCount').value),samples.length);
  const selected=count===1?[samples[Math.floor(samples.length/2)]]:Array.from({length:count},(_,i)=>samples[Math.round(i*(samples.length-1)/(count-1))]);
@@ -118,14 +193,49 @@ $('previewVoice').onclick=async()=>{if(!advanced){$('keyStatus').textContent='�
 loadVoices();
 let suggestionTimer=null,suggestionField=null,suggestionQuery='',suggestionPlaces=[],suggestionRun=0;
 const searchList=$('places');
+$('originSearchToggle')?.addEventListener('click',()=>{const input=$('origin');if(!input)return;input.readOnly=false;input.value='';originPlace=null;input.focus();const suggestions=$('places');input.closest('.field')?.after(suggestions);});
 searchList.setAttribute('role','listbox');searchList.setAttribute('aria-label','장소 검색 결과');
 for(const field of ['origin','destination']){$(field).setAttribute('autocomplete','off');$(field).setAttribute('aria-controls','places');$(field).setAttribute('aria-autocomplete','list');}
 function clearSuggestions(){clearTimeout(suggestionTimer);suggestionRun++;suggestionField=null;suggestionQuery='';suggestionPlaces=[];searchList.replaceChildren();}
-function setPlace(field,p){if(field==='origin')originPlace=p;else destPlace=p;$(field).value=p.name;clearSuggestions();}
+const recentKey='sunny-nav-recent-v1',favoritesKey='sunny-nav-favorites-v1';
+const queriesKey='sunny-nav-search-queries-v1';
+function readQueries(){try{const a=JSON.parse(localStorage.getItem(queriesKey)||'[]');return Array.isArray(a)?a.filter(x=>typeof x==='string').slice(0,10):[];}catch{return [];}}
+function renderQueries(){const list=$('navQueryHistoryList'),section=$('navQueryHistorySection');if(!list)return;list.replaceChildren();const a=readQueries();if(section)section.hidden=!a.length;for(const q of a){const b=document.createElement('button');b.type='button';b.textContent='⌕  '+q;b.onclick=()=>{$('destination').value=q;destPlace=null;$('destination').focus();findSuggestions('destination',q);};list.append(b);}}
+function rememberQuery(q){q=String(q||'').trim();if(q.length<2)return;try{localStorage.setItem(queriesKey,JSON.stringify([q,...readQueries().filter(x=>x!==q)].slice(0,10)));}catch{}renderQueries();}
+$('navClearQueries')?.addEventListener('click',()=>{try{localStorage.removeItem(queriesKey);}catch{}renderQueries();});
+renderQueries();
+
+/* Sunny Route Studio: a new search experience with explicit start/end choices. */
+const studioQuery=$('studioQuery'),studioResults=$('studioResults');
+let studioTimer=null,studioRun=0,studioFavoriteMode=false;
+function studioSync(){const o=$('studioOriginLabel'),d=$('studioDestLabel');if(o)o.textContent=originPlace?.name||'현재 위치 확인 중';if(d)d.textContent=destPlace?.name||'목적지를 선택하세요';}
+function studioCurrent(){if(homePosition&&Number.isFinite(homePosition.lat)&&Number.isFinite(homePosition.lng))return{name:'현재 위치',lat:homePosition.lat,lng:homePosition.lng,address:'GPS 현재 위치'};if(originPlace?.name==='현재 위치')return originPlace;return null;}
+function studioSet(field,p){if(!p)return;setPlace(field,p);if(field==='destination')rememberDestination(p);studioFavoriteMode=false;studioQuery.value='';studioResults.hidden=true;studioSync();renderFavorites();}
+function studioButton(label,handler,secondary=false){const b=document.createElement('button');b.type='button';b.className='studio-action'+(secondary?' secondary':'');b.textContent=label;b.addEventListener('click',handler);return b;}
+function studioRow(p,isCurrent=false){const row=document.createElement('div');row.className='studio-result-row';const info=document.createElement('div');info.className='studio-result-info';const name=document.createElement('strong');name.textContent=p.name;const addr=document.createElement('small');addr.textContent=isCurrent?'GPS 기반 현재 위치':(p.address||'주소 정보 없음');info.append(name,addr);const actions=document.createElement('div');actions.className='studio-result-actions';if(studioFavoriteMode&&!isCurrent){actions.append(studioButton('저장',()=>{toggleFavorite(p);studioFavoriteMode=false;studioQuery.value='';studioResults.hidden=true;renderFavorites();}));}else{actions.append(studioButton('출발',()=>{if(isCurrent){const pos=studioCurrent();if(!pos){toast('현재 위치를 확인한 후 다시 선택해주세요.');$('locate')?.click();return;}p=pos;}studioSet('origin',p);},true),studioButton('도착',()=>{if(isCurrent){const pos=studioCurrent();if(!pos){toast('현재 위치를 확인한 후 다시 선택해주세요.');$('locate')?.click();return;}p=pos;}studioSet('destination',p);}));}row.append(info,actions);return row;}
+function studioShow(places=[],status=''){studioResults.replaceChildren();studioResults.hidden=false;studioResults.append(studioRow(studioCurrent()||{name:'현재 위치'},true));if(status){const note=document.createElement('p');note.className='studio-search-status';note.textContent=status;studioResults.append(note);}for(const p of places.slice(0,8))studioResults.append(studioRow(p));}
+async function studioSearch(q){const run=++studioRun;studioShow([],'검색 중…');try{const d=await api('/api/search',{query:q});if(run!==studioRun||studioQuery.value.trim()!==q)return;studioShow(d.places||[],(d.places||[]).length?'':'일치하는 장소가 없습니다. 다른 검색어를 입력해주세요.');}catch(e){if(run===studioRun)studioShow([],'검색 오류: '+e.message);}}
+studioQuery?.addEventListener('input',()=>{clearTimeout(studioTimer);studioRun++;const q=studioQuery.value.trim();if(q.length<2){studioShow([],q?'두 글자 이상 입력해주세요.':'');return;}studioTimer=setTimeout(()=>studioSearch(q),300);});
+studioQuery?.addEventListener('focus',()=>{if(!studioResults.hidden)return;const q=studioQuery.value.trim();if(q.length>=2)studioSearch(q);else studioShow();});
+$('studioSearchClear')?.addEventListener('click',()=>{studioQuery.value='';studioRun++;studioShow();studioQuery.focus();});
+$('studioSwap')?.addEventListener('click',()=>{if(!originPlace||!destPlace){toast('출발지와 목적지를 모두 선택한 뒤 바꿀 수 있습니다.');return;}const prev=originPlace;originPlace=destPlace;destPlace=prev;$('origin').value=originPlace.name;$('destination').value=destPlace.name;studioSync();});
+$('studioRouteSearch')?.addEventListener('click',()=>{if(!originPlace){const pos=studioCurrent();if(pos){originPlace=pos;$('origin').value=pos.name;}else{toast('출발지를 선택하거나 현재 위치 권한을 허용해주세요.');studioQuery.focus();return;}}if(!destPlace){toast('목적지를 먼저 선택해주세요.');studioQuery.focus();return;}studioSync();$('searchForm')?.requestSubmit();});
+$('origin')?.addEventListener('change',studioSync);$('destination')?.addEventListener('change',studioSync);
+function readFavorites(){try{const a=JSON.parse(localStorage.getItem(favoritesKey)||'[]');return Array.isArray(a)?a.filter(p=>p&&typeof p.name==='string'&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)).slice(0,6):[];}catch{return [];}}
+function saveFavorites(a){try{localStorage.setItem(favoritesKey,JSON.stringify(a.slice(0,6)));}catch{}renderFavorites();}
+function toggleFavorite(p){const a=readFavorites(),exists=a.some(x=>x.lat===p.lat&&x.lng===p.lng);if(!exists&&a.length>=6){toast('즐겨찾기는 최대 6개입니다. 기존 장소를 해제한 뒤 추가해주세요.');return;}saveFavorites(exists?a.filter(x=>x.lat!==p.lat||x.lng!==p.lng):[{name:p.name,address:p.address||'',lat:p.lat,lng:p.lng},...a]);}
+function placeItem(p){const row=document.createElement('div');row.className='nav-place-row';const b=document.createElement('button');b.type='button';b.className='nav-place-pick';const name=document.createElement('strong'),addr=document.createElement('small');name.textContent=p.name;addr.textContent=p.address||'주소 정보 없음';b.append(name,addr);b.onclick=()=>{setPlace('destination',p);$('destination').focus();};const fav=document.createElement('button');fav.type='button';fav.className='nav-favorite-toggle';const marked=readFavorites().some(x=>x.lat===p.lat&&x.lng===p.lng);fav.textContent=marked?'★':'☆';fav.setAttribute('aria-label',marked?'즐겨찾기 해제':'즐겨찾기 추가');fav.setAttribute('aria-pressed',String(marked));fav.onclick=()=>toggleFavorite(p);row.append(b,fav);return row;}
+function renderFavorites(){const list=$('navFavoritesList'),section=$('navFavoritesSection');if(!list)return;list.replaceChildren();const items=readFavorites();if(section)section.hidden=false;items.forEach((p,i)=>{const tile=document.createElement('div');tile.className='nav-favorite-tile studio-favorite-tile';const name=document.createElement('strong');name.textContent=p.name;const actions=document.createElement('div');actions.className='studio-favorite-actions';actions.append(studioButton('출발',()=>studioSet('origin',p),true),studioButton('도착',()=>studioSet('destination',p)));const remove=document.createElement('button');remove.type='button';remove.className='studio-favorite-remove';remove.textContent='×';remove.setAttribute('aria-label',p.name+' 즐겨찾기 삭제');remove.onclick=()=>toggleFavorite(p);tile.append(name,actions,remove);list.append(tile);});for(let i=items.length;i<6;i++){const b=document.createElement('button');b.type='button';b.className='nav-favorite-empty';b.innerHTML='<span aria-hidden="true">＋</span><small>즐겨찾기 '+(i+1)+'</small>';b.setAttribute('aria-label','즐겨찾기 '+(i+1)+' 추가할 장소 검색');b.onclick=()=>{studioFavoriteMode=true;studioQuery.value='';studioShow([],'저장할 장소를 검색한 뒤 저장 버튼을 누르세요.');studioQuery.focus();studioQuery.scrollIntoView({block:'center',behavior:'smooth'});};list.append(b);}renderRecent();}
+function readRecent(){try{const data=JSON.parse(localStorage.getItem(recentKey)||'[]');return Array.isArray(data)?data.filter(p=>p&&typeof p.name==='string'&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)).slice(0,3):[];}catch{return [];}}
+function renderRecent(){const list=$('navRecentList'),section=$('navRecentSection');if(!list)return;list.replaceChildren();const items=readRecent();if(section)section.hidden=!items.length;items.forEach(p=>{const row=studioRow(p);row.classList.add('studio-recent-row');list.append(row);});}
+function rememberDestination(p){if(!p||!Number.isFinite(p.lat)||!Number.isFinite(p.lng))return;try{const next=[{name:p.name,address:p.address||'',lat:p.lat,lng:p.lng},...readRecent().filter(x=>x.lat!==p.lat||x.lng!==p.lng)].slice(0,3);localStorage.setItem(recentKey,JSON.stringify(next));}catch{}renderRecent();}
+$('navClearRecent')?.addEventListener('click',()=>{try{localStorage.removeItem(recentKey);}catch{}renderRecent();});
+renderFavorites();
+function setPlace(field,p){if(field==='origin'){originPlace=p;$('origin').readOnly=true;}else{rememberQuery($(field).value||p.name);destPlace=p;}$(field).value=p.name;clearSuggestions();}
 function showSuggestions(field,places,select){
  searchList.replaceChildren();const title=document.createElement('li');title.className='search-result-title';title.textContent=(field==='origin'?'출발지':'도착지')+' 검색 결과 · 주소 확인 후 선택';searchList.append(title);
  if(!places.length){const li=document.createElement('li');li.textContent='검색 결과가 없습니다. 지역명이나 도로명 주소를 입력해주세요.';searchList.append(li);return;}
- places.forEach(p=>{const li=document.createElement('li'),b=document.createElement('button');b.type='button';b.setAttribute('role','option');const name=document.createElement('strong');name.textContent=p.name;const address=document.createElement('small');address.textContent=p.address||'주소 정보 없음';b.append(name,address);b.onclick=()=>select(p);li.append(b);searchList.append(li);});
+ places.forEach(p=>{const li=document.createElement('li');li.className='nav-suggestion-row';const row=placeItem(p);const pick=row.querySelector('.nav-place-pick');pick.setAttribute('role','option');pick.onclick=()=>select(p);li.append(row);searchList.append(li);});
 }
 async function findSuggestions(field,q){
  const run=++suggestionRun;suggestionField=field;suggestionQuery=q;suggestionPlaces=[];
@@ -134,7 +244,7 @@ async function findSuggestions(field,q){
  catch(e){if(run===suggestionRun){searchList.replaceChildren();const li=document.createElement('li');li.textContent='검색 실패: '+e.message;searchList.append(li);}}
 }
 for(const field of ['origin','destination']){
- $(field).addEventListener('input',()=>{if(field==='origin')originPlace=null;else destPlace=null;clearSuggestions();const q=$(field).value.trim();if(q.length<2)return;suggestionTimer=setTimeout(()=>findSuggestions(field,q),350);});
+ $(field).addEventListener('input',()=>{if(field==='origin'){originPlace=null;$('origin').closest('.field')?.after(searchList);}else{destPlace=null;$('destination').closest('.field')?.after(searchList);}clearSuggestions();const q=$(field).value.trim();if(q.length<2)return;suggestionTimer=setTimeout(()=>findSuggestions(field,q),350);});
  $(field).addEventListener('focus',()=>{const q=$(field).value.trim();if(q.length>=2&&!(field==='origin'?originPlace:destPlace)){clearSuggestions();suggestionTimer=setTimeout(()=>findSuggestions(field,q),200);}});
  $(field).addEventListener('keydown',e=>{if(e.key==='Escape')clearSuggestions();if(e.key==='ArrowDown'){const b=searchList.querySelector('button');if(b){e.preventDefault();b.focus();}}});
 }
@@ -149,13 +259,27 @@ async function choose(field){
  const token=++searchSeq;reply((field==='origin'?'출발지':'도착지')+' 검색 결과에서 장소를 선택해주세요.');
  return new Promise((resolve,reject)=>showSuggestions(field,places,p=>{if(token!==searchSeq){reject(Error('검색이 변경되었습니다.'));return;}setPlace(field,p);resolve(p);}));
 }
-$('searchForm').onsubmit=async e=>{e.preventDefault();stopRain();if(playing)return;const run=++routeSeq;$('routeSearch').disabled=true;pauseDrive();try{if(!originPlace)originPlace=await choose('origin');if(!destPlace)destPlace=await choose('destination');if(run!==routeSeq)return;const departure=new Date($('departure').value).toISOString();reply('차량 경로와 예상 통과시각을 확인하고 있어요.');const d=await api('/api/route',{origin:originPlace,destination:destPlace,departure});if(run!==routeSeq)return;route={...d,demo:false};weather=null;progress=0;gate.reset();renderRoute();reply('차량 경로를 찾았어요. 구간별 예보를 확인합니다.');await showMap('schematic');await Promise.all([loadWeather(),showMap(mapConfig.kakao?'kakao':'schematic')]);}catch(e){if(run===routeSeq)reply(e.message,true);}finally{if(run===routeSeq)$('routeSearch').disabled=false;}};
-$('locate').onclick=()=>{if(!navigator.geolocation){toast('위치를 지원하지 않는 기기입니다. 출발지를 입력해주세요.');return;}$('locate').disabled=true;navigator.geolocation.getCurrentPosition(p=>{originPlace={lat:p.coords.latitude,lng:p.coords.longitude,name:'현재 위치'};$('origin').value='현재 위치';$('locate').disabled=false;toast('현재 위치를 출발지로 설정했어요. 검색 시 지도·기상 제공자에게 전달됩니다.');},()=>{$('locate').disabled=false;toast('위치를 확인하지 못했습니다. 출발지를 직접 입력해주세요.');},{timeout:12000,maximumAge:30000,enableHighAccuracy:true});};
+$('searchForm').onsubmit=async e=>{e.preventDefault();stopRain();if(playing)return;const run=++routeSeq;$('routeSearch').disabled=true;pauseDrive();try{if(!originPlace)originPlace=await choose('origin');if(!destPlace)destPlace=await choose('destination');rememberQuery($('destination').value);if(run!==routeSeq)return;const departure=new Date($('departure').value).toISOString();reply('차량 경로와 예상 통과시각을 확인하고 있어요.');const d=await api('/api/route',{origin:originPlace,destination:destPlace,departure});if(run!==routeSeq)return;route={...d,demo:false};weather=null;progress=0;gate.reset();renderRoute();rememberDestination(destPlace);showNavSearch(false);showNavRouteResult();reply('차량 경로를 찾았어요. 구간별 예보를 확인합니다.');await showMap('schematic');await Promise.all([loadWeather(),showMap(mapConfig.kakao?'kakao':'schematic')]);}catch(e){if(run===routeSeq)reply(e.message,true);}finally{if(run===routeSeq)$('routeSearch').disabled=false;}};
+$('locate').onclick=()=>{if(!navigator.geolocation){toast('위치를 지원하지 않는 기기입니다. 출발지를 입력해주세요.');return;}$('locate').disabled=true;navigator.geolocation.getCurrentPosition(p=>{originPlace={lat:p.coords.latitude,lng:p.coords.longitude,name:'현재 위치'};$('origin').value='현재 위치';$('origin').readOnly=true;$('locate').disabled=false;toast('현재 위치를 출발지로 설정했어요. 검색 시 지도·기상 제공자에게 전달됩니다.');},()=>{$('locate').disabled=false;$('origin').value='위치 확인 실패 · 검색 버튼 사용';toast('위치를 확인하지 못했습니다. 출발지를 검색해주세요.');},{timeout:12000,maximumAge:30000,enableHighAccuracy:true});};
 async function demoRoute(){stopRain();const run=++routeSeq;searchSeq++;pauseDrive();stopVoice();$('demo').disabled=true;$('routeSearch').disabled=true;$('places').replaceChildren();reply('시연할 실제 차량 도로를 불러오고 있어요.');try{const start=originPlace||{name:'진천군청',lat:36.855,lng:127.436},end=destPlace||{name:'서울시청',lat:37.566,lng:126.978};const d=await api('/api/route',{origin:start,destination:end,departure:new Date().toISOString()});if(run!==routeSeq)return;if(!d.vertices?.length)throw Error('시연할 도로 좌표를 받지 못했습니다.');originPlace=start;destPlace=end;$('origin').value=start.name;$('destination').value=end.name;route={...d,demo:true};route.samples=[.25,.55,.8].map((fraction,i)=>({...pointAlong(d.vertices,fraction),fraction,seconds:d.duration*fraction,eta:new Date(Date.parse(d.departure)+d.duration*fraction*1000).toISOString(),label:['폭우 시연','강풍 시연','공사 시연'][i],forecast:i===0?{temperature:20,rain:12,gust:7,visibility:2000}:i===1?{temperature:19,rain:0,gust:18,visibility:6000}:null,event:i===2?'가상 공사 구간입니다. 실제 공사·통제 정보가 아닙니다.':null}));weather={samples:route.samples,source:'가상 상황 · 실제 현황 아님',fetchedAt:new Date().toISOString()};progress=0;gate.reset();renderRoute();renderCards();await showMap(mapConfig.kakao?'kakao':'schematic');reply('실제 도로 위에서 자동차가 움직이는 시연이에요. 폭우·강풍·공사 표시는 모두 가상입니다. 시연 재생을 눌러주세요.');}catch(e){reply('시연 경로를 불러오지 못했어요. '+e.message);}finally{if(run===routeSeq){$('demo').disabled=false;$('routeSearch').disabled=false;}}}
 $('demo').onclick=demoRoute;
 $('realTrip').onclick=()=>{if(playing||$('routeSearch').disabled)return;originPlace={name:'진천군청',lat:36.855,lng:127.436};destPlace={name:'서울시청',lat:37.566,lng:126.978};$('origin').value=originPlace.name;$('destination').value=destPlace.name;$('departure').value=localInput(new Date(Date.now()+120000));$('searchForm').requestSubmit();};
 
 function renderRoute(){clearWeatherOverlays();pickTarget=null;updatePick();$('cards').innerHTML='<article class="empty-card"><h3>새 경로의 구간별 예보를 확인하고 있어요.</h3></article>';$('cardCount').textContent='조회 중';$('driveControls').hidden=true;$('kakaoDirections').hidden=true;selectedSample=null;$('roadInspector').hidden=true;$('actualRoute').setAttribute('hidden','');renderActualRoute();if(!route.demo){$('kakaoDirections').href=kakaoRouteLink(originPlace,destPlace);$('kakaoDirections').hidden=false;renderActualRoute();}$('modeBadge').textContent=route.demo?'가상 시연':'실제 경로';$('mapTitle').textContent=route.demo?'실제 도로 · 가상 상황':'카카오모빌리티 경로';$('duration').innerHTML=Math.round(route.duration/60)+'<small> 분</small>';$('distance').innerHTML=(route.distance/1000).toFixed(1)+'<small> km</small>';$('arrival').textContent=fmt(new Date(Date.parse(route.departure)+route.duration*1000));$('drive').disabled=!route.demo;$('drive').textContent=route.demo?'▷ 시연 재생':'실제 주행 추적 준비 중';$('refresh').disabled=route.demo;$('originLabel').textContent='출발';$('destLabel').textContent='도착';$('demoMarkers').style.display=route.demo?'':'none';$('schematic').querySelector('svg').setAttribute('aria-label',route.demo?'시연용 진천 서울 경로 개요도. 실제 지도와 도로 형상이 아닙니다.':'추상적인 경로 개요도. 실제 도로 형상이 아닙니다.');$('floatingTitle').textContent=originPlace.name+' → '+destPlace.name;$('floatingSub').textContent=route.demo?'시연값 · 기상·공사·통과시각은 가상입니다.':'도로별 소요시간을 누적한 예상 통과시각';$('progress').value='0';moveCar();}
+
+function showNavRouteResult(){
+ const sheet=$('navRouteResult');if(!sheet||!route||route.demo)return;
+ $('navRouteDuration').textContent=Math.round(route.duration/60)+'분';
+ $('navRouteDistance').textContent=(route.distance/1000).toFixed(1)+'km';
+ $('navRouteArrival').textContent='도착 '+fmt(new Date(Date.parse(route.departure)+route.duration*1000));
+ sheet.hidden=false;document.body.classList.add('nav-route-open');
+}
+$('navRouteResultClose')?.addEventListener('click',()=>{$('navRouteResult').hidden=true;document.body.classList.remove('nav-route-open');});
+$('navStartGuidance')?.addEventListener('click',()=>{
+ const link=$('kakaoDirections');
+ if(link?.href&&link.href.startsWith('http')){const a=document.createElement('a');a.href=link.href;a.target='_blank';a.rel='noopener noreferrer';a.click();}
+ else toast('길안내 링크가 없습니다. 먼저 실제 경로를 조회해주세요.');
+});
 async function loadWeather(){if(!route||route.demo)return;const current=route;const run=routeSeq;const weatherRun=++weatherSeq;$('refresh').disabled=true;$('weatherDetail').textContent='예보 확인 중';try{const d=await api('/api/weather',{samples:route.samples,provider:$('weatherProvider').value});if(route!==current||run!==routeSeq||weatherRun!==weatherSeq)return;weather=d;renderCards();reply(d.samples.some(p=>p.forecast)?d.source+'를 확인했어요. 공사·통제는 별도 확인이 필요합니다.':'기상 예보를 확인하지 못했어요. '+(d.samples.find(p=>p.error)?.error||'자료 제공 범위를 확인해주세요.'));}catch(e){if(route!==current||run!==routeSeq||weatherRun!==weatherSeq)return;weather={provider:$('weatherProvider').value==='kma'?'kma':'open-meteo',samples:route.samples.map(p=>({...p,forecast:null,error:e.message})),source:'조회 실패',fetchedAt:new Date().toISOString()};renderCards();reply(e.message);}finally{if(route===current&&run===routeSeq&&weatherRun===weatherSeq)$('refresh').disabled=false;}}
 $('refresh').onclick=loadWeather;$('weatherProvider').onchange=()=>{if(route&&!route.demo)loadWeather();};
 function renderCards(){drawWeatherOverlays();const list=weather?.samples||[];$('cardCount').textContent=list.length+'개 구간';$('cards').innerHTML=list.map((p,i)=>{const a=p.event?{kind:'attention',icon:'⚒',title:'공사 안내 시연',text:p.event}:assess(p.forecast);return `<article class="weather-card ${a.kind}"><div class="card-top"><span>${escape(p.label)}</span><span class="weather-icon">${a.icon}</span></div><h3>${fmt(p.eta)} 예상 통과 · ${escape(a.title)}</h3><p>${escape(a.text)}</p><div class="source">${escape(weather.source)}${route.demo?' · 실제 자료 아님':''}<br>조회 ${fmt(weather.fetchedAt)}${p.forecast?.time?' · 예보 유효 '+fmt(p.forecast.time):''}${p.forecast?.issuedAt?' · 발표 '+escape(p.forecast.issuedAt.slice(4,6)+'/'+p.forecast.issuedAt.slice(6,8)+' '+p.forecast.issuedAt.slice(8,10)+':'+p.forecast.issuedAt.slice(10,12))+' KST':''}${p.grid?' · 격자 '+p.grid.nx+','+p.grid.ny:''}${p.error?'<br>'+escape(p.error):''}</div>${route.demo?'':`<button type="button" class="road-button" data-road="${i}" aria-pressed="false">도로 구간 살펴보기 ↗</button>`}<button type="button" class="detail-button" data-card="${i}">이 구간 안내 듣기 ↗</button></article>`;}).join('');document.querySelectorAll('[data-road]').forEach(b=>b.onclick=()=>selectRoad(Number(b.dataset.road)));document.querySelectorAll('[data-card]').forEach(b=>b.onclick=()=>{const p=list[Number(b.dataset.card)];const a=p.event?{text:p.event}:assess(p.forecast);reply((route.demo?'가상 시연입니다. ':'')+p.label+', '+fmt(p.eta)+' 예상 통과. '+a.text,true);});$('weatherStatus').textContent=route.demo?'가상 기상자료':!list.some(p=>p.forecast)?'기상 자료 조회 실패':weather.provider==='kma'?'기상청 격자 예보':'Open-Meteo 예보';$('weatherDetail').textContent=route.demo?'실제 기상자료 아님':list.some(p=>p.forecast)?'모델 예보 · 조회 '+fmt(weather.fetchedAt):'조회 실패 · 추가 확인 필요';}
@@ -181,16 +305,49 @@ function updatePick(){['origin','destination'].forEach(x=>$('pick'+(x==='origin'
 function mapClick(p){if(pickTarget){const place=coordinatePlace(p.lat+','+p.lng);if(!place){toast('대한민국 내 위치를 선택해주세요.');return;}if(pickTarget==='origin')originPlace=place;else destPlace=place;$(pickTarget).value=place.name;pickTarget=null;updatePick();toast('위치를 설정했어요. 출발·도착을 정한 뒤 경로 살펴보기를 누르세요.');return;}if(route&&!route.demo){const i=nearestSample(route.samples,p);if(i!==null){selectRoad(i);toast('누른 위치에서 가장 가까운 예보 구간을 표시했어요.');}}}
 ['origin','destination'].forEach(target=>$('pick'+(target==='origin'?'Origin':'Destination')).onclick=async()=>{pickTarget=pickTarget===target?null:target;updatePick();if(pickTarget&&activeMap==='schematic')await showMap(mapConfig.kakao?'kakao':'vworld');});
 function satelliteStatus(){const state=tileHealth(tileLoaded,tileFailed);providerState.vworld=state==='ready'?'타일 수신 확인':state==='failed'?'타일 수신 실패':'타일 확인 중';connectionStatus();if(activeMap!=='vworld')return;$('mapProvider').textContent=state==='ready'?'VWorld · 위성 배경 + 도로명':'VWorld · 타일 확인 중';if(state==='failed'){notice('브이월드 위성 타일을 받지 못했습니다. 도메인·키 또는 제공자 응답을 확인해주세요. 카카오 항공 버튼으로 다른 배경을 선택할 수 있습니다.');}else if(state==='ready')notice(route?.demo?'실제 도로 · 기상·공사 아이콘은 가상 시연입니다.':'');}
-async function showMap(type){const run=++mapRun;activeMap=type;await sessionPromise;if(run!==mapRun)return;clearDemoOverlays();clearFocus();const isKakao=type==='kakao'||type==='skyview';$('actualRoute').toggleAttribute('hidden',type!=='schematic'||!route);$('schematic').hidden=type!=='schematic'||!!route;$('kakaoMap').hidden=!isKakao;$('vworldMap').hidden=type!=='vworld';['schematic','kakao','vworld','skyview'].forEach(x=>$(x+'Toggle').setAttribute('aria-pressed',String(x===type)));notice('');$('mapProvider').textContent=type==='schematic'?'도로 형상 · 배경지도 아님':type==='vworld'?'VWorld · 연결 중':type==='skyview'?'Kakao · 항공 배경':'Kakao · 도로 지도';
+function updateMobileMapLayer(){
+ const satellite=activeMap==='vworld'||activeMap==='skyview';
+ $('navRoadMap')?.setAttribute('aria-pressed',String(!satellite));
+ $('navSatelliteMap')?.setAttribute('aria-pressed',String(satellite));
+}
+$('navRoadMap')?.addEventListener('click',()=>showMap(mapConfig.kakao?'kakao':'osm'));
+$('navSatelliteMap')?.addEventListener('click',async event=>{
+ event.preventDefault();
+ const button=$('navSatelliteMap');
+ button?.setAttribute('aria-busy','true');
+ try{
+  if(sessionPromise)await sessionPromise;
+  if(mapConfig.kakao){toast('카카오 항공사진 + 도로명을 불러오는 중입니다.');await showMap('skyview');}
+  else toast('카카오 JavaScript 지도 키가 설정되지 않았습니다. Vercel Preview 환경변수를 확인해주세요.');
+ }catch(error){toast('위성지도 전환 실패: '+(error?.message||'지도 연결 상태를 확인해주세요.'));}
+ finally{button?.removeAttribute('aria-busy');}
+});
+async function showOpenStreetMap(){
+ const run=++mapRun;activeMap='osm';updateMobileMapLayer();
+ $('schematic').hidden=true;$('actualRoute').hidden=true;$('kakaoMap').hidden=true;$('vworldMap').hidden=true;$('osmMap').hidden=false;
+ ['schematic','kakao','vworld','skyview'].forEach(x=>$(x+'Toggle').setAttribute('aria-pressed','false'));
+ $('mapProvider').textContent='© OpenStreetMap contributors · 일반 도로지도';
+ notice('');
+ try{
+  if(!window.L){if(!document.querySelector('link[data-osm-css]')){const c=document.createElement('link');c.rel='stylesheet';c.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';c.dataset.osmCss='true';document.head.append(c);}await script('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');}
+  if(run!==mapRun)return;
+  if(!osmMap){osmMap=L.map('osmMap',{zoomControl:false}).setView([36.5,127.8],7);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(osmMap);L.control.zoom({position:'bottomright'}).addTo(osmMap);osmMap.on('click',e=>mapClick({lat:e.latlng.lat,lng:e.latlng.lng}));}
+  osmMap.invalidateSize();if(osmRoute){osmRoute.remove();osmRoute=null;}
+  if(route?.vertices?.length){osmRoute=L.polyline(route.vertices.map(p=>[p.lat,p.lng]),{color:'#1768ed',weight:7}).addTo(osmMap);osmMap.fitBounds(osmRoute.getBounds(),{padding:[35,35]});}
+  else centerHomeMap();
+ }catch(e){if(run!==mapRun)return;notice('기본 도로지도 연결 실패: 네트워크 또는 지도 타일 접근을 확인해주세요.');$('osmMap').hidden=true;$('schematic').hidden=false;activeMap='schematic';}
+}
+async function showMap(type){if(type==='osm')return showOpenStreetMap();$('osmMap').hidden=true;const run=++mapRun;activeMap=type;updateMobileMapLayer();await sessionPromise;if(run!==mapRun)return;clearDemoOverlays();clearFocus();const isKakao=type==='kakao'||type==='skyview';$('actualRoute').toggleAttribute('hidden',type!=='schematic'||!route);$('schematic').hidden=type!=='schematic'||!!route;$('kakaoMap').hidden=!isKakao;$('vworldMap').hidden=type!=='vworld';['schematic','kakao','vworld','skyview'].forEach(x=>$(x+'Toggle').setAttribute('aria-pressed',String(x===type)));notice('');$('mapProvider').textContent=type==='schematic'?'도로 형상 · 배경지도 아님':type==='vworld'?'VWorld · 연결 중':type==='skyview'?'Kakao · 항공 배경':'Kakao · 도로 지도';
  if(type==='schematic'){focusRoad();drawWeatherOverlays();drawDemoOverlays();moveCar();return;}
  if(route?.demo)notice('실제 도로 경로 · 자동차 이동·폭우·강풍·공사는 가상 시연입니다.');
  try{if(isKakao){if(!mapConfig.kakao)throw Error('운영자의 카카오 JavaScript 키가 필요합니다.');if(!kmap){await script('https://dapi.kakao.com/v2/maps/sdk.js?autoload=false&appkey='+encodeURIComponent(mapConfig.kakao));await new Promise((resolve,reject)=>{if(!window.kakao?.maps)return reject(Error('카카오 지도 SDK 응답을 확인해주세요.'));const timeout=setTimeout(()=>reject(Error('카카오 지도 초기화 시간 초과')),12000);kakao.maps.load(()=>{clearTimeout(timeout);resolve();});});if(run!==mapRun)return;kmap=new kakao.maps.Map($('kakaoMap'),{center:new kakao.maps.LatLng(36.85,127.44),level:10});kmap.addControl(new kakao.maps.ZoomControl(),kakao.maps.ControlPosition.RIGHT);kakao.maps.event.addListener(kmap,'click',e=>mapClick({lat:e.latLng.getLat(),lng:e.latLng.getLng()}));}
  if(run!==mapRun)return;kmap.relayout();kmap.setMapTypeId(type==='skyview'?kakao.maps.MapTypeId.HYBRID:kakao.maps.MapTypeId.ROADMAP);providerState.kakao='SDK 초기화 확인';connectionStatus();routePolyline?.setMap(null);kmarker?.setMap(null);kend?.setMap(null);routePolyline=null;kmarker=null;kend=null;
- if(route?.demo){const bounds=new kakao.maps.LatLngBounds();[originPlace,destPlace].forEach(p=>bounds.extend(new kakao.maps.LatLng(p.lat,p.lng)));kmap.setBounds(bounds);}if(route?.vertices?.length){const pts=route.vertices.map(p=>new kakao.maps.LatLng(p.lat,p.lng));routePolyline=new kakao.maps.Polyline({map:kmap,path:pts,strokeWeight:7,strokeColor:type==='skyview'?'#ffda7d':'#315fce',strokeOpacity:.95});kakao.maps.event.addListener(routePolyline,'click',e=>mapClick({lat:e.latLng.getLat(),lng:e.latLng.getLng()}));const bounds=new kakao.maps.LatLngBounds();pts.forEach(p=>bounds.extend(p));kmap.setBounds(bounds);kmarker=new kakao.maps.Marker({map:kmap,position:pts[0],title:'출발'});kend=new kakao.maps.Marker({map:kmap,position:pts[pts.length-1],title:'도착'});}}
+ if(route?.demo){const bounds=new kakao.maps.LatLngBounds();[originPlace,destPlace].forEach(p=>bounds.extend(new kakao.maps.LatLng(p.lat,p.lng)));kmap.setBounds(bounds);}if(route?.vertices?.length){const pts=route.vertices.map(p=>new kakao.maps.LatLng(p.lat,p.lng));routePolyline=new kakao.maps.Polyline({map:kmap,path:pts,strokeWeight:7,strokeColor:type==='skyview'?'#ffda7d':'#315fce',strokeOpacity:.95});kakao.maps.event.addListener(routePolyline,'click',e=>mapClick({lat:e.latLng.getLat(),lng:e.latLng.getLng()}));const bounds=new kakao.maps.LatLngBounds();pts.forEach(p=>bounds.extend(p));kmap.setBounds(bounds);kmarker=new kakao.maps.Marker({map:kmap,position:pts[0],title:'출발'});kend=new kakao.maps.Marker({map:kmap,position:pts[pts.length-1],title:'도착'});}}if(!route?.vertices?.length)centerHomeMap();
  else {if(!mapConfig.vworld)throw Error('운영자의 브이월드 키와 서비스 도메인 등록이 필요합니다.');if(!window.L){const c=document.createElement('link');c.rel='stylesheet';c.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.append(c);await script('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');}if(run!==mapRun)return;if(!lmap){lmap=L.map('vworldMap').setView([36.85,127.44],8);lmap.on('click',e=>mapClick({lat:e.latlng.lat,lng:e.latlng.lng}));const base='https://api.vworld.kr/req/wmts/1.0.0/'+encodeURIComponent(mapConfig.vworld);L.tileLayer(base+'/Satellite/{z}/{y}/{x}.jpeg',{maxZoom:19,attribution:'© VWorld / 국토교통부 · 촬영시점은 위치별로 다름'}).on('tileload',()=>{tileLoaded++;satelliteStatus();}).on('tileerror',()=>{tileFailed++;satelliteStatus();}).on('loading',()=>{tileLoaded=0;tileFailed=0;}).addTo(lmap);L.tileLayer(base+'/Hybrid/{z}/{y}/{x}.png',{maxZoom:19,attribution:'도로명 © VWorld'}).addTo(lmap);L.control.scale({imperial:false}).addTo(lmap);}
- lmap.invalidateSize();if(lroute)lmap.removeLayer(lroute);if(lmarker)lmap.removeLayer(lmarker);if(lend)lmap.removeLayer(lend);lroute=null;lmarker=null;lend=null;if(route?.demo)lmap.fitBounds([originPlace,destPlace].map(p=>[p.lat,p.lng]),{padding:[25,25]});if(route?.vertices?.length){const pts=route.vertices.map(p=>[p.lat,p.lng]);lroute=L.polyline(pts,{color:'#ffda7d',weight:7}).addTo(lmap);lmarker=L.circleMarker(pts[0],{radius:8,color:'#fff',fillColor:'#315fce',fillOpacity:1}).bindTooltip('출발').addTo(lmap);lend=L.circleMarker(pts[pts.length-1],{radius:8,color:'#fff',fillColor:'#c87046',fillOpacity:1}).bindTooltip('도착').addTo(lmap);lmap.fitBounds(lroute.getBounds(),{padding:[25,25]});}satelliteStatus();}
- focusRoad();drawWeatherOverlays();drawDemoOverlays();moveCar();drawGps();}catch(e){if(run!==mapRun)return;providerState[isKakao?'kakao':'vworld']='연결 실패';connectionStatus();let message=isKakao?'카카오 지도 연결 실패. 데이터 연결 → 지도 연결 검사에서 현재 원인을 확인해주세요. 실제 경로는 경로 보기에서 확인할 수 있습니다.':e.message;await showMap('schematic');notice(message);if(isKakao){try{const health=await api('/api/map-health',{});if(activeMap!=='schematic')return;const check=health.checks.find(x=>x.name==='카카오 지도 SDK');if(check&&check.state!=='received'){message=check.message+' · 카카오 콘솔의 키 이름은 자유롭게 정해도 됩니다.';notice(message);providerState.kakao=check.message;connectionStatus();}}catch{/* Keep the map fallback and initial notice when diagnostics are unavailable. */}}}}
+ lmap.invalidateSize();if(!route?.vertices?.length)centerHomeMap();if(lroute)lmap.removeLayer(lroute);if(lmarker)lmap.removeLayer(lmarker);if(lend)lmap.removeLayer(lend);lroute=null;lmarker=null;lend=null;if(route?.demo)lmap.fitBounds([originPlace,destPlace].map(p=>[p.lat,p.lng]),{padding:[25,25]});if(route?.vertices?.length){const pts=route.vertices.map(p=>[p.lat,p.lng]);lroute=L.polyline(pts,{color:'#ffda7d',weight:7}).addTo(lmap);lmarker=L.circleMarker(pts[0],{radius:8,color:'#fff',fillColor:'#315fce',fillOpacity:1}).bindTooltip('출발').addTo(lmap);lend=L.circleMarker(pts[pts.length-1],{radius:8,color:'#fff',fillColor:'#c87046',fillOpacity:1}).bindTooltip('도착').addTo(lmap);lmap.fitBounds(lroute.getBounds(),{padding:[25,25]});}satelliteStatus();}
+ focusRoad();drawWeatherOverlays();drawDemoOverlays();moveCar();drawGps();}catch(e){if(run!==mapRun)return;providerState[isKakao?'kakao':'vworld']='연결 실패';connectionStatus();let message=isKakao?'카카오 위성지도 연결 실패: '+(e?.message||'SDK 응답 오류')+'. 카카오 콘솔에서 현재 Preview 도메인을 허용했는지 확인해주세요.':(e?.message||'위성지도 연결 실패');toast(message);await showMap(window.matchMedia('(max-width:900px)').matches?'osm':'schematic');notice(message);if(isKakao){try{const health=await api('/api/map-health',{});if(activeMap!=='schematic'&&activeMap!=='osm')return;const check=health.checks.find(x=>x.name==='카카오 지도 SDK');if(check&&check.state!=='received'){message=check.message+' · 카카오 콘솔의 키 이름은 자유롭게 정해도 됩니다.';notice(message);providerState.kakao=check.message;connectionStatus();}}catch{/* Keep the map fallback and initial notice when diagnostics are unavailable. */}}}}
 ['schematic','kakao','vworld','skyview'].forEach(type=>$(type+'Toggle').onclick=()=>showMap(type));
+if(window.matchMedia('(max-width:900px)').matches){requestHomeLocation(false);Promise.resolve(sessionPromise).then(()=>showMap(mapConfig.kakao?'kakao':'osm')).catch(()=>showMap('osm'));}
 new ResizeObserver(()=>{if(kmap&&(activeMap==='kakao'||activeMap==='skyview'))kmap.relayout();if(lmap&&activeMap==='vworld')lmap.invalidateSize();}).observe($('kakaoMap').parentElement);
 updatePick();
 const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(Recognition){recognition=new Recognition();recognition.lang='ko-KR';recognition.continuous=false;recognition.interimResults=false;recognition.onstart=()=>{$('mic').setAttribute('aria-pressed','true');$('voiceStatus').textContent='목적지를 말씀해주세요.';};recognition.onend=()=>{$('mic').setAttribute('aria-pressed','false');};recognition.onerror=()=>{$('voiceStatus').textContent='음성을 듣지 못했습니다. 권한을 확인하거나 직접 입력해주세요.';};recognition.onresult=e=>{const t=e.results[0][0].transcript;if(/다시.*듣|다시.*알려/.test(t)){$('repeat').click();return;}if(/멈춰|그만/.test(t)){$('stop').click();return;}$('destination').value=t.replace(/(?:으로|로)?\s*(?:가고\s*싶어(?:요)?|가자|가줘|찾아줘(?:요)?)\s*[.!?]?$/,'').trim();destPlace=null;reply('목적지를 '+$('destination').value+'로 들었어요. 출발지를 확인하고 경로 살펴보기를 눌러주세요.');};$('mic').onclick=()=>{if(playing)return;stopVoice();if($('mic').getAttribute('aria-pressed')==='true'){recognition.abort();return;}try{recognition.start();}catch{toast('잠시 뒤 다시 눌러주세요.');}};}else $('mic').onclick=()=>{toast('이 브라우저는 음성 입력을 지원하지 않습니다. 목적지를 직접 입력해주세요.');$('destination').focus();};
