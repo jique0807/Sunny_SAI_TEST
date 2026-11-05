@@ -380,3 +380,26 @@ body{background:var(--bg);color:var(--ink)}
 @media(max-width:900px){.sunny-mobile-brand-copy .sunny-brand-red-s{color:#e53935!important}}
 
 @media(max-width:900px){.sunny-mobile-brand-symbol.sunny-taegeuk-sun{display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 42px;width:42px;height:42px}.sunny-taegeuk-sun svg{display:block;width:42px;height:42px;max-width:none}}
+
+
+/* Mobile viewport partition: banner / usable map / bottom controls never overlap. */
+@media(max-width:900px){
+ :root{
+  --sunny-header-height:calc(64px + env(safe-area-inset-top,0px));
+  --sunny-map-bottom:var(--sunny-bottom-nav-height,calc(68px + env(safe-area-inset-bottom,0px)));
+ }
+ .sunny-mobile-brand-banner{height:var(--sunny-header-height)!important}
+ .dashboard .map-canvas,
+ body.nav-route-open .dashboard .map-canvas{
+  top:var(--sunny-header-height)!important;
+  bottom:var(--sunny-map-bottom)!important;
+  height:calc(100dvh - var(--sunny-header-height) - var(--sunny-map-bottom))!important;
+  max-height:calc(100dvh - var(--sunny-header-height) - var(--sunny-map-bottom))!important;
+ }
+ .nav-bottom-bar{bottom:0!important;z-index:1300!important}
+ .nav-map-layer-control{bottom:calc(var(--sunny-map-bottom) + 12px)!important}
+ body.nav-route-open .nav-map-layer-control{bottom:calc(var(--sunny-map-bottom) + 260px)!important}
+ .drive-home-bar{top:calc(var(--sunny-header-height) + 10px)!important}
+ .nav-search-sheet:not([hidden]){top:var(--sunny-header-height)!important;max-height:calc(100dvh - var(--sunny-header-height) - var(--sunny-map-bottom))!important}
+ .nav-layers-sheet:not([hidden]),.nav-route-result:not([hidden]){max-height:calc(100dvh - var(--sunny-header-height) - var(--sunny-map-bottom))!important;overflow-y:auto!important}
+}
