@@ -403,3 +403,13 @@ body{background:var(--bg);color:var(--ink)}
  .nav-search-sheet:not([hidden]){top:var(--sunny-header-height)!important;max-height:calc(100dvh - var(--sunny-header-height) - var(--sunny-map-bottom))!important}
  .nav-layers-sheet:not([hidden]),.nav-route-result:not([hidden]){max-height:calc(100dvh - var(--sunny-header-height) - var(--sunny-map-bottom))!important;overflow-y:auto!important}
 }
+
+/* Reference-inspired bottom navigation: white background, line icons over labels. */
+@media(max-width:900px){
+ .nav-bottom-bar{background:#fff!important;border-top:1px solid #e5eaf0!important;box-shadow:0 -2px 10px rgba(18,40,70,.06)!important}
+ .nav-bottom-bar button{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:4px!important;padding:5px 2px!important;background:transparent!important;color:#4a5565!important;font-size:inherit!important;line-height:1.1!important}
+ .nav-bottom-bar .nav-bottom-icon{display:block;width:21px;height:21px;flex:none;stroke:currentColor}
+ .nav-bottom-bar button span{display:block;font-size:11px!important;font-weight:600!important;line-height:1.2!important}
+ .nav-bottom-bar button[aria-current="page"],.nav-bottom-bar button[aria-expanded="true"]{color:#1768ed!important}
+ .nav-bottom-bar button:focus-visible{outline:2px solid #1768ed;outline-offset:-3px;border-radius:8px}
+}
