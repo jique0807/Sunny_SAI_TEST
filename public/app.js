@@ -8,6 +8,29 @@ const {voiceCatalog}=await import('/voice-catalog.mjs');
 const {pointAlong}=await import('/journey.mjs');
 const {ahead,locate,RainGate}=await import('/rain-monitor.mjs');
 let demoOverlays=[],carOverlay=null;
+
+/* Navigation-first mobile shell. Existing services remain available behind search. */
+const navSheet=document.getElementById('navSearchSheet');
+const navOpen=document.getElementById('navSearchOpen');
+const navClose=document.getElementById('navSearchClose');
+const navSlot=document.getElementById('navSearchSlot');
+const navPlanner=document.querySelector('.planner');
+const navPlannerHome=navPlanner?.parentElement;
+const navPlannerNext=navPlanner?.nextSibling;
+function showNavSearch(show){
+ if(!navSheet||!navPlanner)return;
+ if(show){navSlot?.appendChild(navPlanner);navSheet.hidden=false;document.body.classList.add('nav-sheet-open');document.getElementById('destination')?.focus();}
+ else{if(navPlannerHome){if(navPlannerNext?.parentNode===navPlannerHome)navPlannerHome.insertBefore(navPlanner,navPlannerNext);else navPlannerHome.insertBefore(navPlanner,navPlannerHome.firstChild);}navSheet.hidden=true;document.body.classList.remove('nav-sheet-open');}
+ navOpen?.setAttribute('aria-expanded',String(show));
+}
+navOpen?.addEventListener('click',()=>showNavSearch(true));
+navClose?.addEventListener('click',()=>showNavSearch(false));
+document.getElementById('navHome')?.addEventListener('click',()=>{showNavSearch(false);window.scrollTo({top:0,behavior:'smooth'});});
+document.getElementById('navRoute')?.addEventListener('click',()=>showNavSearch(true));
+document.getElementById('navMyLocation')?.addEventListener('click',()=>{showNavSearch(true);document.getElementById('locate')?.click();});
+document.getElementById('navWeather')?.addEventListener('click',()=>document.getElementById('cards')?.scrollIntoView({behavior:'smooth',block:'start'}));
+document.getElementById('navSettings')?.addEventListener('click',()=>document.getElementById('settingsOpen')?.click());
+document.getElementById('searchForm')?.addEventListener('submit',()=>showNavSearch(false));
 const $=id=>document.getElementById(id),escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let csrf='',advanced=false,mapConfig={},connections={},originPlace=null,destPlace=null,route=null,weather=null,sessionPromise=null,searchSeq=0,routeSeq=0,progress=0,timer=null,playing=false,activeAudio=null,voiceSeq=0,finishVoice=null,recognition=null,kmap=null,lmap=null,routePolyline=null,lroute=null,kmarker=null,lmarker=null,installPrompt=null;
 let activeMap='schematic',selectedSample=null,kfocus=null,lfocus=null,ksection=null,lsection=null,mapRun=0,pickTarget=null,kend=null,lend=null,tileLoaded=0,tileFailed=0;
