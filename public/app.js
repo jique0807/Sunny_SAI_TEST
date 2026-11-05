@@ -35,9 +35,18 @@ function showNavLayers(open){
  else setNavTab(document.getElementById('navSearchSheet')?.hidden?'navHome':'navRoute');
 }
 document.getElementById('navHome')?.addEventListener('click',()=>{
- showNavLayers(false);document.getElementById('navRouteResult').hidden=true;
- document.body.classList.remove('nav-route-open');showNavSearch(false);setNavTab('navHome');
- window.scrollTo({top:0,behavior:'smooth'});
+ // Home must restore the map, not merely change the active bottom tab.
+ showNavLayers(false);
+ const routeResult=document.getElementById('navRouteResult');if(routeResult)routeResult.hidden=true;
+ showNavSearch(false);
+ document.body.classList.remove('nav-route-open','nav-sheet-open');
+ const settings=document.getElementById('settings');if(settings?.open)settings.close();
+ setNavTab('navHome');
+ const map=document.getElementById('map');
+ if(map){map.scrollIntoView({block:'start',behavior:'smooth'});}
+ else window.scrollTo({top:0,behavior:'smooth'});
+ // Clear leftover focus from hidden search fields on mobile browsers.
+ if(document.activeElement?.closest?.('#navSearchSheet'))document.activeElement.blur();
 });
 document.getElementById('navRoute')?.addEventListener('click',()=>{
  showNavLayers(false);
