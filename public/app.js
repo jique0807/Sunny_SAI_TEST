@@ -291,9 +291,8 @@ $('navSatelliteMap')?.addEventListener('click',async event=>{
  button?.setAttribute('aria-busy','true');
  try{
   if(sessionPromise)await sessionPromise;
-  if(mapConfig.kakao){toast('카카오 위성지도를 불러오는 중입니다.');await showMap('skyview');}
-  else if(mapConfig.vworld)await showMap('vworld');
-  else toast('카카오 지도 설정을 읽지 못했습니다. 테스트 배포 API 키와 도메인을 확인해주세요.');
+  if(mapConfig.kakao){toast('카카오 항공사진 + 도로명을 불러오는 중입니다.');await showMap('skyview');}
+  else toast('카카오 JavaScript 지도 키가 설정되지 않았습니다. Vercel Preview 환경변수를 확인해주세요.');
  }catch(error){toast('위성지도 전환 실패: '+(error?.message||'지도 연결 상태를 확인해주세요.'));}
  finally{button?.removeAttribute('aria-busy');}
 });
