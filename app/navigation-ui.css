@@ -144,3 +144,33 @@ body{background:var(--bg);color:var(--ink)}
  #navStartGuidance{display:block;width:100%;background:#1768ed;color:white;border-color:#1768ed;border-radius:12px;font-size:16px;font-weight:700;min-height:49px}
  .nav-search-sheet #places li>button{min-height:58px}
 }
+
+
+@media(max-width:900px){
+ .nav-search-sheet:not([hidden]){animation:navEnter .22s ease-out}
+ .nav-route-result:not([hidden]){animation:navRise .22s ease-out}
+ @keyframes navEnter{from{opacity:.55;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
+ @keyframes navRise{from{opacity:.6;transform:translateY(35px)}to{opacity:1;transform:translateY(0)}}
+ .nav-search-steps{display:flex;gap:6px;align-items:center;margin:3px 0 19px}
+ .nav-step{flex:1;padding:9px 3px;text-align:center;border-radius:8px;background:#f1f4f8;color:#8794a4;font-size:11px;font-weight:700}
+ .nav-step.active{background:#e7f0ff;color:#1768ed}
+ .nav-search-sheet .routeform .primary{min-height:52px;border-radius:12px;background:#1768ed!important;border-color:#1768ed!important;font-size:16px}
+ .nav-search-sheet .routeform .timefield{width:100%}
+ .nav-search-sheet .pick-controls{display:none}
+ .nav-search-sheet .privacy-note{font-size:11px}
+ .nav-search-sheet .places{padding:0}
+ .nav-search-sheet .places li button{width:100%;text-align:left;background:white;border:0;border-bottom:1px solid #e8edf3;border-radius:0;display:flex;flex-direction:column;gap:5px;padding:13px 8px}
+ .nav-search-sheet .places li button strong{font-size:15px}
+ .nav-search-sheet .places li button small{font-size:12px;color:#7b899a}
+ .nav-route-result:not([hidden]){bottom:calc(68px + env(safe-area-inset-bottom))}
+ body.nav-route-open .map-canvas{height:calc(100dvh - 425px)!important}
+ body.nav-route-open .map-legend,body.nav-route-open .map-actions,body.nav-route-open .route-summary{display:none!important}
+ .map-floating{display:none!important}
+ .workspace>.road-inspector{display:none!important}
+ .map-toolbar{display:none!important}
+ .map-canvas{height:calc(100dvh - 138px)!important;min-height:320px!important}
+ .map-legend,.map-actions,.route-summary{display:none!important}
+ body.nav-route-open .map-canvas{height:calc(100dvh - 365px)!important}
+ .topbar .brand small{display:none}
+}
+@media(prefers-reduced-motion:reduce){.nav-search-sheet,.nav-route-result{animation:none!important}}
