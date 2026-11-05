@@ -144,17 +144,22 @@ const searchList=$('places');
 searchList.setAttribute('role','listbox');searchList.setAttribute('aria-label','장소 검색 결과');
 for(const field of ['origin','destination']){$(field).setAttribute('autocomplete','off');$(field).setAttribute('aria-controls','places');$(field).setAttribute('aria-autocomplete','list');}
 function clearSuggestions(){clearTimeout(suggestionTimer);suggestionRun++;suggestionField=null;suggestionQuery='';suggestionPlaces=[];searchList.replaceChildren();}
-const recentKey='sunny-nav-recent-v1';
+const recentKey='sunny-nav-recent-v1',favoritesKey='sunny-nav-favorites-v1';
+function readFavorites(){try{const a=JSON.parse(localStorage.getItem(favoritesKey)||'[]');return Array.isArray(a)?a.filter(p=>p&&typeof p.name==='string'&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)).slice(0,20):[];}catch{return [];}}
+function saveFavorites(a){try{localStorage.setItem(favoritesKey,JSON.stringify(a.slice(0,20)));}catch{}renderFavorites();}
+function toggleFavorite(p){const a=readFavorites(),exists=a.some(x=>x.lat===p.lat&&x.lng===p.lng);saveFavorites(exists?a.filter(x=>x.lat!==p.lat||x.lng!==p.lng):[{name:p.name,address:p.address||'',lat:p.lat,lng:p.lng},...a]);}
+function placeItem(p){const row=document.createElement('div');row.className='nav-place-row';const b=document.createElement('button');b.type='button';b.className='nav-place-pick';const name=document.createElement('strong'),addr=document.createElement('small');name.textContent=p.name;addr.textContent=p.address||'주소 정보 없음';b.append(name,addr);b.onclick=()=>{setPlace('destination',p);$('destination').focus();};const fav=document.createElement('button');fav.type='button';fav.className='nav-favorite-toggle';const marked=readFavorites().some(x=>x.lat===p.lat&&x.lng===p.lng);fav.textContent=marked?'★':'☆';fav.setAttribute('aria-label',marked?'즐겨찾기 해제':'즐겨찾기 추가');fav.setAttribute('aria-pressed',String(marked));fav.onclick=()=>toggleFavorite(p);row.append(b,fav);return row;}
+function renderFavorites(){const list=$('navFavoritesList'),section=$('navFavoritesSection');if(!list)return;list.replaceChildren();const items=readFavorites();if(section)section.hidden=!items.length;items.forEach(p=>list.append(placeItem(p)));renderRecent();}
 function readRecent(){try{const data=JSON.parse(localStorage.getItem(recentKey)||'[]');return Array.isArray(data)?data.filter(p=>p&&typeof p.name==='string'&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)).slice(0,8):[];}catch{return [];}}
-function renderRecent(){const list=$('navRecentList'),section=$('navRecentSection');if(!list)return;list.replaceChildren();const items=readRecent();if(section)section.hidden=!items.length;for(const p of items){const b=document.createElement('button');b.type='button';const name=document.createElement('strong'),addr=document.createElement('small');name.textContent=p.name;addr.textContent=p.address||'저장된 목적지';b.append(name,addr);b.addEventListener('click',()=>{setPlace('destination',p);$('destination').focus();});list.append(b);}}
+function renderRecent(){const list=$('navRecentList'),section=$('navRecentSection');if(!list)return;list.replaceChildren();const items=readRecent();if(section)section.hidden=!items.length;items.forEach(p=>list.append(placeItem(p)));}
 function rememberDestination(p){if(!p||!Number.isFinite(p.lat)||!Number.isFinite(p.lng))return;try{const next=[{name:p.name,address:p.address||'',lat:p.lat,lng:p.lng},...readRecent().filter(x=>x.lat!==p.lat||x.lng!==p.lng)].slice(0,8);localStorage.setItem(recentKey,JSON.stringify(next));}catch{}renderRecent();}
 $('navClearRecent')?.addEventListener('click',()=>{try{localStorage.removeItem(recentKey);}catch{}renderRecent();});
-renderRecent();
+renderFavorites();
 function setPlace(field,p){if(field==='origin')originPlace=p;else destPlace=p;$(field).value=p.name;clearSuggestions();}
 function showSuggestions(field,places,select){
  searchList.replaceChildren();const title=document.createElement('li');title.className='search-result-title';title.textContent=(field==='origin'?'출발지':'도착지')+' 검색 결과 · 주소 확인 후 선택';searchList.append(title);
  if(!places.length){const li=document.createElement('li');li.textContent='검색 결과가 없습니다. 지역명이나 도로명 주소를 입력해주세요.';searchList.append(li);return;}
- places.forEach(p=>{const li=document.createElement('li'),b=document.createElement('button');b.type='button';b.setAttribute('role','option');const name=document.createElement('strong');name.textContent=p.name;const address=document.createElement('small');address.textContent=p.address||'주소 정보 없음';b.append(name,address);b.onclick=()=>select(p);li.append(b);searchList.append(li);});
+ places.forEach(p=>{const li=document.createElement('li');li.className='nav-suggestion-row';const row=placeItem(p);const pick=row.querySelector('.nav-place-pick');pick.setAttribute('role','option');pick.onclick=()=>select(p);li.append(row);searchList.append(li);});
 }
 async function findSuggestions(field,q){
  const run=++suggestionRun;suggestionField=field;suggestionQuery=q;suggestionPlaces=[];
