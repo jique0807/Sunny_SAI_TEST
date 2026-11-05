@@ -203,3 +203,23 @@ body{background:var(--bg);color:var(--ink)}
  .drive-home-bar #navMyLocation.nav-map-locate:active{background:#eaf2ff!important;transform:scale(.96)}
  .drive-home-bar #navMyLocation.nav-map-locate:focus-visible{outline:3px solid #1768ed;outline-offset:3px}
 }
+
+
+/* Edge-to-edge navigation home: the street map is the entire mobile background. */
+@media(max-width:900px){
+ html,body{width:100%;min-height:100%;margin:0!important;overflow-x:hidden;background:#e9eff7!important}
+ .topbar{display:none!important}
+ .dashboard{position:relative!important;display:block!important;width:100%!important;height:100dvh!important;min-height:100dvh!important;margin:0!important;padding:0!important;overflow:hidden!important;background:transparent!important}
+ .dashboard .workspace{position:static!important;display:block!important;width:100%!important;height:100%!important;min-height:0!important;padding:0!important;margin:0!important;background:transparent!important}
+ .dashboard .map-panel{display:contents!important}
+ .dashboard .map-canvas{position:fixed!important;inset:0!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100vw!important;height:100dvh!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;overflow:hidden!important;z-index:0!important}
+ .dashboard .map-canvas>.real-map,.dashboard .map-canvas>.schematic,.dashboard .map-canvas>#actualRoute{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;border-radius:0!important}
+ .dashboard .map-canvas>[hidden]{display:none!important}
+ .drive-home-bar{position:fixed!important;top:calc(12px + env(safe-area-inset-top))!important;left:12px!important;right:12px!important;z-index:600!important}
+ .nav-bottom-bar{position:fixed!important;bottom:0!important;z-index:650!important}
+ .nav-search-sheet:not([hidden]){inset:0!important;padding-top:calc(14px + env(safe-area-inset-top))!important}
+ .nav-route-result:not([hidden]){z-index:640!important}
+ body.nav-route-open .dashboard .map-canvas{height:100dvh!important}
+ .map-notice{position:absolute;top:84px;left:12px;right:12px;z-index:20}
+ footer{display:none!important}
+}
