@@ -432,9 +432,25 @@ body{background:var(--bg);color:var(--ink)}
  .drive-home-bar #navSearchOpen span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  .drive-home-bar #navSearchOpen .nav-search-symbol{font-size:22px!important;flex:none}
  .drive-home-bar #navMyLocation.nav-map-locate{
-  flex:0 0 43px!important;width:43px!important;min-width:43px!important;
-  height:43px!important;min-height:43px!important;
+  flex:0 0 40px!important;width:40px!important;min-width:40px!important;
+  height:40px!important;min-height:40px!important;
  }
  .drive-home-bar #navMyLocation.nav-map-locate svg{width:21px!important;height:21px!important}
 }
 @media(max-width:360px){.drive-home-bar{right:58px!important;left:8px!important;gap:5px!important}.drive-home-bar #navSearchOpen{padding:0 7px!important;font-size:12px!important}}
+
+/* Final mobile alignment: reserve a full zoom-sidebar lane at the right edge. */
+@media(max-width:900px){
+ .drive-home-bar{
+  left:12px!important;
+  right:calc(88px + env(safe-area-inset-right,0px))!important;
+  max-width:none!important;
+  gap:8px!important;
+ }
+ .drive-home-bar #navSearchOpen{min-width:0!important;max-width:100%!important}
+ .drive-home-bar #navMyLocation.nav-map-locate{flex-shrink:0!important}
+}
+@media(max-width:390px){
+ .drive-home-bar{left:8px!important;right:calc(74px + env(safe-area-inset-right,0px))!important;gap:6px!important}
+ .drive-home-bar #navSearchOpen{padding:0 8px!important}
+}
