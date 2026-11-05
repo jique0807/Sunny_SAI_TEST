@@ -19,17 +19,41 @@ const navPlannerHome=navPlanner?.parentElement;
 const navPlannerNext=navPlanner?.nextSibling;
 function showNavSearch(show){
  if(!navSheet||!navPlanner)return;
- if(show){navSlot?.appendChild(navPlanner);navSheet.hidden=false;document.body.classList.add('nav-sheet-open');document.body.classList.remove('nav-route-open');document.getElementById('destination')?.focus();}
+ if(show){if(typeof showNavLayers==='function')showNavLayers(false);setNavTab('navRoute');navSlot?.appendChild(navPlanner);navSheet.hidden=false;document.body.classList.add('nav-sheet-open');document.body.classList.remove('nav-route-open');document.getElementById('destination')?.focus();}
  else{if(navPlannerHome){if(navPlannerNext?.parentNode===navPlannerHome)navPlannerHome.insertBefore(navPlanner,navPlannerNext);else navPlannerHome.insertBefore(navPlanner,navPlannerHome.firstChild);}navSheet.hidden=true;document.body.classList.remove('nav-sheet-open');}
  navOpen?.setAttribute('aria-expanded',String(show));
 }
 navOpen?.addEventListener('click',()=>showNavSearch(true));
 navClose?.addEventListener('click',()=>showNavSearch(false));
-document.getElementById('navHome')?.addEventListener('click',()=>{document.getElementById('navRouteResult').hidden=true;document.body.classList.remove('nav-route-open');showNavSearch(false);window.scrollTo({top:0,behavior:'smooth'});});
-document.getElementById('navRoute')?.addEventListener('click',()=>{if(document.getElementById('navRouteResult')?.hidden===false){document.body.classList.add('nav-route-open');showNavSearch(false);}else showNavSearch(true);});
-document.getElementById('navMyLocation')?.addEventListener('click',()=>{requestHomeLocation(true);});
-document.getElementById('navWeather')?.addEventListener('click',()=>document.getElementById('cards')?.scrollIntoView({behavior:'smooth',block:'start'}));
-document.getElementById('navSettings')?.addEventListener('click',()=>document.getElementById('settingsOpen')?.click());
+const navLayersSheet=document.getElementById('navLayersSheet');
+function setNavTab(id){['navHome','navRoute','navLayers','navSettings'].forEach(x=>{const el=document.getElementById(x);if(el){if(x===id)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');}});}
+function showNavLayers(open){
+ if(!navLayersSheet)return;
+ navLayersSheet.hidden=!open;
+ document.getElementById('navLayers')?.setAttribute('aria-expanded',String(open));
+ if(open){showNavSearch(false);setNavTab('navLayers');}
+ else setNavTab(document.getElementById('navSearchSheet')?.hidden?'navHome':'navRoute');
+}
+document.getElementById('navHome')?.addEventListener('click',()=>{
+ showNavLayers(false);document.getElementById('navRouteResult').hidden=true;
+ document.body.classList.remove('nav-route-open');showNavSearch(false);setNavTab('navHome');
+ window.scrollTo({top:0,behavior:'smooth'});
+});
+document.getElementById('navRoute')?.addEventListener('click',()=>{
+ showNavLayers(false);
+ if(document.getElementById('navRouteResult')?.hidden===false){document.body.classList.add('nav-route-open');showNavSearch(false);}
+ else showNavSearch(true);
+ setNavTab('navRoute');
+});
+document.getElementById('navLayers')?.addEventListener('click',()=>showNavLayers(navLayersSheet?.hidden!==false));
+document.getElementById('navLayersClose')?.addEventListener('click',()=>showNavLayers(false));
+document.getElementById('navMyLocation')?.addEventListener('click',()=>requestHomeLocation(true));
+document.getElementById('navSettings')?.addEventListener('click',()=>{
+ showNavLayers(false);showNavSearch(false);setNavTab('navSettings');
+ document.getElementById('settingsOpen')?.click();
+});
+document.getElementById('settings')?.addEventListener('close',()=>setNavTab('navHome'));
+document.getElementById('navLayerWeather')?.addEventListener('change',()=>drawWeatherOverlays());
 
 const $=id=>document.getElementById(id),escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let csrf='',advanced=false,mapConfig={},connections={},originPlace=null,destPlace=null,route=null,weather=null,sessionPromise=null,searchSeq=0,routeSeq=0,progress=0,timer=null,playing=false,activeAudio=null,voiceSeq=0,finishVoice=null,recognition=null,kmap=null,lmap=null,routePolyline=null,lroute=null,kmarker=null,lmarker=null,installPrompt=null;
@@ -62,7 +86,7 @@ function clearWeatherOverlays(){
 }
 function drawWeatherOverlays(){
  clearWeatherOverlays();
- if(!kmap||!route||route.demo||!['kakao','skyview'].includes(activeMap))return;
+ if(document.getElementById('navLayerWeather')?.checked===false||!kmap||!route||route.demo||!['kakao','skyview'].includes(activeMap))return;
  const samples=weather?.samples||[];
  const count=Math.min(Number($('weatherMarkerCount').value),samples.length);
  const selected=count===1?[samples[Math.floor(samples.length/2)]]:Array.from({length:count},(_,i)=>samples[Math.round(i*(samples.length-1)/(count-1))]);
