@@ -369,3 +369,10 @@ body{background:var(--bg);color:var(--ink)}
  .nav-search-sheet:not([hidden]){padding-top:calc(78px + env(safe-area-inset-top,0px))!important}
  .map-notice{top:calc(146px + env(safe-area-inset-top,0px))!important}
 }
+
+
+/* Place the tagline beside the Sunny SAI wordmark, aligned near its lower edge. */
+@media(max-width:900px){
+ .sunny-mobile-brand-copy{flex-direction:row!important;align-items:baseline!important;gap:9px!important;white-space:nowrap!important}
+ .sunny-mobile-brand-copy small{font-size:8px!important;letter-spacing:.75px!important;align-self:flex-end!important;margin-bottom:2px!important}
+}
