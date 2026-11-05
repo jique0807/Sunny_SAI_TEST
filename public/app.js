@@ -116,9 +116,39 @@ $('voiceProvider').onchange=()=>{stopVoice();loadVoices();$('keyStatus').textCon
 $('voiceChoice').onchange=()=>{stopVoice();try{localStorage.setItem('sunnyVoice:'+$('voiceProvider').value,$('voiceChoice').value);}catch{}$('keyStatus').textContent=$('voiceChoice').selectedOptions[0].textContent+' 선택 · 미리듣기로 확인하세요.';};
 $('previewVoice').onclick=async()=>{if(!advanced){$('keyStatus').textContent='목소리를 선택했어요. 개인 Google 키를 연결한 후 미리듣기를 눌러주세요.';$('googleKey').focus();return;}$('previewVoice').disabled=true;try{await speak('안녕하세요, 써니예요. 가는 길의 날씨를 함께 살펴볼게요. 잠시 뒤 비가 예상돼요. 여유 있게 이동하세요.');}finally{$('previewVoice').disabled=false;}};
 loadVoices();
-$('origin').oninput=()=>{originPlace=null;};$('destination').oninput=()=>{destPlace=null;};
-async function choose(input){const q=$(input).value.trim();const coordinate=coordinatePlace(q);if(coordinate)return coordinate;if(!q){$(input).focus();throw Error((input==='origin'?'출발지':'도착지')+'를 입력해주세요.');}const token=++searchSeq;reply((input==='origin'?'출발지':'도착지')+'를 찾고 있어요.');const d=await api('/api/search',{query:q});if(token!==searchSeq)throw Error('검색이 변경되었습니다.');if(!d.places.length)throw Error('장소를 찾지 못했습니다. 지역명을 함께 입력해주세요.');
- return new Promise((resolve,reject)=>{$('places').replaceChildren();const label=document.createElement('li');label.textContent=(input==='origin'?'출발지':'도착지')+'를 선택해주세요.';$('places').append(label);d.places.forEach(p=>{const li=document.createElement('li'),b=document.createElement('button');b.type='button';b.innerHTML=escape(p.name)+`<small>${escape(p.address)}</small>`;b.onclick=()=>{if(token!==searchSeq){reject(Error('검색이 변경되었습니다.'));return;}$(input).value=p.name;$('places').replaceChildren();resolve(p);};li.append(b);$('places').append(li);});});}
+let suggestionTimer=null,suggestionField=null,suggestionQuery='',suggestionPlaces=[],suggestionRun=0;
+const searchList=$('places');
+searchList.setAttribute('role','listbox');searchList.setAttribute('aria-label','장소 검색 결과');
+for(const field of ['origin','destination']){$(field).setAttribute('autocomplete','off');$(field).setAttribute('aria-controls','places');$(field).setAttribute('aria-autocomplete','list');}
+function clearSuggestions(){clearTimeout(suggestionTimer);suggestionRun++;suggestionField=null;suggestionQuery='';suggestionPlaces=[];searchList.replaceChildren();}
+function setPlace(field,p){if(field==='origin')originPlace=p;else destPlace=p;$(field).value=p.name;clearSuggestions();}
+function showSuggestions(field,places,select){
+ searchList.replaceChildren();const title=document.createElement('li');title.className='search-result-title';title.textContent=(field==='origin'?'출발지':'도착지')+' 검색 결과 · 주소 확인 후 선택';searchList.append(title);
+ if(!places.length){const li=document.createElement('li');li.textContent='검색 결과가 없습니다. 지역명이나 도로명 주소를 입력해주세요.';searchList.append(li);return;}
+ places.forEach(p=>{const li=document.createElement('li'),b=document.createElement('button');b.type='button';b.setAttribute('role','option');const name=document.createElement('strong');name.textContent=p.name;const address=document.createElement('small');address.textContent=p.address||'주소 정보 없음';b.append(name,address);b.onclick=()=>select(p);li.append(b);searchList.append(li);});
+}
+async function findSuggestions(field,q){
+ const run=++suggestionRun;suggestionField=field;suggestionQuery=q;suggestionPlaces=[];
+ searchList.replaceChildren();const li=document.createElement('li');li.className='search-result-title';li.textContent='검색 중…';searchList.append(li);
+ try{const d=await api('/api/search',{query:q});if(run!==suggestionRun||$(field).value.trim()!==q)return;suggestionPlaces=d.places||[];showSuggestions(field,suggestionPlaces,p=>setPlace(field,p));}
+ catch(e){if(run===suggestionRun){searchList.replaceChildren();const li=document.createElement('li');li.textContent='검색 실패: '+e.message;searchList.append(li);}}
+}
+for(const field of ['origin','destination']){
+ $(field).addEventListener('input',()=>{if(field==='origin')originPlace=null;else destPlace=null;clearSuggestions();const q=$(field).value.trim();if(q.length<2)return;suggestionTimer=setTimeout(()=>findSuggestions(field,q),350);});
+ $(field).addEventListener('focus',()=>{const q=$(field).value.trim();if(q.length>=2&&!(field==='origin'?originPlace:destPlace)){clearSuggestions();suggestionTimer=setTimeout(()=>findSuggestions(field,q),200);}});
+ $(field).addEventListener('keydown',e=>{if(e.key==='Escape')clearSuggestions();if(e.key==='ArrowDown'){const b=searchList.querySelector('button');if(b){e.preventDefault();b.focus();}}});
+}
+async function choose(field){
+ const q=$(field).value.trim(),coordinate=coordinatePlace(q);if(coordinate){clearSuggestions();return coordinate;}
+ if(!q){$(field).focus();throw Error((field==='origin'?'출발지':'도착지')+'를 입력해주세요.');}
+ clearTimeout(suggestionTimer);
+ const d=suggestionField===field&&suggestionQuery===q&&suggestionPlaces.length?{places:suggestionPlaces}:await api('/api/search',{query:q});
+ const places=d.places||[];if(!places.length){$(field).focus();throw Error('장소를 찾지 못했습니다. 지역명이나 도로명 주소를 입력해주세요.');}
+ const exact=places.filter(p=>p.name===q||p.address===q);
+ if(exact.length===1){setPlace(field,exact[0]);return exact[0];}
+ const token=++searchSeq;reply((field==='origin'?'출발지':'도착지')+' 검색 결과에서 장소를 선택해주세요.');
+ return new Promise((resolve,reject)=>showSuggestions(field,places,p=>{if(token!==searchSeq){reject(Error('검색이 변경되었습니다.'));return;}setPlace(field,p);resolve(p);}));
+}
 $('searchForm').onsubmit=async e=>{e.preventDefault();stopRain();if(playing)return;const run=++routeSeq;$('routeSearch').disabled=true;pauseDrive();try{if(!originPlace)originPlace=await choose('origin');if(!destPlace)destPlace=await choose('destination');if(run!==routeSeq)return;const departure=new Date($('departure').value).toISOString();reply('차량 경로와 예상 통과시각을 확인하고 있어요.');const d=await api('/api/route',{origin:originPlace,destination:destPlace,departure});if(run!==routeSeq)return;route={...d,demo:false};weather=null;progress=0;gate.reset();renderRoute();reply('차량 경로를 찾았어요. 구간별 예보를 확인합니다.');await showMap('schematic');await Promise.all([loadWeather(),showMap(mapConfig.kakao?'kakao':'schematic')]);}catch(e){if(run===routeSeq)reply(e.message,true);}finally{if(run===routeSeq)$('routeSearch').disabled=false;}};
 $('locate').onclick=()=>{if(!navigator.geolocation){toast('위치를 지원하지 않는 기기입니다. 출발지를 입력해주세요.');return;}$('locate').disabled=true;navigator.geolocation.getCurrentPosition(p=>{originPlace={lat:p.coords.latitude,lng:p.coords.longitude,name:'현재 위치'};$('origin').value='현재 위치';$('locate').disabled=false;toast('현재 위치를 출발지로 설정했어요. 검색 시 지도·기상 제공자에게 전달됩니다.');},()=>{$('locate').disabled=false;toast('위치를 확인하지 못했습니다. 출발지를 직접 입력해주세요.');},{timeout:12000,maximumAge:30000,enableHighAccuracy:true});};
 async function demoRoute(){stopRain();const run=++routeSeq;searchSeq++;pauseDrive();stopVoice();$('demo').disabled=true;$('routeSearch').disabled=true;$('places').replaceChildren();reply('시연할 실제 차량 도로를 불러오고 있어요.');try{const start=originPlace||{name:'진천군청',lat:36.855,lng:127.436},end=destPlace||{name:'서울시청',lat:37.566,lng:126.978};const d=await api('/api/route',{origin:start,destination:end,departure:new Date().toISOString()});if(run!==routeSeq)return;if(!d.vertices?.length)throw Error('시연할 도로 좌표를 받지 못했습니다.');originPlace=start;destPlace=end;$('origin').value=start.name;$('destination').value=end.name;route={...d,demo:true};route.samples=[.25,.55,.8].map((fraction,i)=>({...pointAlong(d.vertices,fraction),fraction,seconds:d.duration*fraction,eta:new Date(Date.parse(d.departure)+d.duration*fraction*1000).toISOString(),label:['폭우 시연','강풍 시연','공사 시연'][i],forecast:i===0?{temperature:20,rain:12,gust:7,visibility:2000}:i===1?{temperature:19,rain:0,gust:18,visibility:6000}:null,event:i===2?'가상 공사 구간입니다. 실제 공사·통제 정보가 아닙니다.':null}));weather={samples:route.samples,source:'가상 상황 · 실제 현황 아님',fetchedAt:new Date().toISOString()};progress=0;gate.reset();renderRoute();renderCards();await showMap(mapConfig.kakao?'kakao':'schematic');reply('실제 도로 위에서 자동차가 움직이는 시연이에요. 폭우·강풍·공사 표시는 모두 가상입니다. 시연 재생을 눌러주세요.');}catch(e){reply('시연 경로를 불러오지 못했어요. '+e.message);}finally{if(run===routeSeq){$('demo').disabled=false;$('routeSearch').disabled=false;}}}
