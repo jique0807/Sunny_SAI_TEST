@@ -64,12 +64,48 @@ document.getElementById('navSettings')?.addEventListener('click',()=>{
 });
 document.getElementById('settings')?.addEventListener('close',()=>setNavTab('navHome'));
 document.getElementById('navLayerWeather')?.addEventListener('change',()=>drawWeatherOverlays());
+let floodOverlay=null,floodMap=null,floodTimer=null,floodSeq=0;
+const floodControl=document.getElementById('navLayerflood'),floodStatus=document.getElementById('navFloodStatus');
+function floodMessage(message){if(floodStatus)floodStatus.textContent='하천범람 지도: '+message;}
+function clearFlood(){
+ clearTimeout(floodTimer);floodSeq++;
+ if(floodOverlay&&floodMap){try{floodMap.removeLayer(floodOverlay);}catch{}}
+ floodOverlay=null;floodMap=null;
+}
+function floodMercator(lng,lat){const r=6378137;return [lng*20037508.342789244/180,r*Math.log(Math.tan(Math.PI/4+lat*Math.PI/360))];}
+function updateFlood(){
+ clearFlood();
+ if(!floodControl?.checked)return;
+ const map=activeMap==='osm'?osmMap:activeMap==='vworld'?lmap:null;
+ if(!connections.safemap){floodMessage('API 키가 연결되지 않았습니다.');return;}
+ if(!map||!window.L){floodMessage('일반지도 또는 브이월드에서만 표시됩니다.');return;}
+ if(map.getZoom()<9){floodMessage('확대 9단계 이상에서 표시합니다.');return;}
+ const bounds=map.getBounds(),west=bounds.getWest(),east=bounds.getEast(),south=bounds.getSouth(),north=bounds.getNorth();
+ if(west<123||east>133||south<32||north>40||west>=east||south>=north){floodMessage('대한민국 지도 범위로 이동하세요.');return;}
+ const [x0,y0]=floodMercator(west,south),[x1,y1]=floodMercator(east,north);
+ const size=map.getSize(),ratio=Math.min(1,1024/Math.max(size.x,size.y)),width=Math.max(128,Math.round(size.x*ratio)),height=Math.max(128,Math.round(size.y*ratio));
+ const url=new URL('/api/safemap/wms',location.origin);
+ url.searchParams.set('bbox',[x0,y0,x1,y1].join(','));url.searchParams.set('width',String(width));url.searchParams.set('height',String(height));
+ const current=++floodSeq;
+ floodMap=map;
+ floodOverlay=L.imageOverlay(url.pathname+url.search,[[south,west],[north,east]],{opacity:Math.max(0,1-Number(document.getElementById('navDemoOpacity')?.value||45)/100),interactive:false,alt:'국가하천 하천범람 예상 위험지도'}).addTo(map);
+ floodMessage('하천범람 WMS 이미지 조회 중');
+ floodOverlay.on('load',()=>{if(current===floodSeq)floodMessage('WMS 이미지 수신 · 실시간 침수정보 아님');});
+ floodOverlay.on('error',()=>{if(current===floodSeq)floodMessage('지도 수신 실패 · 데이터 연결 검사에서 API 승인 상태를 확인하세요.');});
+}
+function scheduleFlood(){if(!floodControl?.checked)return;clearTimeout(floodTimer);floodTimer=setTimeout(updateFlood,350);}
+floodControl?.addEventListener('change',()=>{
+ if(!floodControl.checked){clearFlood();floodMessage('표출 해제');return;}
+ if(!['osm','vworld'].includes(activeMap)){floodMessage('일반지도로 전환합니다.');showOpenStreetMap();return;}
+ updateFlood();
+});
 function updateMapLayerOpacity(){
  const opacity=Number(document.getElementById('navDemoOpacity')?.value??45);
  const value=Math.max(0,Math.min(100,Number.isFinite(opacity)?opacity:45));
  const label=document.getElementById('navDemoOpacityValue');
  if(label)label.textContent=value+'%';
  document.documentElement.style.setProperty('--sunny-weather-layer-opacity',String(1-value/100));
+ if(floodOverlay)floodOverlay.setOpacity(1-value/100);
  const demo=document.getElementById('navDemoRainOverlay');
  if(demo)demo.remove(); // Old non-georeferenced demonstration is no longer presented as a weather layer.
 }
@@ -189,11 +225,21 @@ async function speak(t){stopVoice();const seq=voiceSeq;$('voiceStatus').textCont
  if(seq!==voiceSeq)return;if(!window.speechSynthesis){$('voiceStatus').textContent='음성을 지원하지 않는 기기입니다. 화면 안내를 확인해주세요.';return;}
  const u=new SpeechSynthesisUtterance(t);u.lang='ko-KR';u.rate=Number($('speed').value);u.onend=()=>{if(seq===voiceSeq)$('voiceStatus').textContent='안내를 마쳤어요.';};u.onerror=()=>{if(seq===voiceSeq)$('voiceStatus').textContent='음성 재생이 중단됐어요. 다시 듣기를 눌러주세요.';};speechSynthesis.speak(u);
 }
-async function session(){const r=await fetch('/api/session',{credentials:'same-origin',cache:'no-store'});const d=await r.json();if(!r.ok)throw Error(d.error);csrf=d.csrf;advanced=d.connected;if(d.voiceProvider)$('voiceProvider').value=d.voiceProvider;loadVoices();mapConfig=d.mapConfig;connections=d.connections;keyStatus();connectionStatus();return d;}
+async function session(){const r=await fetch('/api/session',{credentials:'same-origin',cache:'no-store'});const d=await r.json();if(!r.ok)throw Error(d.error);csrf=d.csrf;advanced=d.connected;if(d.voiceProvider)$('voiceProvider').value=d.voiceProvider;loadVoices();mapConfig=d.mapConfig;connections=d.connections;if(floodControl){floodControl.disabled=!connections.safemap;if(!connections.safemap){floodControl.checked=false;clearFlood();floodMessage('SAFEMAP_API_KEY 미설정');}else floodMessage('서버 키 등록됨 · 실제 WMS 응답은 검사 전');}keyStatus();connectionStatus();return d;}
 function keyStatus(){$('keyStatus').textContent=advanced?'암호화해 임시 연결됨 · 최대 30분 · 재생 시 사용 가능 여부 확인':'연결 안 됨 · 기기 기본 음성을 사용합니다.';}
 async function api(path,data,method='POST',retried=false){await sessionPromise;if(!csrf)throw Error('보안 세션이 준비되지 않았습니다. 새로고침 후 다시 시도해주세요.');const r=await fetch(path,{method,credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:data?JSON.stringify(data):undefined,cache:'no-store'});let d;try{d=await r.json();}catch{throw Error('서버 응답을 확인하지 못했습니다.');}if(r.status===401){csrf='';advanced=false;keyStatus();if(!retried&&['/api/weather','/api/route','/api/search','/api/map-health'].includes(path)){sessionPromise=session();await sessionPromise;return api(path,data,method,true);}}if(!r.ok)throw Error(d.error||'요청을 처리하지 못했습니다.');return d;}
-function connectionStatus(){$('weatherConnection').textContent=connections.kma?'기상청 서버 키 설정됨 · 실제 응답은 경로 조회 후 확인':'기상청 키 설정 대기 · 자동 모드에서는 Open-Meteo 예보를 표시합니다.';const rows=[['카카오 장소 검색·차량 경로',connections.route?'키 설정됨 · 실제 호출 확인 필요':'운영자 REST 키 필요'],['카카오 지도',mapConfig.kakao?'키 설정됨 · '+providerState.kakao:'운영자 JavaScript 키 필요'],['브이월드 위성 배경',mapConfig.vworld?'키 설정됨 · '+providerState.vworld:'운영자 키 필요'],['기상청 API허브',connections.kma?'서버 키 설정됨 · 경로 선택 후 호출 확인':'KMA_API_KEY 설정 대기'],['대체 기상예보','Open-Meteo · 출처 별도 표시'],['GK2A·공사·통제·지형','미연결 · 실시간 판단에 사용하지 않음']];$('connectionList').innerHTML=rows.map(([a,b])=>`<div class="connection-row"><b>${escape(a)}</b><span>${escape(b)}</span></div>`).join('');}
+function connectionStatus(){$('weatherConnection').textContent=connections.kma?'기상청 서버 키 설정됨 · 실제 응답은 경로 조회 후 확인':'기상청 키 설정 대기 · 자동 모드에서는 Open-Meteo 예보를 표시합니다.';const rows=[['카카오 장소 검색·차량 경로',connections.route?'키 설정됨 · 실제 호출 확인 필요':'운영자 REST 키 필요'],['카카오 지도',mapConfig.kakao?'키 설정됨 · '+providerState.kakao:'운영자 JavaScript 키 필요'],['브이월드 위성 배경',mapConfig.vworld?'키 설정됨 · '+providerState.vworld:'운영자 키 필요'],['기상청 API허브',connections.kma?'서버 키 설정됨 · 경로 선택 후 호출 확인':'KMA_API_KEY 설정 대기'],['생활안전지도 국가하천 WMS',connections.safemap?'서버 키 설정됨 · 실제 응답 검증 필요':'SAFEMAP_API_KEY 설정 대기'],['대체 기상예보','Open-Meteo · 출처 별도 표시'],['GK2A·공사·통제·지형','미연결 · 실시간 판단에 사용하지 않음']];$('connectionList').innerHTML=rows.map(([a,b])=>`<div class="connection-row"><b>${escape(a)}</b><span>${escape(b)}</span></div>`).join('');}
 sessionPromise=session().catch(e=>{$('keyStatus').textContent=e.message;connectionStatus();});
+$('checkDataSources').onclick=async()=>{
+ const button=$('checkDataSources'),target=$('dataHealth');button.disabled=true;target.textContent='기상청·생활안전지도 서버에 실제 조회 중입니다.';
+ try{const result=await api('/api/data-health',{});target.replaceChildren();
+  for(const [label,name]of [['kma','기상청'],['safemap','생활안전지도 하천범람']]){
+   const item=result.sources?.[label]||{state:'unavailable'};
+   const p=document.createElement('p');p.textContent=name+': '+(item.state==='received'?'응답 확인':item.state==='missing'?'키 미설정':'응답 미확인')+' · '+(item.message||'')+' · '+fmt(result.checkedAt);target.appendChild(p);
+   if(label==='safemap'&&floodControl){floodControl.disabled=item.state!=='received';if(item.state!=='received'){floodControl.checked=false;clearFlood();floodMessage('API 응답 확인 전 · 표출 차단');}else floodMessage('WMS 이미지 수신 확인 · 범람 예상 영역만 표출');}
+  }
+ }catch(e){target.textContent='실제 응답 검사 실패: '+e.message;}finally{button.disabled=false;}
+};
 $('checkMaps').onclick=async()=>{$('checkMaps').disabled=true;$('mapHealth').textContent='현재 서비스 도메인으로 SDK·위성 응답을 검사하고 있어요.';try{const d=await api('/api/map-health',{});$('mapHealth').replaceChildren();const p=document.createElement('p');p.textContent='등록할 서비스 도메인: '+d.origin;$('mapHealth').append(p);for(const check of d.checks){const row=document.createElement('p');row.textContent=check.name+': '+check.message;$('mapHealth').append(row);}const caution=document.createElement('small');caution.textContent=d.caution+' · 검사 '+fmt(d.checkedAt);$('mapHealth').append(caution);}catch(e){$('mapHealth').textContent=e.message;}finally{$('checkMaps').disabled=false;}};
 $('settingsOpen').onclick=()=>$('settings').showModal();$('sourcesOpen').onclick=()=>$('sources').showModal();$('settings').addEventListener('close',()=>$('googleKey').value='');
 $('repeat').onclick=()=>speak($('reply').textContent);$('stop').onclick=()=>{stopVoice();recognition?.abort();$('voiceStatus').textContent='음성을 멈췄어요.';};
@@ -361,10 +407,10 @@ async function showOpenStreetMap(){
  try{
   if(!window.L){if(!document.querySelector('link[data-osm-css]')){const c=document.createElement('link');c.rel='stylesheet';c.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';c.dataset.osmCss='true';document.head.append(c);}await script('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');}
   if(run!==mapRun)return;
-  if(!osmMap){osmMap=L.map('osmMap',{zoomControl:false}).setView([36.5,127.8],7);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(osmMap);L.control.zoom({position:'bottomright'}).addTo(osmMap);osmMap.on('click',e=>mapClick({lat:e.latlng.lat,lng:e.latlng.lng}));}
+  if(!osmMap){osmMap=L.map('osmMap',{zoomControl:false}).setView([36.5,127.8],7);osmMap.on('moveend',scheduleFlood);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(osmMap);L.control.zoom({position:'bottomright'}).addTo(osmMap);osmMap.on('click',e=>mapClick({lat:e.latlng.lat,lng:e.latlng.lng}));}
   osmMap.invalidateSize();if(osmRoute){osmRoute.remove();osmRoute=null;}
   if(route?.vertices?.length){osmRoute=L.polyline(route.vertices.map(p=>[p.lat,p.lng]),{color:'#1768ed',weight:7}).addTo(osmMap);osmMap.fitBounds(osmRoute.getBounds(),{padding:[35,35]});}
-  else if(viewport)restoreMapViewport(viewport);
+  else if(viewport)restoreMapViewport(viewport);updateFlood();
  }catch(e){if(run!==mapRun)return;notice('기본 도로지도 연결 실패: 네트워크 또는 지도 타일 접근을 확인해주세요.');$('osmMap').hidden=true;$('schematic').hidden=false;activeMap='schematic';}
 }
 async function showMap(type){const viewport=mapSwitchViewport||captureMapViewport();mapSwitchViewport=null;if(type==='osm'){mapSwitchViewport=viewport;return showOpenStreetMap();}$('osmMap').hidden=true;const run=++mapRun;activeMap=type;updateMobileMapLayer();await sessionPromise;if(run!==mapRun)return;clearDemoOverlays();clearFocus();const isKakao=type==='kakao'||type==='skyview';$('actualRoute').toggleAttribute('hidden',type!=='schematic'||!route);$('schematic').hidden=type!=='schematic'||!!route;$('kakaoMap').hidden=!isKakao;$('vworldMap').hidden=type!=='vworld';['schematic','kakao','vworld','skyview'].forEach(x=>$(x+'Toggle').setAttribute('aria-pressed',String(x===type)));notice('');$('mapProvider').textContent=type==='schematic'?'도로 형상 · 배경지도 아님':type==='vworld'?'VWorld · 연결 중':type==='skyview'?'Kakao · 항공 배경':'Kakao · 도로 지도';
@@ -373,9 +419,9 @@ async function showMap(type){const viewport=mapSwitchViewport||captureMapViewpor
  try{if(isKakao){if(!mapConfig.kakao)throw Error('운영자의 카카오 JavaScript 키가 필요합니다.');if(!kmap){await script('https://dapi.kakao.com/v2/maps/sdk.js?autoload=false&appkey='+encodeURIComponent(mapConfig.kakao));await new Promise((resolve,reject)=>{if(!window.kakao?.maps)return reject(Error('카카오 지도 SDK 응답을 확인해주세요.'));const timeout=setTimeout(()=>reject(Error('카카오 지도 초기화 시간 초과')),12000);kakao.maps.load(()=>{clearTimeout(timeout);resolve();});});if(run!==mapRun)return;kmap=new kakao.maps.Map($('kakaoMap'),{center:new kakao.maps.LatLng(36.85,127.44),level:10});kmap.addControl(new kakao.maps.ZoomControl(),kakao.maps.ControlPosition.RIGHT);kakao.maps.event.addListener(kmap,'click',e=>mapClick({lat:e.latLng.getLat(),lng:e.latLng.getLng()}));}
  if(run!==mapRun)return;kmap.relayout();kmap.setMapTypeId(type==='skyview'?kakao.maps.MapTypeId.HYBRID:kakao.maps.MapTypeId.ROADMAP);providerState.kakao='SDK 초기화 확인';connectionStatus();routePolyline?.setMap(null);kmarker?.setMap(null);kend?.setMap(null);routePolyline=null;kmarker=null;kend=null;
  if(route?.demo){const bounds=new kakao.maps.LatLngBounds();[originPlace,destPlace].forEach(p=>bounds.extend(new kakao.maps.LatLng(p.lat,p.lng)));kmap.setBounds(bounds);}if(route?.vertices?.length){const pts=route.vertices.map(p=>new kakao.maps.LatLng(p.lat,p.lng));routePolyline=new kakao.maps.Polyline({map:kmap,path:pts,strokeWeight:7,strokeColor:type==='skyview'?'#ffda7d':'#315fce',strokeOpacity:.95});kakao.maps.event.addListener(routePolyline,'click',e=>mapClick({lat:e.latLng.getLat(),lng:e.latLng.getLng()}));const bounds=new kakao.maps.LatLngBounds();pts.forEach(p=>bounds.extend(p));kmap.setBounds(bounds);kmarker=new kakao.maps.Marker({map:kmap,position:pts[0],title:'출발'});kend=new kakao.maps.Marker({map:kmap,position:pts[pts.length-1],title:'도착'});}}if(!route?.vertices?.length&&viewport)restoreMapViewport(viewport);
- else {if(!mapConfig.vworld)throw Error('운영자의 브이월드 키와 서비스 도메인 등록이 필요합니다.');if(!window.L){const c=document.createElement('link');c.rel='stylesheet';c.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.append(c);await script('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');}if(run!==mapRun)return;if(!lmap){lmap=L.map('vworldMap').setView([36.85,127.44],8);lmap.on('click',e=>mapClick({lat:e.latlng.lat,lng:e.latlng.lng}));const base='https://api.vworld.kr/req/wmts/1.0.0/'+encodeURIComponent(mapConfig.vworld);L.tileLayer(base+'/Satellite/{z}/{y}/{x}.jpeg',{maxZoom:19,attribution:'© VWorld / 국토교통부 · 촬영시점은 위치별로 다름'}).on('tileload',()=>{tileLoaded++;satelliteStatus();}).on('tileerror',()=>{tileFailed++;satelliteStatus();}).on('loading',()=>{tileLoaded=0;tileFailed=0;}).addTo(lmap);L.tileLayer(base+'/Hybrid/{z}/{y}/{x}.png',{maxZoom:19,attribution:'도로명 © VWorld'}).addTo(lmap);L.control.scale({imperial:false}).addTo(lmap);}
+ else {if(!mapConfig.vworld)throw Error('운영자의 브이월드 키와 서비스 도메인 등록이 필요합니다.');if(!window.L){const c=document.createElement('link');c.rel='stylesheet';c.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.append(c);await script('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');}if(run!==mapRun)return;if(!lmap){lmap=L.map('vworldMap').setView([36.85,127.44],8);lmap.on('moveend',scheduleFlood);lmap.on('click',e=>mapClick({lat:e.latlng.lat,lng:e.latlng.lng}));const base='https://api.vworld.kr/req/wmts/1.0.0/'+encodeURIComponent(mapConfig.vworld);L.tileLayer(base+'/Satellite/{z}/{y}/{x}.jpeg',{maxZoom:19,attribution:'© VWorld / 국토교통부 · 촬영시점은 위치별로 다름'}).on('tileload',()=>{tileLoaded++;satelliteStatus();}).on('tileerror',()=>{tileFailed++;satelliteStatus();}).on('loading',()=>{tileLoaded=0;tileFailed=0;}).addTo(lmap);L.tileLayer(base+'/Hybrid/{z}/{y}/{x}.png',{maxZoom:19,attribution:'도로명 © VWorld'}).addTo(lmap);L.control.scale({imperial:false}).addTo(lmap);}
  lmap.invalidateSize();if(!route?.vertices?.length&&viewport)restoreMapViewport(viewport);if(lroute)lmap.removeLayer(lroute);if(lmarker)lmap.removeLayer(lmarker);if(lend)lmap.removeLayer(lend);lroute=null;lmarker=null;lend=null;if(route?.demo)lmap.fitBounds([originPlace,destPlace].map(p=>[p.lat,p.lng]),{padding:[25,25]});if(route?.vertices?.length){const pts=route.vertices.map(p=>[p.lat,p.lng]);lroute=L.polyline(pts,{color:'#ffda7d',weight:7}).addTo(lmap);lmarker=L.circleMarker(pts[0],{radius:8,color:'#fff',fillColor:'#315fce',fillOpacity:1}).bindTooltip('출발').addTo(lmap);lend=L.circleMarker(pts[pts.length-1],{radius:8,color:'#fff',fillColor:'#c87046',fillOpacity:1}).bindTooltip('도착').addTo(lmap);lmap.fitBounds(lroute.getBounds(),{padding:[25,25]});}satelliteStatus();}
- focusRoad();drawWeatherOverlays();drawDemoOverlays();moveCar();drawGps();}catch(e){if(run!==mapRun)return;providerState[isKakao?'kakao':'vworld']='연결 실패';connectionStatus();let message=isKakao?'카카오 위성지도 연결 실패: '+(e?.message||'SDK 응답 오류')+'. 카카오 콘솔에서 현재 Preview 도메인을 허용했는지 확인해주세요.':(e?.message||'위성지도 연결 실패');toast(message);await showMap(window.matchMedia('(max-width:900px)').matches?'osm':'schematic');notice(message);if(isKakao){try{const health=await api('/api/map-health',{});if(activeMap!=='schematic'&&activeMap!=='osm')return;const check=health.checks.find(x=>x.name==='카카오 지도 SDK');if(check&&check.state!=='received'){message=check.message+' · 카카오 콘솔의 키 이름은 자유롭게 정해도 됩니다.';notice(message);providerState.kakao=check.message;connectionStatus();}}catch{/* Keep the map fallback and initial notice when diagnostics are unavailable. */}}}}
+ focusRoad();drawWeatherOverlays();drawDemoOverlays();moveCar();drawGps();updateFlood();}catch(e){if(run!==mapRun)return;providerState[isKakao?'kakao':'vworld']='연결 실패';connectionStatus();let message=isKakao?'카카오 위성지도 연결 실패: '+(e?.message||'SDK 응답 오류')+'. 카카오 콘솔에서 현재 Preview 도메인을 허용했는지 확인해주세요.':(e?.message||'위성지도 연결 실패');toast(message);await showMap(window.matchMedia('(max-width:900px)').matches?'osm':'schematic');notice(message);if(isKakao){try{const health=await api('/api/map-health',{});if(activeMap!=='schematic'&&activeMap!=='osm')return;const check=health.checks.find(x=>x.name==='카카오 지도 SDK');if(check&&check.state!=='received'){message=check.message+' · 카카오 콘솔의 키 이름은 자유롭게 정해도 됩니다.';notice(message);providerState.kakao=check.message;connectionStatus();}}catch{/* Keep the map fallback and initial notice when diagnostics are unavailable. */}}}}
 ['schematic','kakao','vworld','skyview'].forEach(type=>$(type+'Toggle').onclick=()=>showMap(type));
 if(window.matchMedia('(max-width:900px)').matches){requestHomeLocation(false);Promise.resolve(sessionPromise).then(()=>showMap(mapConfig.kakao?'kakao':'osm')).catch(()=>showMap('osm'));}
 new ResizeObserver(()=>{if(kmap&&(activeMap==='kakao'||activeMap==='skyview'))kmap.relayout();if(lmap&&activeMap==='vworld')lmap.invalidateSize();}).observe($('kakaoMap').parentElement);
