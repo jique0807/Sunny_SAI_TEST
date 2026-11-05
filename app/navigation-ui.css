@@ -676,3 +676,40 @@ body{background:var(--bg);color:var(--ink)}
  border-radius:10px;background:#e8f4ff;color:#164b71;font-weight:700;font-size:12px;
 }
 .nav-kma-refresh:disabled{opacity:.55;cursor:not-allowed}
+
+/* Reliable, accessible close control for the weather-layer sheet. */
+.nav-layers-sheet[hidden]{display:none!important}
+.nav-layers-sheet:not([hidden]){z-index:1100!important}
+.nav-layers-sheet .nav-layers-head{
+ position:sticky;top:-12px;z-index:10;margin:-12px -12px 12px;
+ padding:12px 12px 10px;background:#fff;border-radius:14px 14px 0 0;
+ border-bottom:1px solid #e3e9f1;
+}
+.nav-layers-sheet .nav-layers-close{
+ display:inline-flex!important;align-items:center;justify-content:center;
+ flex:0 0 46px!important;min-width:46px!important;min-height:46px!important;
+ padding:0!important;background:#edf1f7!important;color:#192e46!important;
+ border:1px solid #c9d1db!important;border-radius:50%!important;
+ font-size:22px!important;font-weight:700!important;line-height:1;
+ cursor:pointer!important;touch-action:manipulation;
+}
+.nav-layers-sheet .nav-layers-close:focus-visible{
+ outline:3px solid #1a75e8;outline-offset:2px;
+}
+.nav-layer-list .nav-layer-row input:not(:disabled){cursor:pointer}
+.nav-road-risk-controls{border-top:1px solid #e1e9f3;padding:10px 2px 14px}
+.nav-road-risk-controls label{display:block;font-size:12px;font-weight:700;color:#273c55}
+.nav-road-risk-controls select{display:block;width:100%;min-height:42px;margin:6px 0 9px;
+ font-size:13px;padding:7px 10px;border:1px solid #b6c7d7;border-radius:9px;background:white;color:#18354b}
+.nav-road-risk-controls button{display:block;width:100%;min-height:42px;border:0;border-radius:9px;
+ color:white;background:#225ca0;font-weight:700;font-size:13px;cursor:pointer}
+.nav-road-risk-controls button:disabled{opacity:.5;cursor:not-allowed}
+.nav-road-risk-controls p{margin:8px 0;font-size:12px;line-height:1.5;overflow-wrap:anywhere;color:#495f78}
+@media(min-width:901px){
+ .nav-layers-sheet:not([hidden]){
+  display:block!important;left:auto!important;right:18px!important;bottom:18px!important;
+  width:min(450px,calc(100vw - 36px))!important;max-height:min(78vh,760px)!important;
+  padding:12px!important;overflow:auto!important;box-sizing:border-box;
+  background:#fff;box-shadow:0 8px 28px #0004;border:1px solid #dde4ef;border-radius:16px;
+ }
+}
