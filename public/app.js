@@ -21,22 +21,27 @@ function clearWeatherOverlays(){
 function drawWeatherOverlays(){
  clearWeatherOverlays();
  if(!kmap||!route||route.demo||!['kakao','skyview'].includes(activeMap))return;
- for(const sample of weather?.samples||[]){
+ const samples=weather?.samples||[];
+ const count=Math.min(Number($('weatherMarkerCount').value),samples.length);
+ const selected=count===1?[samples[Math.floor(samples.length/2)]]:Array.from({length:count},(_,i)=>samples[Math.round(i*(samples.length-1)/(count-1))]);
+ for(const sample of selected){
   if(!Number.isFinite(sample.lat)||!Number.isFinite(sample.lng))continue;
   const forecast=sample.forecast;
   const label=document.createElement('div');
-  label.style.cssText='background:white;color:#183c30;border:2px solid #426351;border-radius:10px;padding:7px 10px;font-size:12px;white-space:nowrap;box-shadow:0 2px 6px #0003';
+  label.style.cssText='background:white;color:#183c30;border:2px solid #426351;border-radius:10px;padding:7px 10px;font-size:12px;white-space:nowrap;box-shadow:0 2px 6px #0003;transform:translateX(24px)';
   const temperature=Number.isFinite(forecast?.temperature)?forecast.temperature+'°C':'기온 미제공';
   const rain=Number.isFinite(forecast?.rain)?forecast.rain+' mm':forecast?.rainText||'강수량 미제공';
   label.textContent=fmt(sample.eta)+' · '+(forecast?temperature+' · '+rain:'예보 미수신');
   label.title=sample.label+' · '+weather.source+' · 예상 통과시각 예보';
   weatherOverlays.push(new kakao.maps.CustomOverlay({
    map:kmap,position:new kakao.maps.LatLng(sample.lat,sample.lng),
-   content:label,yAnchor:1.5,zIndex:4
+   content:label,xAnchor:0,yAnchor:0.5,zIndex:4
   }));
  }
 }
 
+$('weatherProvider').parentElement.insertAdjacentHTML('afterend','<label class="weather-provider-label" for="weatherMarkerCount">지도 날씨 표시 수 <select id="weatherMarkerCount"><option value="1">1개</option><option value="2">2개</option><option value="3">3개</option><option value="4">4개</option><option value="5" selected>5개</option></select></label>');
+$('weatherMarkerCount').onchange=drawWeatherOverlays;
 const providerState={kakao:'미확인',vworld:'미확인'};
 const gate=new AlertGate();
 const fmt=iso=>new Date(iso).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Seoul'});
