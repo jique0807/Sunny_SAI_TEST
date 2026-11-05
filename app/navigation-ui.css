@@ -195,3 +195,11 @@ body{background:var(--bg);color:var(--ink)}
  #navQueryHistoryList{display:flex;flex-direction:column}
  #navQueryHistoryList button{border:0;border-bottom:1px solid #edf1f5;background:white;text-align:left;padding:13px 8px;font-size:14px;color:#33465b}
 }
+
+
+@media(max-width:900px){
+ .drive-home-bar #navMyLocation.nav-map-locate{display:flex!important;align-items:center;justify-content:center;flex:0 0 46px;width:46px;height:46px;min-width:46px;border-radius:50%!important;border:1px solid #e0e7ef!important;background:#fff!important;color:#273d55!important;box-shadow:0 3px 13px rgba(20,40,70,.16)!important;padding:0!important}
+ .drive-home-bar #navMyLocation.nav-map-locate svg{width:24px;height:24px;display:block}
+ .drive-home-bar #navMyLocation.nav-map-locate:active{background:#eaf2ff!important;transform:scale(.96)}
+ .drive-home-bar #navMyLocation.nav-map-locate:focus-visible{outline:3px solid #1768ed;outline-offset:3px}
+}
