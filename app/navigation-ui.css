@@ -413,3 +413,28 @@ body{background:var(--bg);color:var(--ink)}
  .nav-bottom-bar button[aria-current="page"],.nav-bottom-bar button[aria-expanded="true"]{color:#1768ed!important}
  .nav-bottom-bar button:focus-visible{outline:2px solid #1768ed;outline-offset:-3px;border-radius:8px}
 }
+
+/* Keep compact search and locate controls clear of right-side map zoom controls. */
+@media(max-width:900px){
+ .drive-home-bar{
+  left:12px!important;
+  right:clamp(66px,18vw,92px)!important;
+  gap:7px!important;
+  align-items:center!important;
+ }
+ .drive-home-bar #navSearchOpen{
+  min-width:0!important;flex:1 1 auto!important;
+  height:42px!important;min-height:42px!important;
+  padding:0 10px!important;gap:7px!important;
+  border-radius:12px!important;font-size:13px!important;
+  overflow:hidden!important;
+ }
+ .drive-home-bar #navSearchOpen span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .drive-home-bar #navSearchOpen .nav-search-symbol{font-size:22px!important;flex:none}
+ .drive-home-bar #navMyLocation.nav-map-locate{
+  flex:0 0 40px!important;width:40px!important;min-width:40px!important;
+  height:40px!important;min-height:40px!important;
+ }
+ .drive-home-bar #navMyLocation.nav-map-locate svg{width:21px!important;height:21px!important}
+}
+@media(max-width:360px){.drive-home-bar{right:58px!important;left:8px!important;gap:5px!important}.drive-home-bar #navSearchOpen{padding:0 7px!important;font-size:12px!important}}
