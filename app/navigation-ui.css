@@ -123,3 +123,24 @@ body{background:var(--bg);color:var(--ink)}
 .nav-search-sheet .planner .trybox,.nav-search-sheet .planner .companion,.nav-search-sheet .planner .subtle{display:none!important}
 .map-actions>span{display:none}
 }
+
+
+@media(max-width:900px){
+ .nav-recent{margin-top:18px;border-top:1px solid #e9edf3;padding-top:17px}
+ .nav-recent-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+ .nav-recent-title strong{font-size:15px}
+ .nav-recent-title button{border:0;background:transparent;font-size:12px;color:#68798b}
+ #navRecentList{display:flex;flex-direction:column}
+ #navRecentList button{border:0;border-bottom:1px solid #eef1f5;border-radius:0;text-align:left;padding:13px 6px;background:white;display:flex;flex-direction:column;gap:5px}
+ #navRecentList strong{font-size:14px;color:#26394e}
+ #navRecentList small{font-size:11px;color:#8491a0}
+ .nav-route-result:not([hidden]){display:block;position:fixed;bottom:calc(68px + env(safe-area-inset-bottom));left:0;right:0;z-index:640;background:white;padding:18px 19px 16px;border-radius:21px 21px 0 0;box-shadow:0 -8px 28px #172b472a}
+ .nav-route-result-head{display:flex;align-items:center;justify-content:space-between;font-size:15px}
+ .nav-route-result-head button{border:0;background:#f2f5f9;border-radius:50%;width:32px;height:32px;padding:0}
+ .nav-route-result-main{display:flex;align-items:baseline;gap:13px;margin:14px 0 7px;flex-wrap:wrap}
+ #navRouteDuration{font-size:29px;color:#1768ed}
+ #navRouteDistance,#navRouteArrival{font-size:13px;font-weight:700;color:#43566c}
+ #navRouteDescription{font-size:11px;color:#77879a;line-height:1.5}
+ #navStartGuidance{display:block;width:100%;background:#1768ed;color:white;border-color:#1768ed;border-radius:12px;font-size:16px;font-weight:700;min-height:49px}
+ .nav-search-sheet #places li>button{min-height:58px}
+}
