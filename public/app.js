@@ -8,6 +8,24 @@ const {voiceCatalog}=await import('/voice-catalog.mjs');
 const {pointAlong}=await import('/journey.mjs');
 const {ahead,locate,RainGate}=await import('/rain-monitor.mjs');
 let demoOverlays=[],carOverlay=null;
+
+const mobileSearchToggle=document.getElementById('mobileSearchToggle');
+const mobileWeatherToggle=document.getElementById('mobileWeatherToggle');
+function setMobileSheet(sheet){
+ const open=sheet==='search';
+ document.body.classList.toggle('mobile-search-open',open);
+ mobileSearchToggle?.setAttribute('aria-expanded',String(open));
+ mobileWeatherToggle?.setAttribute('aria-expanded',String(sheet==='weather'));
+}
+mobileSearchToggle?.addEventListener('click',()=>setMobileSheet(document.body.classList.contains('mobile-search-open')?null:'search'));
+mobileWeatherToggle?.addEventListener('click',()=>{
+ const panel=document.getElementById('cards');
+ panel?.scrollIntoView({behavior:'smooth',block:'start'});
+ setMobileSheet('weather');
+});
+document.getElementById('searchForm')?.addEventListener('submit',()=>setMobileSheet(null));
+document.getElementById('origin')?.addEventListener('focus',()=>{if(window.matchMedia('(max-width:900px)').matches)setMobileSheet('search')});
+document.getElementById('destination')?.addEventListener('focus',()=>{if(window.matchMedia('(max-width:900px)').matches)setMobileSheet('search')});
 const $=id=>document.getElementById(id),escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let csrf='',advanced=false,mapConfig={},connections={},originPlace=null,destPlace=null,route=null,weather=null,sessionPromise=null,searchSeq=0,routeSeq=0,progress=0,timer=null,playing=false,activeAudio=null,voiceSeq=0,finishVoice=null,recognition=null,kmap=null,lmap=null,routePolyline=null,lroute=null,kmarker=null,lmarker=null,installPrompt=null;
 let activeMap='schematic',selectedSample=null,kfocus=null,lfocus=null,ksection=null,lsection=null,mapRun=0,pickTarget=null,kend=null,lend=null,tileLoaded=0,tileFailed=0;
