@@ -540,3 +540,46 @@ body{background:var(--bg);color:var(--ink)}
  .nav-search-sheet #navRecentSection{border-top:1px solid #e5ebf3;margin-top:24px!important;padding-top:19px}
  .nav-search-sheet .nav-local-note{font-size:10px}
 }
+
+/* Approved reference layout: clean white search, blue route button, six favorite slots. */
+@media(max-width:900px){
+ .nav-search-sheet:not([hidden]){background:#fff!important;padding:0 16px calc(95px + env(safe-area-inset-bottom))!important}
+ .nav-search-sheet .nav-sheet-head{background:#fff!important;justify-content:center!important;position:sticky!important;min-height:54px!important;padding:10px 0 13px!important}
+ .nav-search-sheet .nav-sheet-head strong{font-size:22px!important;color:#101e38!important;font-weight:850!important}
+ .nav-search-sheet .nav-sheet-head button{position:absolute!important;right:0;top:9px}
+ .studio-search{border:1.5px solid #2674ff!important;border-radius:15px!important;height:54px!important;box-shadow:0 2px 9px #174fbd17!important}
+ .studio-results:not([hidden]){margin-top:13px!important;max-height:250px!important;border-radius:16px!important;box-shadow:0 5px 18px #18385b13!important}
+ .studio-result-row:first-child{background:#f2f7ff!important}
+ .studio-result-row{padding:12px!important}
+ .studio-result-info strong{font-size:14px!important}
+ .studio-result-info small{font-size:11px!important}
+ .studio-action{border-radius:10px!important;font-size:12px!important;padding:8px 12px!important}
+ .studio-action.secondary{border:1px solid #2773ee!important;background:#fff!important;color:#1768e9!important}
+ .studio-route{position:relative;margin-top:18px!important;padding:15px!important;border-radius:17px!important;box-shadow:0 5px 20px #173a6a12!important}
+ .studio-route-points{margin:0 0 16px!important;gap:8px!important}
+ .studio-point{background:#f3f7ff!important;border-radius:12px!important;padding:12px 9px!important;min-height:68px!important}
+ .studio-point:last-of-type{background:#fff3f6!important}
+ .studio-point small{font-size:11px!important;font-weight:700!important;color:#2b6de3!important}
+ .studio-point:last-of-type small{color:#df466b!important}
+ .studio-point strong{font-size:13px!important;color:#142746!important}
+ .studio-dot{width:9px!important;height:9px!important}
+ .studio-route-arrow{background:#f0f3f9;border-radius:50%;width:30px;height:30px;display:grid;place-items:center;font-size:18px!important}
+ .studio-swap{position:absolute;right:18px;top:16px;border:1px solid #d7e4f7!important;background:#fff!important;color:#547198!important;border-radius:50%!important;width:28px!important;height:28px!important;padding:0!important;line-height:1!important;font-size:18px!important}
+ .studio-route-button{background:linear-gradient(110deg,#38a5fa,#1760ed)!important;border-radius:12px!important;min-height:49px!important;box-shadow:0 5px 12px #1768ed1a}
+ .nav-search-sheet #navFavoritesSection{margin-top:22px!important}
+ .nav-search-sheet .nav-recent-title{display:flex!important;align-items:center!important;gap:8px!important}
+ .nav-search-sheet .nav-recent-title strong{font-size:17px!important;color:#182b48!important}
+ .nav-search-sheet .nav-recent-title small{margin-left:auto!important;font-size:11px!important;color:#8292aa!important}
+ .nav-search-sheet #navFavoritesList{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:9px!important}
+ .nav-search-sheet .nav-favorite-empty,.nav-search-sheet .nav-favorite-tile{height:83px!important;min-height:83px!important;border-radius:13px!important;background:#f4f8ff!important;border:1px solid #d4e3ff!important}
+ .nav-search-sheet .nav-favorite-empty span{font-size:29px!important;color:#4386ec!important}
+ .nav-search-sheet .nav-favorite-empty small{font-size:11px!important;color:#2a4163!important}
+ .studio-favorite-tile{position:relative!important;padding:18px 5px 5px!important}
+ .studio-favorite-tile>strong{font-size:11px!important}
+ .studio-favorite-actions{margin-top:3px!important}
+ .studio-favorite-actions .studio-action{font-size:10px!important;padding:5px 1px!important}
+ .nav-search-sheet #navRecentSection{margin-top:20px!important}
+ .nav-search-sheet #navRecentList .studio-recent-row{background:#fff!important;border-bottom:1px solid #e6ebf2!important;padding:13px 3px!important}
+ .nav-search-sheet #navRecentList .studio-recent-row .studio-result-info strong{font-size:14px!important}
+ .nav-search-sheet #navRecentList .studio-recent-row .studio-result-info small{font-size:11px!important}
+}
