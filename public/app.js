@@ -285,11 +285,17 @@ function updateMobileMapLayer(){
  $('navSatelliteMap')?.setAttribute('aria-pressed',String(satellite));
 }
 $('navRoadMap')?.addEventListener('click',()=>showMap(mapConfig.kakao?'kakao':'osm'));
-$('navSatelliteMap')?.addEventListener('click',async()=>{
- try{await sessionPromise;}catch(e){toast('지도 설정을 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.');return;}
- if(mapConfig.vworld)showMap('vworld');
- else if(mapConfig.kakao)showMap('skyview');
- else toast('카카오 지도 API 설정을 확인해주세요. 테스트 배포 환경변수와 카카오 등록 도메인이 필요합니다.');
+$('navSatelliteMap')?.addEventListener('click',async event=>{
+ event.preventDefault();
+ const button=$('navSatelliteMap');
+ button?.setAttribute('aria-busy','true');
+ try{
+  if(sessionPromise)await sessionPromise;
+  if(mapConfig.kakao)await showMap('skyview');
+  else if(mapConfig.vworld)await showMap('vworld');
+  else toast('카카오 지도 설정을 읽지 못했습니다. 테스트 배포 API 키와 도메인을 확인해주세요.');
+ }catch(error){toast('위성지도 전환 실패: '+(error?.message||'지도 연결 상태를 확인해주세요.'));}
+ finally{button?.removeAttribute('aria-busy');}
 });
 async function showOpenStreetMap(){
  const run=++mapRun;activeMap='osm';updateMobileMapLayer();
