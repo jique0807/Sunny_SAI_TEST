@@ -488,3 +488,55 @@ body{background:var(--bg);color:var(--ink)}
  .nav-search-sheet #navFavoritesSection{margin-top:17px!important}
  .nav-search-sheet #navRecentSection{margin-top:17px!important}
 }
+
+/* Sunny Route Studio — completely refreshed, purpose-built mobile search UI. */
+@media(max-width:900px){
+ .nav-search-sheet:not([hidden]){background:#f6f8fc!important;padding:0 17px calc(110px + env(safe-area-inset-bottom))!important}
+ .nav-search-sheet .nav-sheet-head{position:sticky;top:0;z-index:4;background:#f6f8fc;padding:19px 1px 12px!important;font-size:14px!important;color:#52657d}
+ .nav-search-sheet .nav-sheet-head strong{font-size:14px!important;letter-spacing:.02em}
+ .nav-search-sheet #navSearchSlot{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip-path:inset(50%)!important;pointer-events:none!important}
+ .nav-search-sheet .sunny-route-studio{display:block!important}
+ .studio-heading{padding:16px 2px 18px}
+ .studio-kicker{display:block;color:#2873e9;font-size:10px;font-weight:800;letter-spacing:.2em}
+ .studio-heading h2{margin:7px 0 5px!important;font-size:27px!important;font-weight:800!important;letter-spacing:-1.3px;color:#172b46}
+ .studio-heading p{margin:0!important;font-size:12px;color:#78899d}
+ .studio-search{height:55px;display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #dce6f3;border-radius:16px;padding:0 14px;box-shadow:0 5px 20px #163e6c0b}
+ .studio-search>span{font-size:27px;color:#2873e9;line-height:1}
+ .studio-search input{border:0!important;outline:none!important;box-shadow:none!important;background:transparent!important;min-width:0!important;width:100%!important;flex:1!important;font-size:15px!important;color:#193452!important;padding:0!important}
+ .studio-search input::-webkit-search-cancel-button{display:none}
+ .studio-search button{background:transparent!important;border:0!important;color:#91a0b3!important;font-size:23px!important;padding:0 4px!important}
+ .studio-results:not([hidden]){display:flex;flex-direction:column;gap:0;background:#fff;margin-top:9px;border:1px solid #e2eaf4;border-radius:15px;overflow:hidden;box-shadow:0 9px 28px #142d4a10;max-height:330px;overflow-y:auto}
+ .studio-result-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 11px;border-bottom:1px solid #edf1f6}
+ .studio-result-row:first-child{background:#eef5ff}
+ .studio-result-info{display:flex;flex-direction:column;min-width:0;flex:1;gap:4px}
+ .studio-result-info strong{font-size:13px;color:#233a57;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .studio-result-info small{font-size:10px;color:#7b8da3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .studio-result-actions{display:flex;flex-shrink:0;gap:5px}
+ .studio-action{border:0!important;border-radius:8px!important;background:#2873e9!important;color:white!important;padding:8px 10px!important;font-size:11px!important;font-weight:800!important;min-height:32px!important}
+ .studio-action.secondary{background:#e6eefb!important;color:#2873e9!important}
+ .studio-search-status{margin:0;padding:10px 12px;font-size:12px;color:#8795a5}
+ .studio-route{background:#fff;border:1px solid #e4ebf4;border-radius:20px;margin-top:19px;padding:17px 15px 15px;box-shadow:0 6px 25px #142d4a0b}
+ .studio-route-title{display:flex;justify-content:space-between;align-items:center}
+ .studio-route-title strong{font-size:15px;color:#1b3452}
+ .studio-route-title span{font-size:9px;letter-spacing:.13em;color:#a0aec0;font-weight:800}
+ .studio-route-points{display:flex;align-items:center;gap:6px;margin:19px 0 17px}
+ .studio-point{flex:1;display:flex;gap:7px;align-items:center;min-width:0}
+ .studio-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+ .studio-dot.origin{background:#23b68a}.studio-dot.dest{background:#ef6b5c}
+ .studio-point>div{min-width:0;display:flex;flex-direction:column;gap:4px}
+ .studio-point small{font-size:10px;color:#96a3b4}
+ .studio-point strong{font-size:12px;color:#263b56;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .studio-route-arrow{font-size:20px;color:#7a91af;flex-shrink:0}
+ .studio-route-button{display:flex!important;align-items:center;justify-content:center;gap:12px;width:100%!important;min-height:49px!important;border:0!important;border-radius:13px!important;background:#1768e9!important;color:#fff!important;font-weight:800!important;font-size:15px!important}
+ .studio-route-button span{font-size:20px}
+ .nav-search-sheet #navFavoritesSection{margin-top:25px!important;border:0!important;padding-top:0!important}
+ .nav-search-sheet #navFavoritesList{margin-top:12px!important}
+ .nav-search-sheet .nav-favorite-tile,.nav-search-sheet .nav-favorite-empty{background:#fff!important;border:1px solid #e3eaf4!important;border-radius:14px!important;box-shadow:0 4px 12px #142d4a08}
+ .studio-favorite-tile{gap:6px!important;padding:13px 5px 6px!important}
+ .studio-favorite-tile>strong{font-size:12px;color:#253d5b;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .studio-favorite-actions{display:flex;gap:3px;width:100%}
+ .studio-favorite-actions .studio-action{flex:1;min-width:0;padding:5px 1px!important;font-size:10px!important;min-height:27px!important}
+ .studio-favorite-remove{position:absolute;top:0;right:2px;border:0!important;background:transparent!important;font-size:17px!important;color:#a4b1c0!important;padding:0 3px!important}
+ .nav-search-sheet #navRecentSection{border-top:1px solid #e5ebf3;margin-top:24px!important;padding-top:19px}
+ .nav-search-sheet .nav-local-note{font-size:10px}
+}
