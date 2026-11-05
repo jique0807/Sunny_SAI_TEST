@@ -60,3 +60,89 @@ body{background:var(--bg);color:var(--ink)}
 #places li>button:hover,#places li>button:focus-visible{background:#edf4ff}
 #places li>button strong{font-size:13px;color:#16243b}
 #places li>button small{font-size:11px;color:#64748b;line-height:1.5}
+
+
+/* Map-first navigation layout inspired by familiar Korean map-app patterns.
+   Original branding, map attribution, routing and weather logic remain intact. */
+:root{--ink:#182b3d;--green:#1671e9;--line:#e4e9ef;--bg:#f5f7fa;--muted:#66788a}
+body{background:#f5f7fa}
+.topbar{height:60px!important;position:sticky;top:0;z-index:1000;background:#fff;border-bottom:1px solid #e7ebf0;box-shadow:0 2px 12px #17375c0a}
+.topbar .brand{font-size:21px;gap:8px}.topbar .sunmark{font-size:29px;color:#1671e9}
+.topbar .brand small{letter-spacing:1.1px}
+.topbar nav>button{color:#3c4e63}
+.dashboard{max-width:none!important;grid-template-columns:350px minmax(0,1fr)!important;gap:0!important;padding:0!important;margin:0!important;align-items:start;min-height:calc(100dvh - 60px)}
+.planner{position:sticky;top:60px;height:calc(100dvh - 60px);max-height:none!important;border-radius:0!important;border:0!important;border-right:1px solid #e2e8ef!important;box-shadow:6px 0 24px #122b4a09!important;overflow-y:auto!important;padding:22px 19px!important;z-index:4}
+.planner>.eyebrow,.planner>.intro{display:none}
+.planner h1{font-size:19px!important;line-height:1.4;margin:0 0 19px!important;letter-spacing:-.7px}
+.planner h1 br{display:none}.planner h1 em{color:#1671e9}
+.routeform label{font-size:12px;color:#43546a;margin:11px 0 6px;font-weight:700}
+.routeform .field{border:1px solid #dfe6ef;border-radius:11px;box-shadow:none;background:#f8fafc}
+.routeform .field:focus-within{border-color:#1671e9;box-shadow:0 0 0 3px #1671e914}
+.routeform .field input{background:transparent!important}
+.field-dot{border-color:#1684ee}.field-dot.dest{background:#1684ee}
+.routeform .primary{background:#1671e9;border-color:#1671e9;border-radius:11px;font-weight:700;min-height:48px}
+.routeform .primary:hover{background:#095ac3}
+.privacy-note{font-size:10px;line-height:1.55}
+.pick-controls{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.pick-controls button{flex:1;min-width:125px;font-size:11px;border-radius:9px;padding:10px 5px;background:#f7f9fc}
+#places{box-shadow:0 8px 20px #152e4c0e;border:1px solid #e5ebf2}
+.trybox{background:#f6f9ff;border:1px solid #e4ecfa;border-radius:12px;margin:15px 0}
+.trybox #realTrip{color:#1768ed}
+.companion{background:#f1f6ff;border:1px solid #e4edfb;border-radius:12px}
+.companion .orb{background:#deebff;color:#1671e9}
+.workspace{padding:0 0 25px;display:flex;flex-direction:column;min-width:0}
+.workspace-heading{display:none!important}
+.map-panel{border:0!important;border-radius:0!important;box-shadow:none!important;overflow:visible;background:#fff}
+.map-toolbar{border-bottom:1px solid #e5eaf0;padding:9px 17px;min-height:55px;background:#fff}
+.map-switch{background:#f2f5f9;border-radius:10px}
+.map-switch button{font-size:11px!important;white-space:nowrap}
+.map-switch button[aria-pressed=true]{background:#1768ed!important;color:#fff!important}
+.map-canvas{height:calc(100dvh - 206px)!important;min-height:490px!important;max-height:none!important;background:#eaf0f6}
+.map-floating{left:18px;top:18px;border-radius:12px;padding:12px 15px;max-width:300px}
+.map-floating .floating-icon{color:#1671e9}
+.map-legend{padding:9px 17px;font-size:11px;border-bottom:1px solid #e7ecf2}
+.map-actions{padding:9px 17px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid #e7ecf2}
+.map-actions button{border-radius:9px}
+.route-summary{padding:15px 22px;gap:25px;border-bottom:1px solid #e6edf4}
+.route-summary b{font-weight:700}
+.drive-btn{background:#1671e9!important;color:white!important;border-color:#1671e9!important}
+.workspace>.weather-provider-label,.workspace>.hint,.workspace>.section-title,.workspace>.weather-cards,.workspace>.data-strip,.workspace>.data-footnote,.workspace>.road-inspector{margin-left:20px;margin-right:20px}
+.weather-cards article{border:1px solid #e3eaf2;border-radius:12px;box-shadow:0 3px 10px #102c4a06}
+footer{background:#fff;margin:0;padding:16px 24px;border-top:1px solid #e6edf4}
+@media(max-width:900px){
+ .dashboard{display:flex!important;flex-direction:column!important}
+ .planner{position:relative;top:auto;height:auto;max-height:none!important;width:100%;padding:13px 14px!important;border-right:0!important;border-bottom:1px solid #e4eaf1!important;box-shadow:none!important;order:1}
+ .planner h1{font-size:17px!important;margin-bottom:10px!important}
+ .workspace{width:100%;order:2}
+ .map-canvas{height:54dvh!important;min-height:340px!important}
+ .routeform{display:grid;grid-template-columns:1fr 1fr;column-gap:9px}
+ .routeform label[for="origin"]{grid-column:1;grid-row:1}
+ .routeform label[for="destination"]{grid-column:2;grid-row:1}
+ .routeform .field:has(#origin){grid-column:1;grid-row:2}
+ .routeform .field:has(#destination){grid-column:2;grid-row:2}
+ .routeform label[for="departure"]{grid-column:1/3;grid-row:3}
+ .routeform .timefield{grid-column:1/3;grid-row:4}
+ .routeform .privacy-note{grid-column:1/3;grid-row:5;margin:6px 0}
+ .routeform .primary{grid-column:1/3;grid-row:6}
+ .trybox,.companion,.planner>.subtle,.planner>#voiceStatus{display:none}
+ .map-toolbar{flex-wrap:wrap;gap:8px}
+ .map-switch{width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+ .map-switch button{font-size:10px!important;padding:9px 3px!important}
+ .route-summary{flex-wrap:wrap;gap:15px;padding:14px}
+}
+@media(max-width:500px){
+ .topbar{height:54px!important;padding:0 12px}
+ .topbar .brand{font-size:19px}
+ .topbar nav{gap:6px}.topbar nav>button{font-size:11px}
+ .planner{padding:12px!important}
+ .planner h1{font-size:16px!important}
+ .routeform .field{padding-left:7px;gap:5px}
+ .routeform .field input{font-size:12px!important}
+ .routeform .field button{min-width:30px;padding:5px}
+ .map-canvas{height:49dvh!important;min-height:310px!important}
+ .map-floating{left:10px;top:10px;max-width:calc(100% - 20px);padding:8px 10px}
+ .map-floating small{font-size:9px}
+ .route-summary .label{font-size:10px}
+ .route-summary b{font-size:19px}
+ .workspace>.weather-provider-label,.workspace>.hint,.workspace>.section-title,.workspace>.weather-cards,.workspace>.data-strip,.workspace>.data-footnote,.workspace>.road-inspector{margin-left:12px;margin-right:12px}
+}
