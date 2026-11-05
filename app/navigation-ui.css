@@ -146,3 +146,32 @@ footer{background:#fff;margin:0;padding:16px 24px;border-top:1px solid #e6edf4}
  .route-summary b{font-size:19px}
  .workspace>.weather-provider-label,.workspace>.hint,.workspace>.section-title,.workspace>.weather-cards,.workspace>.data-strip,.workspace>.data-footnote,.workspace>.road-inspector{margin-left:12px;margin-right:12px}
 }
+
+
+.mobile-map-controls{display:none}
+@media(max-width:900px){
+.dashboard{display:block!important;position:relative}
+.mobile-map-controls{display:flex;position:absolute;top:12px;left:12px;right:12px;z-index:700;gap:8px}
+.mobile-map-controls button{background:white;box-shadow:0 4px 18px #17314e28;border-radius:14px;min-height:48px;font-weight:700}
+#mobileSearchToggle{flex:1;text-align:left}
+#mobileWeatherToggle{width:110px}
+.planner{display:none!important;position:absolute!important;top:72px!important;left:12px;right:12px;width:auto!important;max-height:72dvh!important;overflow-y:auto!important;z-index:720!important;border-radius:18px!important;box-shadow:0 14px 40px #142b4b35!important}
+body.mobile-search-open .planner{display:block!important}
+.planner h1{display:none}
+.workspace{display:flex!important;flex-direction:column}
+.map-panel{display:contents}
+.map-canvas{order:1;height:calc(100dvh - 215px)!important;min-height:360px!important}
+.map-toolbar{order:2}
+.map-legend{order:3}
+.route-summary{order:4;background:white}
+.map-actions{order:5}
+.drive-controls{order:6}
+.workspace>.road-inspector{order:7}
+.workspace>.weather-provider-label{order:8}
+.workspace>.hint{order:9}
+.workspace>.section-title{order:10}
+.workspace>.weather-cards{order:11}
+.workspace>.data-strip{order:12}
+.workspace>.data-footnote{order:13}
+.map-floating{top:77px!important;left:12px!important}
+}
