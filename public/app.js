@@ -19,14 +19,14 @@ const navPlannerHome=navPlanner?.parentElement;
 const navPlannerNext=navPlanner?.nextSibling;
 function showNavSearch(show){
  if(!navSheet||!navPlanner)return;
- if(show){navSlot?.appendChild(navPlanner);navSheet.hidden=false;document.body.classList.add('nav-sheet-open');document.getElementById('destination')?.focus();}
+ if(show){navSlot?.appendChild(navPlanner);navSheet.hidden=false;document.body.classList.add('nav-sheet-open');document.body.classList.remove('nav-route-open');document.getElementById('destination')?.focus();}
  else{if(navPlannerHome){if(navPlannerNext?.parentNode===navPlannerHome)navPlannerHome.insertBefore(navPlanner,navPlannerNext);else navPlannerHome.insertBefore(navPlanner,navPlannerHome.firstChild);}navSheet.hidden=true;document.body.classList.remove('nav-sheet-open');}
  navOpen?.setAttribute('aria-expanded',String(show));
 }
 navOpen?.addEventListener('click',()=>showNavSearch(true));
 navClose?.addEventListener('click',()=>showNavSearch(false));
-document.getElementById('navHome')?.addEventListener('click',()=>{showNavSearch(false);window.scrollTo({top:0,behavior:'smooth'});});
-document.getElementById('navRoute')?.addEventListener('click',()=>showNavSearch(true));
+document.getElementById('navHome')?.addEventListener('click',()=>{document.getElementById('navRouteResult').hidden=true;document.body.classList.remove('nav-route-open');showNavSearch(false);window.scrollTo({top:0,behavior:'smooth'});});
+document.getElementById('navRoute')?.addEventListener('click',()=>{if(document.getElementById('navRouteResult')?.hidden===false){document.body.classList.add('nav-route-open');showNavSearch(false);}else showNavSearch(true);});
 document.getElementById('navMyLocation')?.addEventListener('click',()=>{showNavSearch(true);document.getElementById('locate')?.click();});
 document.getElementById('navWeather')?.addEventListener('click',()=>document.getElementById('cards')?.scrollIntoView({behavior:'smooth',block:'start'}));
 document.getElementById('navSettings')?.addEventListener('click',()=>document.getElementById('settingsOpen')?.click());
@@ -191,12 +191,12 @@ function showNavRouteResult(){
  $('navRouteDuration').textContent=Math.round(route.duration/60)+'분';
  $('navRouteDistance').textContent=(route.distance/1000).toFixed(1)+'km';
  $('navRouteArrival').textContent='도착 '+fmt(new Date(Date.parse(route.departure)+route.duration*1000));
- sheet.hidden=false;
+ sheet.hidden=false;document.body.classList.add('nav-route-open');
 }
-$('navRouteResultClose')?.addEventListener('click',()=>{$('navRouteResult').hidden=true;});
+$('navRouteResultClose')?.addEventListener('click',()=>{$('navRouteResult').hidden=true;document.body.classList.remove('nav-route-open');});
 $('navStartGuidance')?.addEventListener('click',()=>{
  const link=$('kakaoDirections');
- if(link?.href&&link.href.startsWith('http'))window.open(link.href,'_blank','noopener,noreferrer');
+ if(link?.href&&link.href.startsWith('http')){const a=document.createElement('a');a.href=link.href;a.target='_blank';a.rel='noopener noreferrer';a.click();}
  else toast('길안내 링크가 없습니다. 먼저 실제 경로를 조회해주세요.');
 });
 async function loadWeather(){if(!route||route.demo)return;const current=route;const run=routeSeq;const weatherRun=++weatherSeq;$('refresh').disabled=true;$('weatherDetail').textContent='예보 확인 중';try{const d=await api('/api/weather',{samples:route.samples,provider:$('weatherProvider').value});if(route!==current||run!==routeSeq||weatherRun!==weatherSeq)return;weather=d;renderCards();reply(d.samples.some(p=>p.forecast)?d.source+'를 확인했어요. 공사·통제는 별도 확인이 필요합니다.':'기상 예보를 확인하지 못했어요. '+(d.samples.find(p=>p.error)?.error||'자료 제공 범위를 확인해주세요.'));}catch(e){if(route!==current||run!==routeSeq||weatherRun!==weatherSeq)return;weather={provider:$('weatherProvider').value==='kma'?'kma':'open-meteo',samples:route.samples.map(p=>({...p,forecast:null,error:e.message})),source:'조회 실패',fetchedAt:new Date().toISOString()};renderCards();reply(e.message);}finally{if(route===current&&run===routeSeq&&weatherRun===weatherSeq)$('refresh').disabled=false;}}
