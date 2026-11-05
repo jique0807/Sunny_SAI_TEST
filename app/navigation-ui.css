@@ -50,3 +50,13 @@ body{background:var(--bg);color:var(--ink)}
  .map-floating{max-width:calc(100% - 70px)}
  .map-actions{flex-wrap:wrap}
 }
+
+/* Search suggestions: readable on mobile, no unsafe HTML from place names. */
+#places{list-style:none;padding:0;margin:8px 0;max-height:300px;overflow:auto;border-radius:12px}
+#places:empty{display:none}
+#places li{margin:0;padding:0}
+#places .search-result-title{padding:9px 12px;background:#eff5ff;color:#49627e;font-size:12px;font-weight:600}
+#places li>button{width:100%;display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:3px;padding:11px 12px;border:0;border-bottom:1px solid #e8edf5;border-radius:0;background:white}
+#places li>button:hover,#places li>button:focus-visible{background:#edf4ff}
+#places li>button strong{font-size:13px;color:#16243b}
+#places li>button small{font-size:11px;color:#64748b;line-height:1.5}
