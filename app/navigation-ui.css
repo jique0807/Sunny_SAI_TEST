@@ -476,3 +476,15 @@ body{background:var(--bg);color:var(--ink)}
  .nav-search-sheet .routeform #places .nav-suggestion-row .nav-place-pick{padding:9px 7px!important}
  .nav-search-sheet .nav-recent-title strong{font-size:15px}
 }
+
+/* Clean destination-first navigation search; origin defaults to geolocation. */
+@media(max-width:900px){
+ .nav-search-sheet #navQueryHistorySection{display:none!important}
+ .nav-search-sheet .nav-origin-field{display:flex!important;align-items:center!important;gap:4px!important}
+ .nav-search-sheet .nav-origin-field #origin{flex:1 1 auto!important;min-width:0!important;text-overflow:ellipsis!important}
+ .nav-search-sheet .nav-origin-field #origin[readonly]{color:#405a75!important}
+ .nav-search-sheet .nav-origin-field #originSearchToggle{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;width:60px!important;min-width:60px!important;padding:0 5px!important;height:38px!important;font-size:12px!important;font-weight:700!important;border-radius:9px!important;background:#eaf2ff!important;color:#1768ed!important;border:1px solid #cfe1ff!important}
+ .nav-search-sheet .nav-origin-field #locate{flex:0 0 34px!important;width:34px!important;min-width:34px!important;height:38px!important;padding:0!important}
+ .nav-search-sheet #navFavoritesSection{margin-top:17px!important}
+ .nav-search-sheet #navRecentSection{margin-top:17px!important}
+}
