@@ -648,3 +648,16 @@ body{background:var(--bg);color:var(--ink)}
  body.nav-route-open .map-switch{display:none!important}
  body.nav-route-open .map-toolbar{display:none!important}
 }
+
+/* Overlay controls: compact, scrollable on iOS, opacity for actual forecast markers. */
+.nav-forecast-map-label{opacity:var(--sunny-weather-layer-opacity,.55)!important}
+@media(max-width:900px){
+ .nav-layer-list{max-height:min(43dvh,350px);overflow-y:auto;overscroll-behavior:contain;border-top:1px solid #e8edf3}
+ .nav-layer-list .nav-layer-row{min-height:54px!important;padding:8px 2px!important}
+ .nav-layer-list .nav-layer-row input{cursor:not-allowed}
+ .nav-layer-opacity{display:block;padding:14px 2px 8px;border-top:1px solid #e8edf3}
+ .nav-layer-opacity>span{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px}
+ .nav-layer-opacity output{font-variant-numeric:tabular-nums;color:#1768ed;font-weight:800}
+ .nav-layer-opacity input[type=range]{display:block;width:100%!important;height:28px;margin:8px 0 0;accent-color:#1768ed;appearance:auto}
+ .nav-layers-sheet .nav-layer-note{font-size:11px;line-height:1.5}
+}
