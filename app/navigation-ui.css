@@ -188,3 +188,10 @@ body{background:var(--bg);color:var(--ink)}
  .nav-search-sheet .places li.nav-suggestion-row button.nav-place-pick{width:auto!important}
  .nav-local-note{font-size:11px;color:#8a96a4;line-height:1.5}
 }
+
+
+@media(max-width:900px){
+ .nav-query-history{margin-top:15px;padding-top:15px;border-top:1px solid #e9edf3}
+ #navQueryHistoryList{display:flex;flex-direction:column}
+ #navQueryHistoryList button{border:0;border-bottom:1px solid #edf1f5;background:white;text-align:left;padding:13px 8px;font-size:14px;color:#33465b}
+}
