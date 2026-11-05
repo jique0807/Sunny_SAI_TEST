@@ -590,3 +590,14 @@ body{background:var(--bg);color:var(--ink)}
  .studio-route-points .studio-point{min-width:0!important;flex:1 1 0!important}
  .studio-route-points .studio-point:last-of-type{background:#fff3f6!important}
 }
+
+/* Visual-only precipitation overlay prototype; not geographically referenced. */
+.map-canvas{isolation:isolate}
+.nav-demo-rain-overlay{
+ position:absolute;inset:0;z-index:25;pointer-events:none;
+ background:
+ radial-gradient(ellipse 33% 27% at 69% 36%,rgba(230,56,58,.94) 0%,rgba(29,86,209,.85) 44%,rgba(48,151,246,.6) 72%,transparent 100%),
+ radial-gradient(ellipse 45% 36% at 42% 61%,rgba(22,107,224,.75),rgba(63,180,248,.45) 55%,transparent 100%);
+}
+.nav-demo-rain-overlay[hidden]{display:none!important}
+.nav-layers-sheet input[type=range]{width:125px;accent-color:#1768ed;appearance:auto}
