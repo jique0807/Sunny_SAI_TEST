@@ -583,3 +583,10 @@ body{background:var(--bg);color:var(--ink)}
  .nav-search-sheet #navRecentList .studio-recent-row .studio-result-info strong{font-size:14px!important}
  .nav-search-sheet #navRecentList .studio-recent-row .studio-result-info small{font-size:11px!important}
 }
+
+/* Swap control belongs between route endpoints, never on the destination card. */
+@media(max-width:900px){
+ .studio-route-points .studio-swap{position:static!important;flex:0 0 34px!important;width:34px!important;height:34px!important;display:grid!important;place-items:center!important;border:1px solid #cbdcf7!important;border-radius:50%!important;background:#edf4ff!important;color:#1e6be7!important;font-size:21px!important;font-weight:800!important;line-height:1!important;padding:0!important;box-shadow:none!important}
+ .studio-route-points .studio-point{min-width:0!important;flex:1 1 0!important}
+ .studio-route-points .studio-point:last-of-type{background:#fff3f6!important}
+}
