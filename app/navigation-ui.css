@@ -115,3 +115,11 @@ body{background:var(--bg);color:var(--ink)}
  body.nav-sheet-open{overflow:hidden}
  footer{padding-bottom:80px}
 }
+
+
+@media(max-width:900px){
+.nav-bottom-bar{grid-template-columns:repeat(3,1fr)}
+.workspace>.weather-provider-label,.workspace>.hint,.workspace>.section-title,.workspace>.weather-cards,.workspace>.data-strip,.workspace>.data-footnote{display:none!important}
+.nav-search-sheet .planner .trybox,.nav-search-sheet .planner .companion,.nav-search-sheet .planner .subtle{display:none!important}
+.map-actions>span{display:none}
+}
