@@ -1336,12 +1336,12 @@ body.sunny-rain-grid-active .sunny-rain-grid-timeline,
  border-top:2px dashed #3979a9;opacity:.8;pointer-events:none
 }
 
-/* 2026-11-06: compact Home map selector at the rightmost edge.
-   Preserve a 44px+ hit target and keep it below the Home search/location row. */
+/* Home map selector: align at screenshot's upper-right map corner, just below brand header.
+   Keep at least a 46px touch target, without covering Home search/current-location controls. */
 @media(max-width:900px){
  body[data-sunny-nav="home"]:not(.nav-sheet-open):not(.nav-route-open):not(.sunny-guiding):not(.sunny-rain-grid-active) .nav-map-layer-control{
-  top:calc(var(--sunny-header-height,66px) + 61px)!important;
-  right:4px!important;left:auto!important;bottom:auto!important;
+  top:calc(var(--sunny-header-height,66px) - 8px)!important;
+  right:3px!important;left:auto!important;bottom:auto!important;
   width:57px!important;gap:2px!important;padding:3px!important;
   border-radius:10px!important;box-sizing:border-box!important;
  }
@@ -1359,7 +1359,7 @@ body.sunny-rain-grid-active .sunny-rain-grid-timeline,
 }
 @media(min-width:901px){
  body[data-sunny-nav="home"]:not(.sunny-guiding):not(.sunny-rain-grid-active) .nav-map-layer-control{
-  top:127px!important;right:6px!important;left:auto!important;bottom:auto!important;
+  top:76px!important;right:6px!important;left:auto!important;bottom:auto!important;
   width:60px!important;gap:2px!important;padding:4px!important;box-sizing:border-box!important;
  }
  body[data-sunny-nav="home"] .nav-map-layer-control button{
@@ -1392,4 +1392,40 @@ body.sunny-guiding .sunny-drive-progress{
  height:min(54dvh,430px)!important;
  max-height:calc(100dvh - 125px - env(safe-area-inset-bottom,0px))!important;
  min-height:120px!important;width:27px!important;z-index:3!important;
+}
+
+/* Driving alerts: visually distinct, non-overlapping large top card and smaller
+   subordinate bottom card, matching the user's annotated driving screenshot.
+   Keep both real forecast messages intact and leave the right progress rail free. */
+body.sunny-guiding .sunny-drive-alerts{
+ top:calc(10px + env(safe-area-inset-top,0px))!important;
+ left:10px!important;
+ width:min(270px,calc(100vw - 82px))!important;
+ height:102px!important;max-height:102px!important;overflow:visible!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(1){
+ top:0!important;left:0!important;
+ width:min(248px,calc(100% - 12px))!important;
+ height:48px!important;min-height:48px!important;max-height:48px!important;
+ z-index:3!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(2){
+ top:56px!important;left:12px!important;
+ width:min(185px,calc(100% - 66px))!important;
+ height:38px!important;min-height:38px!important;max-height:38px!important;
+ z-index:2!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(2) .sunny-drive-alert-text strong{
+ font-size:11px!important;
+}
+@media(max-width:360px){
+ body.sunny-guiding .sunny-drive-alerts{
+  left:8px!important;width:calc(100vw - 81px)!important;
+ }
+ body.sunny-guiding .sunny-drive-alert:nth-child(1){
+  width:calc(100% - 10px)!important;
+ }
+ body.sunny-guiding .sunny-drive-alert:nth-child(2){
+  width:calc(100% - 62px)!important;
+ }
 }
