@@ -26,7 +26,7 @@ export function affineTriangle(ctx,img,src,dest,dpr=1){
  const [[u1,v1],[u2,v2],[u3,v3]]=src;
  const [[x1,y1],[x2,y2],[x3,y3]]=dest;
  const determinant=(u1-u3)*(v2-v3)-(u2-u3)*(v1-v3);
- if(!Number.isFinite(determin)||Math.abs(determin)<1e-8)return;
+ if(!Number.isFinite(determinant)||Math.abs(determinant)<1e-8)return;
  const a=((x1-x3)*(v2-v3)-(x2-x3)*(v1-v3))/determinant;
  const c=((u1-u3)*(x2-x3)-(u2-u3)*(x1-x3))/determinant;
  const b=((y1-y3)*(v2-v3)-(y2-y3)*(v1-v3))/determinant;
