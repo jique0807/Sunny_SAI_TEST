@@ -53,6 +53,9 @@ test('route start/current/destination are separate accessible markers with no gu
  assert.match(app,/rainPosition\|\|homePosition/);
  assert.match(app,/routeCurrentMarker\?\.setMap\(null\)/);
  assert.match(app,/updateRouteCurrentMarker\(\)/);
+ assert.match(app,/Math\.hypot\(\(p\.lat-first\.lat\)\*111320/);
+ assert.match(app,/sunny-route-pin-colocated/);
+ assert.match(css,/\.sunny-route-point-pin\.sunny-route-pin-colocated/);
  assert.match(css,/sunny-route-point-pin\[data-kind="start"\]/);
  assert.match(css,/sunny-route-point-pin\[data-kind="destination"\]/);
  assert.match(css,/sunny-route-point-pin\[data-kind="current"\]/);
