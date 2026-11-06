@@ -52,6 +52,7 @@ test('Kakao initialization does not accidentally enter the VWorld branch',async(
   routePolyline:null,kmarker:null,kend:null,
   providerState,connectionStatus(){},focusRoad(){},drawWeatherOverlays(){},
   drawDemoOverlays(){},moveCar(){},drawGps(){},updateFlood(){},
+  drivingUI:{isActive(){return false;}},followDrivingGps(){},
   kmaMapOverlay:{schedule(){}},roadRiskOverlay:{repaint(){}},
   notice:t=>calls.push(t),toast:t=>calls.push('toast:'+t),
   kakaoConnectError:t=>calls.push('error:'+t),

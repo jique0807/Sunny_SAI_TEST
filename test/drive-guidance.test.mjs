@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
 import {segmentMeters,routeFraction,classifyRisk,upcomingRisks} from '../public/drive-guidance.mjs';
 import {ahead,locate} from '../public/rain-monitor.mjs';
 const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
@@ -58,4 +59,27 @@ test('small overlay shows at most two weather notices and a slim distance progre
  assert.match(css,/\.sunny-drive-alerts\{/);
  assert.match(css,/\.sunny-drive-progress-track\{/);
  assert.match(css,/body\.sunny-guiding \.map-floating/);
+});
+
+test('live GPS tracker pans the Kakao map to the received coordinates and throttles micro-movements',()=>{
+ const start=app.indexOf('function followDrivingGps(){');
+ const end=app.indexOf('// Explicit foreground GPS monitoring:',start);
+ assert.ok(start>0&&end>start);
+ let now=5000,panCalls=[],zoomCalls=[];
+ const ctx=vm.createContext({
+  drivingUI:{isActive:()=>true},rainPosition:{lat:37.501,lng:127.001},
+  document:{hidden:false},kmap:{panTo(p){panCalls.push(p);},setLevel(x){zoomCalls.push(x);}},
+  activeMap:'kakao',lastFollowTime:0,lastFollowPosition:null,
+  segmentMeters,Date:class extends Date{static now(){return now;}},
+  kakao:{maps:{LatLng:class{constructor(lat,lng){this.lat=lat;this.lng=lng;}}}}
+ });
+ vm.runInContext(app.slice(start,end),ctx);
+ vm.runInContext('followDrivingGps()',ctx);
+ assert.equal(panCalls.length,1);assert.deepEqual([panCalls[0].lat,panCalls[0].lng],[37.501,127.001]);assert.deepEqual(zoomCalls,[4]);
+ now+=2000;ctx.rainPosition={lat:37.50101,lng:127.00101};
+ vm.runInContext('followDrivingGps()',ctx);assert.equal(panCalls.length,1);
+ now+=2000;ctx.rainPosition={lat:37.502,lng:127.002};
+ vm.runInContext('followDrivingGps()',ctx);
+ assert.equal(panCalls.length,2);
+ assert.deepEqual([panCalls[1].lat,panCalls[1].lng],[37.502,127.002]);
 });
