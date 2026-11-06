@@ -43,7 +43,7 @@ const fmtTime=iso=>{
   timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'2-digit',
   minute:'2-digit',hour12:false}):'시간 확인 불가';
 };
-export function initNationalRainOverlay({onEnable}={}){
+export function initNationalRainOverlay({onEnable,waitForSession}={}){
  const get=id=>document.getElementById(id);
  const toggle=get('navRadarToggle'),quick=get('navRadarQuick');
  const panel=get('navRainGridTimeBar'),slider=get('navRainGridLead'),
@@ -114,6 +114,8 @@ export function initNationalRainOverlay({onEnable}={}){
   try{
    const lead=Number(slider?.value||0);
    if(!Number.isInteger(lead)||lead<0||lead>3)throw Error('허용되지 않은 예측시간');
+   if(typeof waitForSession==='function')await waitForSession();
+   if(run!==requestId||!enabled)return;
    const response=await fetch('/api/rain-grid?lead='+lead,{
     credentials:'same-origin',cache:'no-store',signal:controller.signal});
    if(!response.ok){
