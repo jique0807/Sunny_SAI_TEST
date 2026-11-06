@@ -1150,3 +1150,52 @@ body.sunny-rain-grid-active:not([data-sunny-nav="home"]) .nav-map-layer-control{
  .sunny-rain-grid-legend i{min-width:80px}
  .sunny-rain-grid-quick{font-size:11px}
 }
+
+/* Weather controls v2: prevent collisions with Home search + current location.
+   Keep one small rain action near the bottom navigation, opposite the home-only
+   map selector. While the time panel is open, its close control replaces both. */
+.sunny-radar-quick{
+ position:fixed!important;top:auto!important;left:auto!important;right:14px!important;
+ bottom:calc(var(--sunny-bottom-nav-height,68px) + 16px)!important;
+ z-index:780!important;max-width:126px;min-height:44px;padding:10px 12px!important;
+ white-space:nowrap;box-sizing:border-box;
+ background:rgba(255,255,255,.97)!important;box-shadow:0 4px 15px #12334b38!important;
+}
+body.sunny-rain-grid-active .sunny-radar-quick,
+body.sunny-rain-grid-active .nav-map-layer-control,
+body.sunny-rain-grid-active .map-switch{
+ display:none!important;
+}
+body.sunny-rain-grid-active .sunny-rain-grid-timeline{
+ display:block;bottom:calc(var(--sunny-bottom-nav-height,68px) + 12px)!important;
+}
+body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
+ bottom:calc(138px + env(safe-area-inset-bottom,0px))!important;
+ width:min(400px,calc(100vw - 90px))!important;
+}
+body.sunny-guiding:not(.sunny-rain-grid-active) .sunny-radar-quick{
+ top:auto!important;bottom:calc(148px + env(safe-area-inset-bottom,0px))!important;
+ left:12px!important;right:auto!important;
+}
+@media(max-width:900px){
+ .sunny-radar-quick{bottom:calc(var(--sunny-bottom-nav-height,68px) + 13px)!important;right:12px!important}
+ body.sunny-rain-grid-active .sunny-rain-grid-timeline{
+  left:10px!important;right:10px!important;transform:none!important;
+  bottom:calc(var(--sunny-bottom-nav-height,68px) + 10px)!important;
+  width:calc(100vw - 20px)!important;max-height:44dvh!important;
+ }
+ body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
+  bottom:calc(138px + env(safe-area-inset-bottom,0px))!important;
+  left:10px!important;right:65px!important;width:calc(100vw - 75px)!important;
+ }
+ body.sunny-guiding:not(.sunny-rain-grid-active) .sunny-radar-quick{
+  bottom:calc(148px + env(safe-area-inset-bottom,0px))!important;
+  left:12px!important;right:auto!important;
+ }
+}
+/* Scope is strict even under previous CSS selectors with important overrides. */
+body:not([data-sunny-nav="home"]) .nav-map-layer-control,
+body.nav-sheet-open .nav-map-layer-control,
+body.nav-route-open .nav-map-layer-control,
+body.sunny-guiding .nav-map-layer-control,
+body.sunny-rain-grid-active .nav-map-layer-control{display:none!important}
