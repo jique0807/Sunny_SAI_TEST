@@ -185,10 +185,18 @@ function updateRouteCurrentMarker(){
   routeCurrentMarker?.setMap(null);routeCurrentMarker=null;return;
  }
  const position=new kakao.maps.LatLng(p.lat,p.lng);
+ const first=route.vertices[0];
+ const besideStart=first&&Number.isFinite(first.lat)&&Number.isFinite(first.lng)&&
+  Math.hypot((p.lat-first.lat)*111320,(p.lng-first.lng)*88000)<120;
  if(!routeCurrentMarker){
+  const content=createRoutePin('current');
+  content.classList.toggle('sunny-route-pin-colocated',Boolean(besideStart));
   routeCurrentMarker=new kakao.maps.CustomOverlay({map:kmap,position,
-   content:createRoutePin('current'),xAnchor:.5,yAnchor:.3,zIndex:22});
- }else routeCurrentMarker.setPosition(position);
+   content,xAnchor:.5,yAnchor:.3,zIndex:22});
+ }else{
+  routeCurrentMarker.setPosition(position);
+  routeCurrentMarker.getContent?.()?.classList?.toggle('sunny-route-pin-colocated',Boolean(besideStart));
+ }
 }
 function centerHomeMap(){
  if(!homePosition)return;
