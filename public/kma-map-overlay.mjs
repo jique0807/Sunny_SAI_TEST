@@ -1,136 +1,165 @@
-// KMA sampled 5-km grid forecast overlays: exact queried cells, no interpolation.
-// Works with Kakao Maps and Leaflet. Does not show fabricated radar or snowfall totals.
+// KMA genuine 5 km grid forecast mosaic on Kakao / Leaflet maps.
+// Only individually fetched grid cells may be coloured. No weather extrapolation.
 export function isSnowPty(code){return [2,3,6,7].includes(code);}
 export function sampleMapPoints(bounds){
- if(!bounds||[bounds.west,bounds.east,bounds.south,bounds.north].some(v=>!Number.isFinite(v)))return [];
- const samples=[];
- for(const fy of [.20,.50,.80])for(const fx of [.20,.50,.80]){
+ if(!bounds||[bounds.west,bounds.east,bounds.south,bounds.north].some(v=>!Number.isFinite(v))||
+  bounds.west>=bounds.east||bounds.south>=bounds.north)return[];
+ const positions=[.125,.375,.625,.875],points=[];
+ for(const fy of positions)for(const fx of positions){
   const lat=bounds.south+(bounds.north-bounds.south)*fy;
   const lng=bounds.west+(bounds.east-bounds.west)*fx;
-  if(lat>=32&&lat<=40&&lng>=123&&lng<=133)samples.push({lat,lng});
+  if(lat>=32&&lat<=40&&lng>=123&&lng<=133)points.push({lat,lng});
  }
- return samples;
+ return points;
+}
+export function rainColor(f){
+ if(!f||f.rainLabel==null&&f.precipitationType==null)return null;
+ const candidate=Number.isFinite(f.rain)?f.rain: Number.isFinite(f.rainMin)&&f.rainMin>0?f.rainMin:
+  Number.isFinite(f.rainMax)&&f.rainMax>0?Math.min(f.rainMax,.8):null;
+ if(candidate===0&&![1,2,4,5,6,7].includes(f.precipitationType))return null;
+ if(candidate===null&&!([1,2,4,5,6,7].includes(f.precipitationType)))return null;
+ const mm=candidate===null?.2:candidate;
+ if(mm>=30)return '#56369b';
+ if(mm>=15)return '#2261b6';
+ if(mm>=7)return '#0872cd';
+ if(mm>=3)return '#149ee0';
+ if(mm>=1)return '#43c2f1';
+ return '#8bdef6';
 }
 export function gridPresentation(f,nowcast,rain,snow){
  if(!f)return null;
- const snowing=isSnowPty(f.precipitationType);
- if(snow&&snowing)return {color:'#7550ca',label:[3,7].includes(f.precipitationType)?'눈':'비·눈'};
- if(rain&&(f.rainLabel!=null||f.precipitationType!=null)){
-  const present=f.rain>0||f.rainMin>0||f.rainMax>0||[1,2,4,5,6].includes(f.precipitationType);
-  return {color:present?'#0b86cc':'#a8bbc8',label:present?(f.rainLabel||'강수 예보'):'강수없음'};
+ if(snow&&isSnowPty(f.precipitationType))
+  return {color:'#8657c4',label:[3,7].includes(f.precipitationType)?'눈':'비·눈',kind:'snow'};
+ if(rain){
+  const color=rainColor(f);
+  if(color)return {color,label:f.rainLabel||'강수형태 예보',kind:'rain'};
  }
  if(nowcast&&(Number.isFinite(f.temperature)||Number.isFinite(f.windSpeed))){
-  return {color:Number.isFinite(f.temperature)?f.temperature<5?'#457bd2':f.temperature>=25?'#d8833f':'#20a587':'#20a587',
-   label:Number.isFinite(f.temperature)?f.temperature+'°C':f.windSpeed+'m/s'};
+  const c=Number.isFinite(f.temperature)?f.temperature<5?'#457bd2':f.temperature>=25?'#d8833f':'#20a587':'#20a587';
+  return {color:c,label:Number.isFinite(f.temperature)?f.temperature+'°C':f.windSpeed+'m/s',kind:'temperature'};
  }
  return null;
 }
+export function forecastForHour(cell,lead){
+ if(!cell||cell.status!=='forecast')return null;
+ return Array.isArray(cell.forecasts)?cell.forecasts[lead]||null:lead===0?cell.forecast||null:null;
+}
 export function initKmaMapOverlay({query,getContext,fallback,getActiveMap,format}){
- const controlIds=['navLayernowcast','navLayerrain','navLayersnow'];
- const controls=controlIds.map(id=>document.getElementById(id));
+ const controls=['navLayernowcast','navLayerrain','navLayersnow'].map(id=>document.getElementById(id));
  const status=document.getElementById('navKmaStatus');
- const refreshButton=document.getElementById('navKmaRefresh');
- let configured=false,cache=null,painted=[],timer=null,seq=0;
+ const refresh=document.getElementById('navKmaRefresh');
+ const panel=document.getElementById('navWeatherTimeBar');
+ const slider=document.getElementById('navWeatherTimeRange');
+ const timeLabel=document.getElementById('navWeatherTimeLabel');
+ const close=document.getElementById('navWeatherTimeClose');
+ let configured=false,cache=null,painted=[],timer=null,seq=0,lead=0;
  const enabled=()=>controls.some(c=>c?.checked);
- const message=s=>{if(status)status.textContent='기상청 예보: '+s;};
+ const message=s=>{if(status)status.textContent='기상청 지도예보: '+s;};
  function clear(){
-  for(const entry of painted){try{
-   if(entry.kakao)entry.object.setMap(null);
-   else entry.map.removeLayer(entry.object);
-  }catch{}}
+  for(const o of painted)try{if(o.kakao)o.item.setMap(null);else o.map.removeLayer(o.item);}catch{}
   painted=[];
  }
+ function timePanel(){
+  if(panel)panel.hidden=!enabled()||!configured;
+  if(refresh)refresh.disabled=!enabled()||!configured;
+ }
+ function timing(data){
+  const iso=data?.validTimes?.[lead];
+  if(timeLabel)timeLabel.textContent=iso?
+   new Date(iso).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' 예보':
+   '현재 +'+lead+'시간 · 자료 조회 전';
+ }
  function draw(data){
-  clear();
+  clear();timePanel();timing(data);
   const ctx=getContext();
   if(!ctx?.ready||!enabled()||!data?.cells)return;
   const [nowcast,rain,snow]=controls.map(c=>Boolean(c?.checked));
-  const alpha=Math.max(0,1-Number(document.getElementById('navDemoOpacity')?.value??45)/100);
-  const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let shown=0,snowCells=0;
+  const alpha=Math.max(.05,1-Number(document.getElementById('navDemoOpacity')?.value??45)/100);
+  let drawn=0,wet=0,snowing=0,valid=0;
   for(const cell of data.cells){
-   if(cell.status!=='forecast'||!cell.forecast||!Array.isArray(cell.corners))continue;
-   const f=cell.forecast;
-   if(isSnowPty(f.precipitationType))snowCells++;
-   const p=gridPresentation(f,nowcast,rain,snow);
-   if(!p)continue;
-   const detail=[p.label,Number.isFinite(f.temperature)?'기온 '+f.temperature+'°C':null,
-    Number.isFinite(f.windSpeed)?'풍속 '+f.windSpeed+'m/s':null,
-    f.rainLabel?'1시간 강수량 '+f.rainLabel:null,
-    isSnowPty(f.precipitationType)?'강수형태 '+([3,7].includes(f.precipitationType)?'눈':'비·눈 혼합'):null,
-    '기상청 초단기예보 '+format(f.time||data.validTime)+' · 격자 '+cell.grid.nx+','+cell.grid.ny+' · 실황 아님'
-   ].filter(Boolean).join(' / ');
+   const f=forecastForHour(cell,lead);
+   if(!f||!Array.isArray(cell.corners)||!cell.corners.length)continue;
+   valid++;
+   if(rainColor(f))wet++;
+   if(isSnowPty(f.precipitationType))snowing++;
+   const style=gridPresentation(f,nowcast,rain,snow);
+   if(!style)continue;drawn++;
+   const text=[style.label,
+    Number.isFinite(f.rain)?'1시간 강수량 '+f.rain+'mm':f.rainLabel?'1시간 강수량 '+f.rainLabel:null,
+    Number.isFinite(f.temperature)?'기온 '+f.temperature+'°C':null,
+    isSnowPty(f.precipitationType)?'강수형태 눈/진눈깨비 예보':null,
+    '기상청 5km 격자 '+cell.grid.nx+','+cell.grid.ny,
+    '유효시각 '+format(f.time||data.validTimes?.[lead]||data.validTime),
+    '레이더 실황 아님'].filter(Boolean).join(' · ');
    if(ctx.type==='leaflet'&&window.L){
-    const polygon=L.polygon(cell.corners.map(c=>[c.lat,c.lng]),{color:p.color,weight:1.5,opacity:.85,
-      fillColor:p.color,fillOpacity:alpha}).addTo(ctx.map).bindTooltip(detail,{sticky:true});
-    painted.push({map:ctx.map,object:polygon});
-    const marker=L.marker([cell.center.lat,cell.center.lng],{interactive:false,icon:L.divIcon({
-     className:'sunny-kma-grid-marker',html:'<span>'+escape(p.label)+'</span>',iconSize:[74,25],iconAnchor:[37,12]})}).addTo(ctx.map);
-    painted.push({map:ctx.map,object:marker});
+    const polygon=L.polygon(cell.corners.map(c=>[c.lat,c.lng]),
+     {color:style.color,weight:.5,opacity:.32,fillColor:style.color,fillOpacity:Math.min(alpha,.8)})
+     .addTo(ctx.map).bindTooltip(text,{sticky:true});
+    polygon.bringToBack();
+    painted.push({map:ctx.map,item:polygon});
    }else if(ctx.type==='kakao'&&window.kakao?.maps){
-    const polygon=new kakao.maps.Polygon({map:ctx.map,path:cell.corners.map(c=>new kakao.maps.LatLng(c.lat,c.lng)),
-      strokeWeight:1.5,strokeColor:p.color,strokeOpacity:.85,fillColor:p.color,fillOpacity:alpha});
-    const popup=document.createElement('div');
-    popup.className='sunny-kma-grid-label';popup.textContent=p.label;popup.title=detail;
-    const label=new kakao.maps.CustomOverlay({map:ctx.map,
-      position:new kakao.maps.LatLng(cell.center.lat,cell.center.lng),
-      content:popup,xAnchor:.5,yAnchor:.5,zIndex:4});
-    painted.push({kakao:true,object:polygon},{kakao:true,object:label});
-    kakao.maps.event.addListener(polygon,'click',()=>{message(detail);});
+    const polygon=new kakao.maps.Polygon({map:ctx.map,
+     path:cell.corners.map(c=>new kakao.maps.LatLng(c.lat,c.lng)),zIndex:1,
+     strokeWeight:0,strokeOpacity:0,fillColor:style.color,fillOpacity:Math.min(alpha,.8)});
+    kakao.maps.event.addListener(polygon,'click',()=>message(text));
+    painted.push({kakao:true,item:polygon});
    }
-   shown++;
   }
-  const valid=data.cells.filter(c=>c.status==='forecast').length;
-  const choices=[nowcast?'기온·풍속':null,rain?'강수':null,snow?'눈/진눈깨비':null].filter(Boolean).join(' · ');
-  message(choices+' · 성공 '+valid+'/'+data.cells.length+'개 격자 · 지도 '+shown+'개'+
-   (snow?' · 눈 예보 '+snowCells+'개':'')+' · 유효 '+format(data.validTime)+
-   ' · 빈 지역은 미조회/미표출, 실황 아님');
+  const choices=[rain?'강수분포':null,snow?'눈/진눈깨비':null,nowcast?'기온·바람':null].filter(Boolean).join(' + ');
+  message(choices+' · 유효 '+format(data.validTimes?.[lead]||data.validTime)+
+   ' · 실제 격자 '+valid+'/'+data.cells.length+'개, 표출 '+drawn+'개'+
+   (rain?' · 강수 격자 '+wet+'개':'')+(snow?' · 눈/혼합 '+snowing+'개':'')+
+   ' · 색이 없는 지역은 강수없음 또는 미조회 · 실황 아님');
  }
- function availability(state){
-  configured=Boolean(state);
+ function availability(value){
+  configured=Boolean(value);
   for(const c of controls){if(!c)continue;c.disabled=!configured;if(!configured)c.checked=false;}
-  if(refreshButton)refreshButton.disabled=!configured||!enabled();
-  if(!configured){cache=null;clear();message('KMA_API_KEY 미설정 · 실제 예보 표출 불가');}
-  else if(!cache)message('키 등록 · 초단기예보/강수/눈 버튼을 켜서 실제 격자를 조회하세요');
+  if(!configured){++seq;clear();cache=null;message('KMA_API_KEY 설정 전에는 실제 강수영역을 표시하지 않습니다');}
+  else if(!cache)message('강수 버튼을 켜면 지도 위치의 실제 초단기예보 격자를 불러옵니다');
+  timePanel();
  }
- function geoDistance(a,b){return Math.hypot((a.lat-b.lat)*111,(a.lng-b.lng)*89);}
  async function update(force=false){
   clearTimeout(timer);
-  if(!enabled()){++seq;clear();if(refreshButton)refreshButton.disabled=true;return;}
-  if(refreshButton)refreshButton.disabled=false;
-  if(!configured){clear();message('서버의 기상청 키가 필요합니다');return;}
+  if(!enabled()){++seq;clear();timePanel();return;}
+  timePanel();
+  if(!configured){clear();message('기상청 키가 필요합니다');return;}
   const ctx=getContext();
-  if(!ctx){clear();message('카카오·일반지도·위성지도에서 표시 가능합니다');return;}
-  if(!ctx.ready){clear();message('지도를 더 확대하세요 (일반지도 9 이상 · 카카오 지도 레벨 7 이하)');return;}
-  const center={lat:(ctx.north+ctx.south)/2,lng:(ctx.west+ctx.east)/2};
+  if(!ctx){clear();message('카카오 또는 일반지도를 선택하세요');return;}
+  if(!ctx.ready){clear();message('지도를 확대하세요 (카카오 7레벨 이하 · 일반지도 9 이상)');return;}
+  const center={lat:(ctx.south+ctx.north)/2,lng:(ctx.west+ctx.east)/2};
   const age=cache?Date.now()-cache.at:Infinity;
-  const distance=cache?geoDistance(center,cache.center):Infinity;
+  const distance=cache?Math.hypot((center.lat-cache.center.lat)*111,(center.lng-cache.center.lng)*89):Infinity;
   if(!force&&cache&&age<300000&&distance<12){draw(cache.data);return;}
-  if(!force&&cache&&age<120000){clear();message('지도 위치가 변경됐습니다. 「다시 조회」를 눌러 현재 지역을 조회하세요');return;}
+  if(!force&&cache&&age<120000){clear();message('지도를 이동했습니다. 「현재 지도 범위 다시 조회」를 눌러주세요');return;}
   const points=sampleMapPoints(ctx);
-  if(!points.length){clear();message('대한민국 지도 범위로 이동해주세요');return;}
-  const requestId=++seq;clear();
-  message('기상청 초단기예보 조회 중 · 표본 격자 최대 9개');
-  if(refreshButton)refreshButton.disabled=true;
+  if(!points.length){clear();message('대한민국 영역으로 지도를 이동하세요');return;}
+  const requestId=++seq;clear();message('기상청 실제 격자 예보 수신 중 · 최대 16개, 시각별 4장');
+  if(refresh)refresh.disabled=true;
   try{
    const data=await query(points);
    if(requestId!==seq||!enabled())return;
    if(!data?.cells?.some(c=>c.status==='forecast')){
-    cache=null;message('조회 실패 · '+(data?.cells?.[0]?.error||'실제 기상청 데이터가 없습니다'));return;
+    cache=null;message('조회된 기상청 예보 없음 · 키 권한/발표시각 확인 필요');return;
    }
    cache={data,center,at:Date.now()};draw(data);
-  }catch(e){if(requestId===seq){clear();message('외부 데이터 조회 실패 · '+(e.message||'다시 시도해주세요'));}}
-  finally{if(requestId===seq&&refreshButton)refreshButton.disabled=false;}
+  }catch(e){if(requestId===seq){clear();message('강수영역 조회 실패 · '+(e.message||'API 상태를 확인하세요'));}}
+  finally{if(requestId===seq)timePanel();}
  }
- function schedule(){
-  if(!enabled())return;
-  clearTimeout(timer);timer=setTimeout(()=>update(false),700);
- }
+ function schedule(){if(!enabled())return;clearTimeout(timer);timer=setTimeout(()=>update(),650);}
  for(const c of controls)c?.addEventListener('change',()=>{
   if(!enabled()){update();return;}
   if(!getContext()&&getActiveMap()==='schematic'){fallback();return;}
-  update(false);
+  update();
  });
- refreshButton?.addEventListener('click',()=>update(true));
+ slider?.addEventListener('input',()=>{
+  lead=Math.max(0,Math.min(3,Number(slider.value)||0));
+  if(cache)draw(cache.data);else timing();
+ });
+ close?.addEventListener('click',()=>{
+  for(const c of controls)if(c)c.checked=false;
+  update();
+ });
+ refresh?.addEventListener('click',()=>update(true));
+ timePanel();timing();
  return {availability,update,schedule,updateOpacity:()=>{if(enabled()&&cache)draw(cache.data);},clear};
 }

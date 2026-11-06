@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {fromGrid,cellGeometry,kmaMapForecast} from '../lib/kma-map.mjs';
 import {toGrid} from '../lib/kma.mjs';
-import {sampleMapPoints,isSnowPty,gridPresentation} from '../public/kma-map-overlay.mjs';
+import {sampleMapPoints,isSnowPty,gridPresentation,rainColor,forecastForHour} from '../public/kma-map-overlay.mjs';
 import {handle} from '../lib/api.mjs';
 const now=Date.parse('2026-11-05T05:10:00Z');
 const validTime=new Date(Math.ceil((now+90*60000)/3600000)*3600000).toISOString();
@@ -19,8 +19,8 @@ test('KMA inverse grid matches geographic forward mapping and 5-km cell corners'
  assert.equal(geometry.corners.length,4);
  for(const p of geometry.corners){assert.ok(Number.isFinite(p.lat));assert.ok(Number.isFinite(p.lng));}
 });
-test('map viewport sampling stays within Korea and caps at nine representative points',()=>{
- assert.equal(sampleMapPoints({west:126.8,east:127.3,south:37.3,north:37.8}).length,9);
+test('map viewport sampling stays within Korea and caps at sixteen actual point queries',()=>{
+ assert.equal(sampleMapPoints({west:126.8,east:127.3,south:37.3,north:37.8}).length,16);
  assert.equal(sampleMapPoints({west:0,east:1,south:0,north:1}).length,0);
  assert.equal(sampleMapPoints(null).length,0);
 });
@@ -29,8 +29,8 @@ test('snow means PTY snow/mixed precipitation, never invented snowfall totals',(
  const f={temperature:13,windSpeed:4,rain:null,rainMin:0,rainMax:1,rainLabel:'1.0mm 미만',precipitationType:2};
  assert.equal(gridPresentation(f,false,false,true).label,'비·눈');
  assert.equal(gridPresentation({...f,precipitationType:1},false,false,true),null);
- assert.equal(gridPresentation(f,false,true,false).color,'#0b86cc');
- assert.equal(gridPresentation({...f,precipitationType:0,rainLabel:'강수없음',rain:0,rainMin:null,rainMax:null},false,true,false).label,'강수없음');
+ assert.equal(gridPresentation(f,false,true,false).color,'#8bdef6');
+ assert.equal(gridPresentation({...f,precipitationType:0,rainLabel:'강수없음',rain:0,rainMin:null,rainMax:null},false,true,false),null);
 });
 test('KMA map requests official grid records and deduplicates cells without leaking keys',async()=>{
  let calls=0;
@@ -42,7 +42,7 @@ test('KMA map requests official grid records and deduplicates cells without leak
   assert.match(url.pathname,/getUltraSrtFcst$/);
   return Response.json({response:{header:{resultCode:'00'},body:{items:{item:items}}}});
  },now);
- assert.equal(calls,1);assert.equal(d.cells.length,1);assert.equal(d.cells[0].status,'forecast');
+ assert.equal(calls,1);assert.equal(d.cells.length,1);assert.equal(d.cells[0].status,'forecast');assert.equal(d.validTimes.length,4);assert.equal(d.cells[0].forecasts.length,4);
  assert.equal(d.cells[0].forecast.precipitationType,2);
  assert.equal(d.cells[0].forecast.rainLabel,'1.0mm 미만');
  assert.deepEqual(d.cells[0].grid,{nx:60,ny:127});
@@ -62,4 +62,27 @@ test('map forecast endpoint validates session and points and keeps raw provider 
  assert.equal(ok.status,200);
  assert.equal(d.provider,'kma');
  assert.ok(!JSON.stringify(d).includes('private-key'));
+});
+
+test('time-slider only selects official returned forecast hour, and dry cells stay transparent',()=>{
+ const cell={status:'forecast',forecasts:[{rain:0,rainLabel:'강수없음',precipitationType:0},{rain:8,rainLabel:'8',precipitationType:1},null,null]};
+ assert.equal(forecastForHour(cell,0).rain,0);
+ assert.equal(forecastForHour(cell,1).rain,8);
+ assert.equal(forecastForHour(cell,2),null);
+ assert.equal(rainColor(cell.forecasts[0]),null);
+ assert.equal(rainColor(cell.forecasts[1]),'#0872cd');
+ assert.equal(rainColor({rain:null,rainLabel:null,precipitationType:null}),null);
+});
+test('KMA series returns distinct valid forecast hours from a single real grid response',async()=>{
+ const dates=[0,1,2,3].map(h=>stamp(new Date(Date.parse(validTime)+h*3600000).toISOString()));
+ const frames=dates.flatMap((date,i)=>[['T1H',String(10+i)],['RN1',String(i)],['PTY',i?'1':'0']].map(([category,fcstValue])=>({
+  category,fcstValue,baseDate:'20261105',baseTime:'1330',fcstDate:date.slice(0,8),fcstTime:date.slice(8)
+ })));
+ let calls=0;
+ const data=await kmaMapForecast([{lat:37.5665,lng:126.978}],'key',async()=>{
+  calls++;return Response.json({response:{header:{resultCode:'00'},body:{items:{item:frames}}}});
+ },now);
+ assert.equal(calls,1);
+ assert.deepEqual(data.cells[0].forecasts.map(f=>f?.temperature),[10,11,12,13]);
+ assert.equal(data.validTimes.length,4);
 });

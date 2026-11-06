@@ -713,3 +713,41 @@ body{background:var(--bg);color:var(--ink)}
   background:#fff;box-shadow:0 8px 28px #0004;border:1px solid #dde4ef;border-radius:16px;
  }
 }
+
+/* Foreground weather overlay timeline — real sampled KMA forecasts only. */
+.nav-weather-timebar[hidden]{display:none!important}
+.nav-weather-timebar:not([hidden]){
+ position:fixed;z-index:860;bottom:calc(var(--sunny-bottom-nav-height,68px) + 12px);
+ left:max(10px,env(safe-area-inset-left));right:max(10px,env(safe-area-inset-right));
+ background:rgba(255,255,255,.96);color:#1b334a;box-shadow:0 6px 22px #172b4740;
+ border:1px solid #cfe0ed;border-radius:15px;padding:12px 14px 10px;
+ box-sizing:border-box;backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
+}
+.nav-weather-timehead{display:flex;align-items:center;gap:6px;min-height:34px;}
+.nav-weather-timehead strong{font-size:13px;white-space:nowrap}
+.nav-weather-timehead span{font-size:11px;margin-left:auto;color:#2062a3;font-weight:700;text-align:right}
+.nav-weather-timehead button{
+ margin-left:6px;flex:none;display:inline-flex;align-items:center;justify-content:center;
+ width:32px;height:32px;border-radius:50%;border:1px solid #d2dce5;
+ background:#f0f4f9;color:#153c5d;font-size:18px;cursor:pointer;touch-action:manipulation;
+}
+.nav-weather-timebar input[type=range]{
+ width:100%;display:block;height:28px;margin:7px 0 0;accent-color:#219fe0;cursor:pointer;
+}
+.nav-weather-time-ticks{display:flex;justify-content:space-between;font-size:10px;color:#667a8f}
+.nav-weather-legend{display:flex;align-items:center;gap:6px;margin-top:11px;font-size:10px;color:#425e76}
+.nav-weather-legend>span{white-space:nowrap;font-weight:700}
+.nav-weather-legend small{font-size:9px;color:#63768d;white-space:nowrap}
+.nav-weather-gradient{height:9px;flex:1;min-width:30px;border-radius:20px;background:linear-gradient(90deg,#8bdef6,#43c2f1,#149ee0,#0872cd,#2261b6,#56369b)}
+.nav-weather-timebar>p{font-size:10px;margin:8px 0 0;color:#63768d}
+@media(min-width:901px){
+ .nav-weather-timebar:not([hidden]){
+  left:auto;right:24px;bottom:24px;width:min(450px,calc(100vw - 48px));
+ }
+}
+@media(max-width:385px){
+ .nav-weather-timehead strong{font-size:11px}
+ .nav-weather-timehead span{font-size:10px}
+ .nav-weather-legend{flex-wrap:wrap}
+ .nav-weather-legend small{font-size:9px}
+}
