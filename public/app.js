@@ -43,7 +43,8 @@ const rainGridOverlay=initNationalRainOverlay({onEnable:()=>{
   }
   const oldRain=document.getElementById('navLayerrain');
   if(oldRain?.checked){oldRain.checked=false;oldRain.dispatchEvent(new Event('change'));}
-  ensureNavigationKakao();
+  // Home may keep either Kakao road or Kakao hybrid satellite base below rainfall.
+  if(!kmap||!['kakao','skyview'].includes(activeMap))ensureNavigationKakao();
  }});
 function setNavTab(id){['navHome','navRoute','navLayers','navSettings'].forEach(x=>{const el=document.getElementById(x);if(el){if(x===id)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');}});document.body.dataset.sunnyNav=({navHome:'home',navRoute:'route',navLayers:'layers',navSettings:'settings'})[id]||'home';}
 // Only the Home screen offers general/satellite map switching; route and layer views use Kakao.
