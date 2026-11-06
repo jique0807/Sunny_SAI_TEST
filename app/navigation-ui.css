@@ -772,3 +772,88 @@ body[data-sunny-nav="settings"] .map-switch {
 .kakao-map-retry{display:block;margin:12px auto 0;padding:10px 15px;min-height:42px;
  background:#1768ed;color:#fff;border-color:#1768ed;font-weight:700}
 .kakao-map-retry:focus-visible{outline:3px solid #2e86ff;outline-offset:2px}
+
+/* GPS-led Sunny SAI in-app navigation. Tiny weather chips float ON the map. */
+.sunny-drive-overlay[hidden]{display:none!important}
+.sunny-drive-overlay:not([hidden]){
+ position:absolute;inset:0;z-index:760;pointer-events:none;
+ font-family:-apple-system,BlinkMacSystemFont,'Noto Sans KR',sans-serif;
+}
+.sunny-drive-alerts{
+ position:absolute;top:16px;left:12px;z-index:2;width:min(310px,calc(100% - 94px));
+ display:flex;flex-direction:column;gap:5px;max-height:116px;overflow:hidden;
+}
+.sunny-drive-alert{
+ display:flex;align-items:center;gap:8px;min-height:39px;max-height:51px;
+ padding:6px 9px;border:1px solid #d6e3ed;border-left:3px solid #278dda;
+ background:rgba(255,255,255,.91);border-radius:10px;
+ box-shadow:0 2px 12px #172b4729;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);
+}
+.sunny-drive-alert-icon{font-size:16px;color:#1768b8;line-height:1;flex:none}
+.sunny-drive-alert-text{display:flex;flex-direction:column;gap:1px;min-width:0}
+.sunny-drive-alert-text strong{font-size:12px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#183b53}
+.sunny-drive-alert-text small{font-size:10px;color:#5d7182;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sunny-drive-no-alert{
+ background:rgba(255,255,255,.9);border:1px solid #dde5ed;border-radius:9px;
+ padding:8px 10px;margin:0;font-size:10.5px;color:#4d6073;
+ box-shadow:0 2px 9px #13263a1a;
+}
+.sunny-drive-progress{
+ position:absolute;right:9px;top:clamp(120px,25%,200px);bottom:85px;
+ width:37px;display:flex;align-items:center;flex-direction:column;
+ gap:6px;max-height:470px;min-height:130px;z-index:2;
+}
+.sunny-drive-destination,.sunny-drive-origin{
+ padding:3px 4px;border-radius:5px;background:rgba(255,255,255,.94);
+ color:#375778;font-size:9px;font-weight:800;text-shadow:0 1px #fff;
+}
+.sunny-drive-progress-track{
+ position:relative;width:11px;flex:1;min-height:85px;border-radius:10px;
+ background:#b8c7d4;box-shadow:0 0 0 3px rgba(255,255,255,.9),0 3px 10px #172b4744;
+}
+.sunny-drive-progress-fill{position:absolute;bottom:0;left:0;right:0;height:0;border-radius:10px;background:linear-gradient(0deg,#1b7cdd,#26c486)}
+.sunny-drive-progress-pointer{position:absolute;bottom:0;left:50%;transform:translate(-50%,50%);
+ display:grid;place-items:center;width:24px;height:24px;border-radius:50%;font-size:12px;
+ background:#1673ed;color:#fff;border:3px solid #fff;box-shadow:0 2px 8px #0003}
+.sunny-drive-risk-marks{position:absolute;inset:0;pointer-events:none}
+.sunny-drive-risk-dot{position:absolute;left:50%;width:13px;height:13px;
+ transform:translate(-50%,50%);background:#ef9f24;border:2px solid white;border-radius:50%;
+ box-shadow:0 1px 3px #0005}
+.sunny-drive-risk-dot[data-risk="snow"],.sunny-drive-risk-dot[data-risk="mixed"]{background:#8d64cd}
+.sunny-drive-footer{
+ position:absolute;left:12px;right:56px;bottom:12px;min-height:45px;
+ padding:7px 8px 7px 12px;border-radius:11px;
+ background:rgba(255,255,255,.94);display:flex;gap:8px;align-items:center;
+ box-shadow:0 3px 15px #172b473d;backdrop-filter:blur(7px);
+ pointer-events:auto;z-index:4;
+}
+.sunny-drive-footer>div{min-width:0;display:flex;flex-direction:column;gap:3px;flex:1}
+.sunny-drive-footer strong{color:#163e63;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sunny-drive-footer small{color:#5f768d;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sunny-drive-footer button{
+ flex:none;min-height:34px;border-radius:8px;padding:6px 10px;border:1px solid #bdcddf;
+ background:#edf3fb;font-size:11px;color:#29577b;font-weight:700;cursor:pointer;
+}
+.sunny-drive-gps-pointer{
+ display:grid;place-items:center;width:31px;height:31px;border:3px solid #fff;border-radius:50%;
+ background:#1676ed;color:white;font-size:16px;font-weight:900;line-height:1;
+ box-shadow:0 0 0 3px rgba(23,104,237,.35),0 3px 10px #001c4b6b;
+ pointer-events:none;transform-origin:center;
+}
+body.sunny-guiding .map-floating,
+body.sunny-guiding .drive-home-bar,
+body.sunny-guiding .sunny-mobile-brand-banner,
+body.sunny-guiding .nav-map-layer-control,
+body.sunny-guiding .nav-weather-timebar{display:none!important}
+@media(max-width:900px){
+ .sunny-drive-alerts{top:calc(env(safe-area-inset-top,0px) + 18px);left:10px;width:min(290px,calc(100% - 85px))}
+ .sunny-drive-alert{min-height:38px;padding:5px 7px}
+ .sunny-drive-progress{right:9px;top:clamp(130px,26vh,210px);bottom:calc(var(--sunny-bottom-nav-height,68px) + 86px)}
+ .sunny-drive-footer{bottom:calc(var(--sunny-bottom-nav-height,68px) + 9px);left:10px;right:53px}
+}
+@media(max-width:360px){
+ .sunny-drive-alert-text strong{font-size:11px}
+ .sunny-drive-alert-text small{font-size:9px}
+ .sunny-drive-alerts{width:calc(100% - 78px)}
+ .sunny-drive-footer strong{font-size:11px}
+}
