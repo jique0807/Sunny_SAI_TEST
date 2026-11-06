@@ -30,7 +30,7 @@ export function classifyRisk(f){
 }
 export function upcomingRisks(samples,seconds,limit=2){
  if(!Array.isArray(samples))return [];
- const results=[],seen=new Set();
+ const results=[];
  for(const s of samples){
   if(!s||s.status!=='forecast'||!Number.isFinite(s.seconds)||s.seconds<seconds-45)continue;
   const risk=classifyRisk(s.forecast);if(!risk)continue;
@@ -42,10 +42,11 @@ export function upcomingRisks(samples,seconds,limit=2){
  results.sort((a,b)=>a.seconds-b.seconds);
  const selected=[];
  for(const r of results){
-  const key=r.type;
-  // Don't fill the two compact slots with repeated alerts about the same precipitation episode.
-  if(seen.has(key))continue;
-  selected.push(r);seen.add(key);
+  // Merge nearby forecasts about the same weather episode, but keep a later
+  // recurrence of rain or snow as a separate upcoming event.
+  const last=selected[selected.length-1];
+  if(last&&last.type===r.type&&r.seconds-last.seconds<600)continue;
+  selected.push(r);
   if(selected.length>=limit)break;
  }
  return selected;
@@ -82,20 +83,31 @@ export function initDriveGuidance({onStop,formatTime}){
   const risks=offRoute?[]:upcomingRisks(combinedSamples(),seconds,2);
   if(alerts){
    alerts.replaceChildren();
-   if(offRoute){const p=document.createElement('p');p.className='sunny-drive-no-alert';p.textContent='경로 이탈 · 안전한 곳에서 경로를 다시 조회하세요';alerts.append(p);}
-   else if(risks.length){
-    for(const item of risks){
-     const card=document.createElement('div');card.className='sunny-drive-alert';
-     const icon=document.createElement('span');icon.className='sunny-drive-alert-icon';icon.textContent=item.icon;
-     const detail=document.createElement('div');detail.className='sunny-drive-alert-text';
-     const title=document.createElement('strong');title.textContent=(item.minutes===0?'현재 부근':item.minutes+'분 후')+' · '+item.title;
-     const sub=document.createElement('small');sub.textContent=item.label+' · '+item.source+' · 경로 예상';
-     detail.append(title,sub);card.append(icon,detail);alerts.append(card);
-    }
+   const slots=[];
+   if(offRoute){
+    slots.push({title:'경로 이탈 감지',subtitle:'안전한 곳에서 경로를 다시 검색하세요',icon:'!',status:true});
+    slots.push({title:'전방 기상안내 일시중지',subtitle:'경로 복귀 후 다시 확인',icon:'·',status:true});
    }else{
-    const p=document.createElement('p');p.className='sunny-drive-no-alert';
-    p.textContent=combinedSamples().length?'조회된 전방 구간에 비·눈 위험예보 없음':'전방 기상예보 확인 중';
-    alerts.append(p);
+    for(const item of risks)slots.push({
+      title:(item.minutes===0?'현재 부근':item.minutes+'분 후')+' · '+item.title,
+      subtitle:item.label+' · '+item.source,icon:item.icon,status:false
+    });
+    const known=combinedSamples().length>0;
+    while(slots.length<2){
+      slots.push({title:known?'추가 위험예보 없음':'전방 기상예보 확인 중',
+        subtitle:known?'조회된 경로 예보 기준':'실제 기상청 자료 조회 대기',
+        icon:'·',status:true});
+    }
+   }
+   for(const [index,item] of slots.slice(0,2).entries()){
+    const card=document.createElement('div');
+    card.className='sunny-drive-alert'+(item.status?' sunny-drive-alert-muted':'');
+    card.dataset.order=String(index+1);
+    const icon=document.createElement('span');icon.className='sunny-drive-alert-icon';icon.textContent=item.icon;
+    const detail=document.createElement('div');detail.className='sunny-drive-alert-text';
+    const title=document.createElement('strong');title.textContent=item.title;
+    const sub=document.createElement('small');sub.textContent=item.subtitle;
+    detail.append(title,sub);card.append(icon,detail);alerts.append(card);
    }
   }
   if(marks){
@@ -126,7 +138,7 @@ export function initDriveGuidance({onStop,formatTime}){
   if(Number.isFinite(routeSeconds)&&!offRoute)seconds=Math.max(0,routeSeconds);
   if(position){
    const error=Number.isFinite(position.accuracy)?' · 오차 ±'+Math.round(position.accuracy)+'m':'';
-   setText(gps,offRoute?'경로 이탈'+error:'GPS 추적 중'+error);
+   setText(gps,(offRoute?'경로 이탈':'GPS 추적 중')+error+(position.directionStatus?' · '+position.directionStatus:''));
   }else if(offRoute)setText(gps,'경로 이탈 · 현재 위치 확인');
   render();
  }

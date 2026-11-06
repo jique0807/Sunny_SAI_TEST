@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {segmentMeters,routeFraction,classifyRisk,upcomingRisks} from '../public/drive-guidance.mjs';
 import {ahead,locate} from '../public/rain-monitor.mjs';
+import {compassBearing,resolveDrivingHeading,angleStep} from '../public/heading-up.mjs';
 const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
 const ui=readFileSync(new URL('../lib/ui.ts',import.meta.url),'utf8');
 const css=readFileSync(new URL('../app/navigation-ui.css',import.meta.url),'utf8');
@@ -82,4 +83,50 @@ test('live GPS tracker pans the Kakao map to the received coordinates and thrott
  vm.runInContext('followDrivingGps()',ctx);
  assert.equal(panCalls.length,2);
  assert.deepEqual([panCalls[1].lat,panCalls[1].lng],[37.502,127.002]);
+});
+
+test('heading-up uses observed GPS travel direction, falling back to reliable movement',()=>{
+ const before={lat:37.5,lng:127,timestamp:1000,accuracy:6,speed:null,heading:null};
+ const after={lat:37.5,lng:127.0004,timestamp:4000,accuracy:5,speed:null,heading:null};
+ assert.ok(Math.abs(compassBearing(before,after)-90)<.1);
+ const vector=resolveDrivingHeading(before,after);
+ assert.equal(vector.source,'motion');assert.ok(Math.abs(vector.bearing-90)<.1);
+ const device=resolveDrivingHeading(before,{...after,heading:180,speed:12});
+ assert.equal(device.source,'gps');assert.equal(device.bearing,180);
+ const stopped=resolveDrivingHeading(after,{...after,timestamp:10000,speed:0,heading:null},vector.bearing,4000);
+ assert.equal(stopped.source,'held');
+ const stationary=resolveDrivingHeading(after,{...after,timestamp:40000,speed:0,heading:null},vector.bearing,4000);
+ assert.equal(stationary.bearing,null);
+ const poor=resolveDrivingHeading(before,{...after,accuracy:500,speed:12,heading:45});
+ assert.equal(poor.source,'unreliable');assert.equal(poor.bearing,null);
+ assert.ok(Math.abs(angleStep(350,10)-1)<.1);
+});
+test('heading-up rotates the entire Kakao map only in active foreground guidance, never calls unsupported setRotation',()=>{
+ assert.match(app,/resolveDrivingHeading\(lastHeadingFix,fix,navBearing,navBearingAt\)/);
+ assert.match(app,/--sunny-map-rotation/);
+ assert.match(app,/classList\.add\('sunny-heading-up'\)/);
+ assert.match(app,/classList\.remove\('sunny-heading-up'\)/);
+ assert.match(app,/kmap\?\.setDraggable\?\.\(false\)/);
+ assert.doesNotMatch(app,/\.setRotation\(/);
+ assert.match(css,/sunny-guiding\.sunny-heading-up .*#kakaoMap/);
+ assert.match(css,/rotate\(var\(--sunny-map-rotation,0deg\)\)/);
+});
+test('right-side zoom control is gone and route progress rail is repositioned',()=>{
+ assert.doesNotMatch(app,/new kakao\.maps\.ZoomControl\(\)/);
+ assert.match(css,/body\.sunny-guiding \.sunny-drive-progress\{/);
+ assert.match(css,/right:14px!important/);
+});
+test('bottom summary is anchored to viewport and two staggered small rectangular alert slots are laid out',()=>{
+ assert.match(css,/body\.sunny-guiding \.sunny-drive-footer\{/);
+ assert.match(css,/bottom:0!important/);
+ assert.match(css,/body\.sunny-guiding \.nav-bottom-bar/);
+ assert.match(css,/body\.sunny-guiding \.sunny-drive-alert:nth-child\(2\)/);
+ assert.match(css,/top:34px!important;left:16px!important/);
+ const source=readFileSync(new URL('../public/drive-guidance.mjs',import.meta.url),'utf8');
+ assert.match(source,/while\(slots\.length<2\)/);
+ assert.match(source,/slots\.slice\(0,2\)/);
+});
+test('chronological weather alerts allow distinct later instances of the same weather type',()=>{
+ const sample=(seconds)=>({seconds,status:'forecast',forecast:{provider:'kma',precipitationType:1,rain:2}});
+ assert.deepEqual(upcomingRisks([sample(100),sample(200),sample(1000)],0,2).map(x=>x.seconds),[100,1000]);
 });
