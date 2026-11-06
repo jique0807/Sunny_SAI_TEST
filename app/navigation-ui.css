@@ -1199,3 +1199,9 @@ body.nav-sheet-open .nav-map-layer-control,
 body.nav-route-open .nav-map-layer-control,
 body.sunny-guiding .nav-map-layer-control,
 body.sunny-rain-grid-active .nav-map-layer-control{display:none!important}
+
+/* Search and layer sheets own the interaction: do not cover their buttons. */
+body.nav-sheet-open .sunny-radar-quick,
+body:has(.nav-layers-sheet:not([hidden])) .sunny-radar-quick {
+ display:none!important;
+}
