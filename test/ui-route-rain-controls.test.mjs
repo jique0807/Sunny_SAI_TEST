@@ -60,3 +60,28 @@ test('route start/current/destination are separate accessible markers with no gu
  assert.match(css,/sunny-route-point-pin\[data-kind="destination"\]/);
  assert.match(css,/sunny-route-point-pin\[data-kind="current"\]/);
 });
+
+test('compact map switch stays touchable on the rightmost Home edge',()=>{
+ const marker=css.lastIndexOf('2026-11-06: compact Home map selector at the rightmost edge');
+ assert.ok(marker>0,'latest compact Home control rules exist');
+ const rules=css.slice(marker);
+ assert.match(rules,/right:4px!important;left:auto!important;bottom:auto!important/);
+ assert.match(rules,/width:57px!important;gap:2px!important;padding:3px!important/);
+ assert.match(rules,/width:49px!important;min-width:49px!important;height:46px!important/);
+ assert.match(rules,/height:27px!important;flex:0 0 27px!important/);
+ assert.match(rules,/body\[data-sunny-nav="home"\]:not\(\.nav-sheet-open\):not\(\.nav-route-open\):not\(\.sunny-guiding\):not\(\.sunny-rain-grid-active\)/);
+ assert.match(rules,/@media\(min-width:901px\)/);
+});
+test('guidance footer lifts 19px and vertical route summary anchors to top-right',()=>{
+ const marker=css.lastIndexOf('2026-11-06: compact Home map selector at the rightmost edge');
+ const rules=css.slice(marker);
+ assert.match(rules,/body\.sunny-guiding \.sunny-drive-footer\{[\s\S]*?bottom:calc\(19px \+ env\(safe-area-inset-bottom,0px\)\)!important/);
+ assert.match(rules,/left:8px!important;right:8px!important;width:calc\(100% - 16px\)!important/);
+ assert.match(rules,/body\.sunny-guiding \.sunny-drive-progress\{[\s\S]*?top:calc\(8px \+ env\(safe-area-inset-top,0px\)\)!important/);
+ assert.match(rules,/right:4px!important;left:auto!important;bottom:auto!important/);
+ assert.match(rules,/height:min\(54dvh,430px\)!important/);
+ // All ETA, route-progress and Home/Stop controls remain attached to their original elements.
+ for(const id of ['sunnyDriveHome','sunnyDriveSummary','sunnyDriveGpsText',
+  'sunnyDriveStop','sunnyDriveProgressTrack','sunnyDriveRiskMarks'])
+  assert.ok(ui.includes('id="'+id+'"'),id);
+});
