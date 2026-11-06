@@ -2,7 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {rainGridRequest,parseRainGrid,nationalRainGrid} from '../lib/kma-rain-grid.mjs';
-import {gridCorner,gridCellCorners,rainShade} from '../public/kma-rain-overlay.mjs';
+import {gridRequest,stampKst} from '../lib/kma-rain-grid-probe.mjs';
+import {gridCorner,gridCellCorners,rainShade,drawRainCells} from '../public/kma-rain-overlay.mjs';
 import {handle} from '../lib/api.mjs';
 const COUNT=149*253,NX=149,now=Date.parse('2026-11-06T10:55:00Z');
 const example=()=>{
@@ -84,4 +85,45 @@ test('non-home map switch is suppressed and full-country grid is drawn on Kakao 
  assert.match(app,/rainGridOverlay\.setMap\(kmap\)/);
  assert.match(ui,/레이더 실황이 아닌 초단기예보/);
  assert.doesNotMatch(ui,/id="navRadarImage"/);
+});
+
+test('KST base/valid date creation accepts Date and Number without 9-hour shift',()=>{
+ const fixed=Date.parse('2026-11-06T11:50:25Z'); // 20:50:25 KST
+ assert.equal(stampKst(new Date(fixed)),'202611062050');
+ assert.equal(stampKst(fixed),'202611062050');
+ const q=gridRequest('test-key',fixed);
+ assert.equal(q.baseTime,'202611062000');
+ assert.equal(q.validTime,'2026110621');
+ assert.equal(q.url.searchParams.get('tmfc'),'202611062000');
+ assert.equal(q.url.searchParams.get('tmef'),'2026110621');
+ const hour0=rainGridRequest(0,'test-key',fixed);
+ assert.equal(hour0.issuedAt,'2026-11-06T11:00:00.000Z');
+ assert.equal(hour0.validTime,'2026-11-06T12:00:00.000Z');
+ assert.equal(hour0.url.searchParams.get('tmef'),'2026110621');
+ const hour3=rainGridRequest(3,'test-key',fixed);
+ assert.equal(hour3.validTime,'2026-11-06T15:00:00.000Z');
+ assert.equal(hour3.url.searchParams.get('tmef'),'2026110700');
+});
+test('georeferenced drawing paints only real positive rain cells in the visible map',()=>{
+ const p=gridCorner(60,127),fills=[];
+ let currentColor='';
+ const ctx={set fillStyle(v){currentColor=v;},get fillStyle(){return currentColor;},
+  beginPath(){},moveTo(){},lineTo(){},closePath(){},fill(){fills.push(currentColor);}};
+ const bounds={south:p.lat-.02,north:p.lat+.02,west:p.lng-.02,east:p.lng+.02};
+ const projection=q=>({x:q.lng*100,y:q.lat*100});
+ assert.equal(drawRainCells(ctx,[[60,127,4]],bounds,projection),1);
+ assert.deepEqual(fills,['#149ee0']);
+ assert.equal(drawRainCells(ctx,[],bounds,projection),0);
+ assert.equal(drawRainCells(ctx,[[60,127,0]],bounds,projection),0);
+ assert.equal(drawRainCells(ctx,[[60,127,4]],bounds,()=>({x:NaN,y:5})),0);
+ assert.equal(fills.length,1);
+});
+test('rain control is bottom-aligned and both map selector/quick action hide while panel open',()=>{
+ const css=readFileSync(new URL('../app/navigation-ui.css',import.meta.url),'utf8');
+ const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+ assert.match(css,/\.sunny-radar-quick\{\s*position:fixed!important;top:auto!important/);
+ assert.match(css,/body\.sunny-rain-grid-active \.sunny-radar-quick,[\s\S]*?\.nav-map-layer-control,[\s\S]*?display:none!important;/);
+ assert.match(css,/body\.sunny-guiding:not\(\.sunny-rain-grid-active\) \.sunny-radar-quick/);
+ assert.match(app,/setNavTab\(drivingUI\.isActive\(\)\?'navRoute'/);
+ assert.match(app,/waitForSession:\(\)=>sessionPromise/);
 });
