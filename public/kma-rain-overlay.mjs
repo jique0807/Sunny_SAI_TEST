@@ -49,13 +49,10 @@ export function initNationalRainOverlay({onEnable}={}){
  }
  function schedule(){
   if(drawing||!enabled)return;
-  drawing=true;
-  const run=()=>{drawing=false;paint();};
-  if(typeof requestAnimationFrame==='function')requestAnimationFrame(run);
-  else setTimeout(run,16);
+  // Throttle geo-projection to 10 Hz while the user pans/zooms or GPS follows.
+  drawing=true;setTimeout(()=>{drawing=false;paint();},100);
  }
  function paint(){
-  clear();
   if(!enabled||!forecast||!isKakao())return;
   const container=get('kakaoMap');if(!container||container.hidden||!container.clientWidth||!container.clientHeight)return;
   const projection=map.getProjection?.();
@@ -64,10 +61,14 @@ export function initNationalRainOverlay({onEnable}={}){
   }
   const width=container.clientWidth,height=container.clientHeight;
   const density=Math.min(2,Math.max(1,window.devicePixelRatio||1));
-  const node=document.createElement('canvas');node.className='sunny-rain-grid-canvas';
+  let node=canvas;
+  if(!node||node.parentElement!==container){
+   node=document.createElement('canvas');node.className='sunny-rain-grid-canvas';
+   container.appendChild(node);canvas=node;
+  }
+  // Resetting dimensions clears only our overlay; the underlying Kakao map stays intact.
   node.width=Math.round(width*density);node.height=Math.round(height*density);
   node.style.width=width+'px';node.style.height=height+'px';
-  container.appendChild(node);canvas=node;
   const ctx=node.getContext('2d');if(!ctx)return;
   ctx.setTransform(density,0,0,density,0,0);
   const opacity=Number(get('navDemoOpacity')?.value||45);
