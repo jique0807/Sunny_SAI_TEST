@@ -1,4 +1,5 @@
 // Sunny SAI in-app foreground driving panel.
+import {buildRouteHazards,renderHazardRail,showHazardDetail} from './route-hazards.mjs';
 // All progress comes from GPS projected onto the real Kakao Mobility route.
 // All risk items come from actual fetched forecast records; never mock data.
 const EARTH=111320;
@@ -57,6 +58,7 @@ export function initDriveGuidance({onStop,formatTime}){
  const fill=document.getElementById('sunnyDriveProgressFill');
  const pointer=document.getElementById('sunnyDriveProgressPointer');
  const marks=document.getElementById('sunnyDriveRiskMarks');
+ const hazardPanel=document.getElementById('sunnyDriveHazardDetail');
  const progress=document.getElementById('sunnyDriveProgressTrack');
  const summary=document.getElementById('sunnyDriveSummary');
  const gps=document.getElementById('sunnyDriveGpsText');
@@ -111,15 +113,11 @@ export function initDriveGuidance({onStop,formatTime}){
    }
   }
   if(marks){
-   marks.replaceChildren();
-   const all=upcomingRisks(combinedSamples(),-60,24);
-   for(const hazard of all.slice(0,10)){
-    const dot=document.createElement('span');dot.className='sunny-drive-risk-dot';
-    const position=routeFraction(route.rainPath,hazard.seconds);
-    dot.style.bottom=(position*100).toFixed(2)+'%';
-    dot.title=hazard.title+' · '+hazard.label;
-    dot.dataset.risk=hazard.type;marks.append(dot);
-   }
+   const official=buildRouteHazards(combinedSamples());
+   renderHazardRail(marks,official,route.rainPath,{
+    fractionAt:routeFraction,max:10,
+    onSelect:hazard=>showHazardDetail(hazardPanel,hazard,formatTime)
+   });
   }
  }
  function start(newRoute,forecast){
@@ -131,6 +129,7 @@ export function initDriveGuidance({onStop,formatTime}){
   active=false;route=null;weather=null;aheadSamples=null;seconds=0;offRoute=false;
   document.body.classList.remove('sunny-guiding');if(root)root.hidden=true;
   if(alerts)alerts.replaceChildren();if(marks)marks.replaceChildren();
+  if(hazardPanel){hazardPanel.hidden=true;hazardPanel.replaceChildren();}
  }
  function update(routeSeconds,position,off=false){
   if(!active)return;

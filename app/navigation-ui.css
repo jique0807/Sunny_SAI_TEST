@@ -988,3 +988,59 @@ body.sunny-guiding .sunny-drive-footer>div{min-width:0!important;flex:1!importan
  #settings .sunny-setting-option select{flex:1 1 100%;width:100%;max-width:none}
  #settings .sunny-setting-option>span{flex:1 1 180px}
 }
+
+/* Unified georeferenced forecast-hazard markers in search and driving.
+   A marker exists only when a real KMA forecast was received for a route point. */
+.nav-route-risk-layout{display:grid;grid-template-columns:minmax(0,1fr) 53px;
+ align-items:stretch;gap:8px;margin:10px 0}
+.nav-route-risk-summary{min-width:0}
+.nav-route-risk-summary .nav-route-result-main{margin:5px 0 7px}
+.nav-route-risk-status{font-size:11px;line-height:1.45;color:#52728c;margin:9px 0 0}
+.nav-route-risk-rail{display:flex;align-items:center;flex-direction:column;
+ gap:5px;min-height:160px;max-height:200px;padding:5px 4px;
+ border-radius:12px;background:#f4f8fd;border:1px solid #e2ebf4}
+.nav-route-risk-rail>span{font-size:10px;color:#506c84;font-weight:700;white-space:nowrap}
+.nav-route-risk-track{position:relative;flex:1;min-height:100px;width:10px;
+ background:linear-gradient(#cbd7e4,#9fbed6);border-radius:9px}
+.nav-route-risk-marks,.sunny-drive-risk-marks{position:absolute;inset:0;overflow:visible}
+.sunny-rail-hazard{
+ position:absolute;left:50%;transform:translate(-50%,50%);
+ display:inline-flex;align-items:center;justify-content:center;z-index:8;
+ box-sizing:border-box;min-width:27px;min-height:27px;width:28px;height:28px;
+ padding:1px!important;margin:0;border-radius:50%;
+ background:rgba(255,255,255,.97)!important;border:2px solid #d9e5f0!important;
+ font-size:14px;line-height:1;box-shadow:0 2px 7px rgba(18,53,79,.3);
+ cursor:pointer;pointer-events:auto!important;touch-action:manipulation;
+}
+.sunny-rail-hazard[data-risk="snow"],.sunny-rail-hazard[data-risk="mixed"]{border-color:#b19ae5!important}
+.sunny-rail-hazard[data-risk="rain"]{border-color:#8ccff1!important}
+.sunny-rail-hazard:focus-visible{outline:3px solid #1474cf;outline-offset:3px}
+.sunny-drive-risk-marks{pointer-events:none}
+.sunny-hazard-detail[hidden]{display:none!important}
+.sunny-hazard-detail{
+ position:relative;box-sizing:border-box;z-index:20;
+ padding:11px 12px;border:1px solid #bcd6ea;border-radius:12px;
+ background:rgba(255,255,255,.98);color:#193d58;
+ box-shadow:0 3px 16px rgba(20,53,82,.22);font-size:11px;
+ max-width:100%;pointer-events:auto;
+}
+.sunny-hazard-detail-heading{display:flex;justify-content:space-between;
+ align-items:center;gap:10px;margin-bottom:8px}
+.sunny-hazard-detail-heading strong{font-size:13px}
+.sunny-hazard-detail-heading button{flex:none;width:32px;height:32px;
+ display:grid;place-items:center;cursor:pointer;border:1px solid #d3e2ee;
+ border-radius:50%;background:#f3f8ff;color:#1f557d;font-size:15px}
+.sunny-hazard-detail p{margin:4px 0;line-height:1.4;overflow-wrap:anywhere}
+.nav-route-hazard-detail{margin:8px 0 12px}
+body.sunny-guiding .sunny-drive-hazard-detail{
+ position:absolute;right:54px;top:clamp(115px,25dvh,190px);
+ width:min(255px,calc(100vw - 100px));z-index:24;
+}
+body.sunny-guiding .sunny-drive-risk-marks{z-index:8;pointer-events:none}
+body.sunny-guiding .sunny-rail-hazard{pointer-events:auto!important}
+@media(max-width:450px){
+ .nav-route-risk-layout{grid-template-columns:minmax(0,1fr) 48px;gap:7px}
+ .nav-route-risk-rail{padding:5px 2px}
+ .sunny-rail-hazard{width:27px;height:27px}
+ body.sunny-guiding .sunny-drive-hazard-detail{right:52px;width:min(240px,calc(100vw - 94px))}
+}
