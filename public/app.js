@@ -11,6 +11,7 @@ const {initKmaMapOverlay}=await import('/kma-map-overlay.mjs');
 const {initRoadRiskOverlay}=await import('/road-risk-overlay.mjs');
 const {initDriveGuidance,segmentMeters}=await import('/drive-guidance.mjs');
 const {resolveDrivingHeading,angleStep}=await import('/heading-up.mjs');
+const {DEFAULT_APP_SETTINGS,initAppSettings}=await import('/app-settings.mjs');
 let demoOverlays=[],carOverlay=null;
 
 /* Navigation-first mobile shell. Existing services remain available behind search. */
@@ -212,6 +213,32 @@ const gate=new AlertGate();
 const fmt=iso=>new Date(iso).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Seoul'});
 const localInput=d=>new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
 const drivingUI=initDriveGuidance({onStop:()=>stopRain(),formatTime:fmt});
+// Settings are device-local and affect the actual running navigation logic.
+let appPrefs={...DEFAULT_APP_SETTINGS};
+const appSettings=initAppSettings({
+ document,storage:(()=>{try{return window.localStorage;}catch{return null;}})(),
+ onChange:next=>{
+  const old=appPrefs;appPrefs=next;
+  drivingUI.setPreferences(next);
+  const slider=$('navDemoOpacity');
+  if(slider){slider.value=String(next.overlayOpacity);updateMapLayerOpacity();}
+  if(!next.voiceAlerts)stopVoice();
+  if(drivingUI.isActive()){
+   if(old.headingMode!==next.headingMode){
+    resetDrivingMapHeading();
+    if(next.headingMode==='course'&&rainPosition){
+     rainPosition.directionStatus=updateDrivingMapHeading(rainPosition);
+     drawGps();
+    }
+   }
+   if(!old.followGps&&next.followGps){lastFollowTime=0;lastFollowPosition=null;followDrivingGps();}
+  }
+ }
+});
+appPrefs=appSettings.get();
+drivingUI.setPreferences(appPrefs);
+if($('navDemoOpacity')){$('navDemoOpacity').value=String(appPrefs.overlayOpacity);updateMapLayerOpacity();}
+$('navDemoOpacity')?.addEventListener('input',()=>appSettings.set({overlayOpacity:Number($('navDemoOpacity').value)}));
 let gpsNavArrow=null,lastFollowTime=0,lastFollowPosition=null;
 let lastHeadingFix=null,navBearing=null,navBearingAt=0,headingVisualReady=false;
 function resetDrivingMapHeading(){
@@ -223,6 +250,7 @@ function resetDrivingMapHeading(){
 }
 function updateDrivingMapHeading(fix){
  if(!drivingUI.isActive()||!fix)return '북쪽 기준';
+ if(appPrefs.headingMode==='north'){if(headingVisualReady)resetDrivingMapHeading();return '북쪽 고정';}
  const candidate=resolveDrivingHeading(lastHeadingFix,fix,navBearing,navBearingAt);
  if(Number.isFinite(fix.accuracy)&&fix.accuracy<=60)lastHeadingFix={...fix};
  if(Number.isFinite(candidate.bearing)){
@@ -249,7 +277,7 @@ function updateDrivingMapHeading(fix){
  return candidate.source==='unreliable'?'GPS 방향 정확도 낮음':'방향 확인 중 · 북쪽 기준';
 }
 function followDrivingGps(){
- if(!drivingUI.isActive()||!rainPosition||!kmap||activeMap!=='kakao'||document.hidden)return;
+ if(!drivingUI.isActive()||!appPrefs.followGps||!rainPosition||!kmap||activeMap!=='kakao'||document.hidden)return;
  const now=Date.now();
  if(lastFollowTime&&now-lastFollowTime<1400)return;
  const moved=lastFollowPosition?segmentMeters(lastFollowPosition,rainPosition):Infinity;
@@ -292,14 +320,14 @@ async function checkRain(){
  $('gpsStatus').textContent='GPS '+fmt(rainPosition.timestamp)+' · 오차 ±'+Math.round(rainPosition.accuracy)+'m · '+rainPosition.lat.toFixed(5)+', '+rainPosition.lng.toFixed(5)+' · 경로와 '+Math.round(found.meters)+'m';
  if(!connections.kma){$('rainStatus').textContent='GPS 작동 중 · 기상청 키 미설정으로 비 예보 조회 대기';return;}
  const moved=rainLastPoint?Math.hypot((rainPosition.lat-rainLastPoint.lat)*111320,(rainPosition.lng-rainLastPoint.lng)*88000):Infinity;
- if(rainBusy!==null||rainLastFetch&&(now-rainLastFetch<60000||now-rainLastFetch<300000&&moved<1000))return;
+ if(rainBusy!==null||rainLastFetch&&(now-rainLastFetch<appPrefs.refreshMinutes*60000||now-rainLastFetch<300000&&moved<1000))return;
  const samples=ahead(route.rainPath,rainProgress,now);if(!samples.length)return;
  const run=rainRun;rainBusy=run;rainLastFetch=now;rainLastPoint={...rainPosition};
  try{const d=await api('/api/weather',{provider:'kma-ultra',samples});if(run!==rainRun||document.hidden)return;
   // Discard forecasts fetched for a position the vehicle has already left.
   if(!rainPosition||Math.hypot((rainPosition.lat-rainLastPoint.lat)*111320,(rainPosition.lng-rainLastPoint.lng)*88000)>1000)return;
   drivingUI.setAhead(d.samples.map((p,i)=>({...p,seconds:samples[i]?.seconds??rainProgress})));const text=rainGate.take(d.samples,Date.now());$('rainStatus').textContent='초단기예보 '+fmt(d.fetchedAt)+' · '+d.samples.filter(p=>p.status==='forecast').length+'/'+samples.length+' 구간 · 비가 없거나 변화 없으면 음성 생략';
-  if(text)reply(text,true);
+  if(text)reply(text,appPrefs.voiceAlerts);
  }catch(e){if(run===rainRun)$('rainStatus').textContent='GPS와 별도: '+e.message;}finally{if(rainBusy===run)rainBusy=null;}
 }
 function startRainGuidance(){

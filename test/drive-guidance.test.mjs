@@ -124,7 +124,7 @@ test('bottom summary is anchored to viewport and two staggered small rectangular
  assert.match(css,/top:34px!important;left:16px!important/);
  const source=readFileSync(new URL('../public/drive-guidance.mjs',import.meta.url),'utf8');
  assert.match(source,/while\(slots\.length<2\)/);
- assert.match(source,/slots\.slice\(0,2\)/);
+ assert.match(source,/slots\.slice\(0,alertCount\)/);
 });
 test('chronological weather alerts allow distinct later instances of the same weather type',()=>{
  const sample=(seconds)=>({seconds,status:'forecast',forecast:{provider:'kma',precipitationType:1,rain:2}});

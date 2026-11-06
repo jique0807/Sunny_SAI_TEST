@@ -61,7 +61,7 @@ export function initDriveGuidance({onStop,formatTime}){
  const summary=document.getElementById('sunnyDriveSummary');
  const gps=document.getElementById('sunnyDriveGpsText');
  const close=document.getElementById('sunnyDriveStop');
- let active=false,route=null,seconds=0,weather=null,aheadSamples=null,offRoute=false;
+ let active=false,route=null,seconds=0,weather=null,aheadSamples=null,offRoute=false,alertCount=2;
  close?.addEventListener('click',()=>onStop());
  const setText=(node,text)=>{if(node)node.textContent=text;};
  function combinedSamples(){
@@ -80,7 +80,7 @@ export function initDriveGuidance({onStop,formatTime}){
   const mins=Math.round(duration/60);
   const eta=formatTime?formatTime(new Date(Date.now()+duration*1000).toISOString()):'—';
   setText(summary,km+' 남음 · 약 '+mins+'분 · '+eta+' 도착 예상');
-  const risks=offRoute?[]:upcomingRisks(combinedSamples(),seconds,2);
+  const risks=offRoute?[]:upcomingRisks(combinedSamples(),seconds,alertCount);
   if(alerts){
    alerts.replaceChildren();
    const slots=[];
@@ -99,7 +99,7 @@ export function initDriveGuidance({onStop,formatTime}){
         icon:'·',status:true});
     }
    }
-   for(const [index,item] of slots.slice(0,2).entries()){
+   for(const [index,item] of slots.slice(0,alertCount).entries()){
     const card=document.createElement('div');
     card.className='sunny-drive-alert'+(item.status?' sunny-drive-alert-muted':'');
     card.dataset.order=String(index+1);
@@ -144,5 +144,6 @@ export function initDriveGuidance({onStop,formatTime}){
  }
  function setWeather(nextWeather){weather=nextWeather;render();}
  function setAhead(samples){aheadSamples=Array.isArray(samples)?samples:null;render();}
- return {start,stop,update,setWeather,setAhead,render,isActive:()=>active};
+ function setPreferences(prefs){alertCount=prefs?.alertCount===1?1:2;render();}
+ return {start,stop,update,setWeather,setAhead,setPreferences,render,isActive:()=>active};
 }
