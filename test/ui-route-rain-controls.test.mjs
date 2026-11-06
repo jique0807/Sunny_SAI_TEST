@@ -62,10 +62,11 @@ test('route start/current/destination are separate accessible markers with no gu
 });
 
 test('compact map switch stays touchable on the rightmost Home edge',()=>{
- const marker=css.lastIndexOf('2026-11-06: compact Home map selector at the rightmost edge');
+ const marker=css.lastIndexOf('Home map selector: align at screenshot's upper-right map corner');
  assert.ok(marker>0,'latest compact Home control rules exist');
  const rules=css.slice(marker);
- assert.match(rules,/right:4px!important;left:auto!important;bottom:auto!important/);
+ assert.match(rules,/right:3px!important;left:auto!important;bottom:auto!important/);
+ assert.match(rules,/top:calc\(var\(--sunny-header-height,66px\) - 8px\)!important/);
  assert.match(rules,/width:57px!important;gap:2px!important;padding:3px!important/);
  assert.match(rules,/width:49px!important;min-width:49px!important;height:46px!important/);
  assert.match(rules,/height:27px!important;flex:0 0 27px!important/);
@@ -73,7 +74,7 @@ test('compact map switch stays touchable on the rightmost Home edge',()=>{
  assert.match(rules,/@media\(min-width:901px\)/);
 });
 test('guidance footer lifts 19px and vertical route summary anchors to top-right',()=>{
- const marker=css.lastIndexOf('2026-11-06: compact Home map selector at the rightmost edge');
+ const marker=css.lastIndexOf('Home map selector: align at screenshot's upper-right map corner');
  const rules=css.slice(marker);
  assert.match(rules,/body\.sunny-guiding \.sunny-drive-footer\{[\s\S]*?bottom:calc\(19px \+ env\(safe-area-inset-bottom,0px\)\)!important/);
  assert.match(rules,/left:8px!important;right:8px!important;width:calc\(100% - 16px\)!important/);
@@ -84,4 +85,18 @@ test('guidance footer lifts 19px and vertical route summary anchors to top-right
  for(const id of ['sunnyDriveHome','sunnyDriveSummary','sunnyDriveGpsText',
   'sunnyDriveStop','sunnyDriveProgressTrack','sunnyDriveRiskMarks'])
   assert.ok(ui.includes('id="'+id+'"'),id);
+});
+
+test('driving alerts form a non-overlapping large upper rectangle and small lower rectangle',()=>{
+ const marker=css.indexOf('Driving alerts: visually distinct, non-overlapping large top card');
+ assert.ok(marker>0,'new screenshot-grounded alert geometry exists');
+ const rules=css.slice(marker);
+ assert.match(rules,/body\.sunny-guiding \.sunny-drive-alert:nth-child\(1\)\{[\s\S]*?top:0!important;left:0!important/);
+ assert.match(rules,/width:min\(248px,calc\(100% - 12px\)\)!important/);
+ assert.match(rules,/height:48px!important;min-height:48px!important;max-height:48px!important/);
+ assert.match(rules,/body\.sunny-guiding \.sunny-drive-alert:nth-child\(2\)\{[\s\S]*?top:56px!important;left:12px!important/);
+ assert.match(rules,/width:min\(185px,calc\(100% - 66px\)\)!important/);
+ assert.match(rules,/height:38px!important;min-height:38px!important;max-height:38px!important/);
+ assert.ok(56>48,'small card begins below large one (no overlap)');
+ assert.match(rules,/@media\(max-width:360px\)/);
 });
