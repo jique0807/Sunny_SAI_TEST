@@ -66,7 +66,7 @@ test('compact map switch stays touchable on the rightmost Home edge',()=>{
  assert.ok(marker>0,'latest compact Home control rules exist');
  const rules=css.slice(marker);
  assert.match(rules,/right:3px!important;left:auto!important;bottom:auto!important/);
- assert.match(rules,/top:calc\(var\(--sunny-header-height,66px\) - 8px\)!important/);
+ assert.match(rules,/top:calc\(var\(--sunny-header-height,66px\) \+ 3px\)!important/);
  assert.match(rules,/width:57px!important;gap:2px!important;padding:3px!important/);
  assert.match(rules,/width:49px!important;min-width:49px!important;height:46px!important/);
  assert.match(rules,/height:27px!important;flex:0 0 27px!important/);
