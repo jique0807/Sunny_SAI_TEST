@@ -100,3 +100,29 @@ test('driving alerts form a non-overlapping large upper rectangle and small lowe
  assert.ok(56>48,'small card begins below large one (no overlap)');
  assert.match(rules,/@media\(max-width:360px\)/);
 });
+
+test('driving weather alerts follow the annotated tall upper / short lower block',()=>{
+ const marker=css.lastIndexOf('2026-11-07: screenshot-guided driving overlay placement');
+ assert.ok(marker>0,'screenshot layout CSS is present');
+ const rules=css.slice(marker);
+ assert.match(rules,/body\.sunny-guiding \.sunny-drive-alerts\{[\s\S]*?left:3px!important;[\s\S]*?top:calc\(3px \+ env\(safe-area-inset-top,0px\)\)!important/);
+ assert.match(rules,/body\.sunny-guiding \.sunny-drive-alert:nth-child\(1\)\{[\s\S]*?width:min\(213px,100%\)!important/);
+ assert.match(rules,/height:102px!important;min-height:102px!important;max-height:102px!important/);
+ assert.match(rules,/body\.sunny-guiding \.sunny-drive-alert:nth-child\(2\)\{[\s\S]*?left:0!important;top:104px!important/);
+ assert.match(rules,/width:min\(168px,calc\(100% - 22px\)\)!important/);
+ assert.match(rules,/height:38px!important;min-height:38px!important;max-height:38px!important/);
+ assert.ok(104>102,'small alert starts below large alert rather than overlapping it');
+ assert.match(rules,/body\.sunny-guiding \.sunny-drive-alert:nth-child\(1\) \.sunny-drive-alert-text strong\{[\s\S]*?white-space:normal!important/);
+});
+test('rain toggle moves to lower-left marker with a clear gap above ETA footer',()=>{
+ const marker=css.lastIndexOf('2026-11-07: screenshot-guided driving overlay placement');
+ const rules=css.slice(marker);
+ assert.match(rules,/\.sunny-radar-quick:not\(\[hidden\]\)\{[\s\S]*?left:10px!important;right:auto!important;top:auto!important/);
+ assert.match(rules,/body\.sunny-guiding:not\(\.sunny-rain-grid-active\) \.sunny-radar-quick:not\(\[hidden\]\)\{[\s\S]*?left:9px!important;right:auto!important;top:auto!important/);
+ assert.match(rules,/bottom:calc\(84px \+ env\(safe-area-inset-bottom,0px\)\)!important/);
+ assert.match(rules,/min-height:44px!important/);
+ // Keep original ON/OFF semantics; position change must not silently toggle the layer.
+ assert.match(ui,/id="navRadarQuick"/);
+ assert.match(rain,/setEnabled\(!enabled\)/);
+ assert.match(rain,/quick\.dataset\.rainState=enabled\?'on':'off'/);
+});
