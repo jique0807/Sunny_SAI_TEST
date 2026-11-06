@@ -1340,7 +1340,7 @@ body.sunny-rain-grid-active .sunny-rain-grid-timeline,
    Keep at least a 46px touch target, without covering Home search/current-location controls. */
 @media(max-width:900px){
  body[data-sunny-nav="home"]:not(.nav-sheet-open):not(.nav-route-open):not(.sunny-guiding):not(.sunny-rain-grid-active) .nav-map-layer-control{
-  top:calc(var(--sunny-header-height,66px) - 8px)!important;
+  top:calc(var(--sunny-header-height,66px) + 3px)!important;
   right:3px!important;left:auto!important;bottom:auto!important;
   width:57px!important;gap:2px!important;padding:3px!important;
   border-radius:10px!important;box-sizing:border-box!important;
@@ -1359,7 +1359,7 @@ body.sunny-rain-grid-active .sunny-rain-grid-timeline,
 }
 @media(min-width:901px){
  body[data-sunny-nav="home"]:not(.sunny-guiding):not(.sunny-rain-grid-active) .nav-map-layer-control{
-  top:76px!important;right:6px!important;left:auto!important;bottom:auto!important;
+  top:87px!important;right:6px!important;left:auto!important;bottom:auto!important;
   width:60px!important;gap:2px!important;padding:4px!important;box-sizing:border-box!important;
  }
  body[data-sunny-nav="home"] .nav-map-layer-control button{
