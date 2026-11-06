@@ -96,8 +96,9 @@ export function initDriveGuidance({onStop,formatTime}){
     });
     const known=combinedSamples().length>0;
     while(slots.length<2){
-      slots.push({title:known?'추가 위험예보 없음':'전방 기상예보 확인 중',
-        subtitle:known?'조회된 경로 예보 기준':'실제 기상청 자료 조회 대기',
+      // A partial/failed grid forecast must never imply that an unchecked road segment is safe.
+      slots.push({title:known?'조회 지점에 추가 비·눈 예보 없음':'전방 기상예보 미확인',
+        subtitle:known?'미조회 구간은 판단 불가':'실제 기상자료 미수신 · 위험 여부 판단 불가',
         icon:'·',status:true});
     }
    }
