@@ -8,6 +8,7 @@ const {voiceCatalog}=await import('/voice-catalog.mjs');
 const {pointAlong}=await import('/journey.mjs');
 const {ahead,locate,RainGate}=await import('/rain-monitor.mjs');
 const {initKmaMapOverlay}=await import('/kma-map-overlay.mjs');
+const {initRadarViewer}=await import('/radar-viewer.mjs');
 const {initRoadRiskOverlay}=await import('/road-risk-overlay.mjs');
 const {initDriveGuidance,segmentMeters,routeFraction}=await import('/drive-guidance.mjs');
 const {buildRouteHazards,renderHazardRail,showHazardDetail}=await import('/route-hazards.mjs');
@@ -32,6 +33,8 @@ function showNavSearch(show){
 navOpen?.addEventListener('click',()=>showNavSearch(true));
 navClose?.addEventListener('click',()=>showNavSearch(false));
 const navLayersSheet=document.getElementById('navLayersSheet');
+// Provider-rendered forecast image: standalone view until georeferencing is validated.
+const radarViewer=initRadarViewer({onOpen:()=>{showNavLayers(false);ensureNavigationKakao();}});
 function setNavTab(id){['navHome','navRoute','navLayers','navSettings'].forEach(x=>{const el=document.getElementById(x);if(el){if(x===id)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');}});document.body.dataset.sunnyNav=({navHome:'home',navRoute:'route',navLayers:'layers',navSettings:'settings'})[id]||'home';}
 // Only the Home screen offers general/satellite map switching; route and layer views use Kakao.
 document.body.dataset.sunnyNav='home';
