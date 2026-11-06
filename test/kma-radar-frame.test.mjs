@@ -67,14 +67,17 @@ test('preview radar image requires a valid session, has no key in response or UR
  const out=await handle(new Request(path,{headers:{Cookie:cookie}}),{...env,VERCEL_ENV:'production'},async()=>{throw Error('must not fetch');});
  assert.equal(out.status,404);
 });
-test('mobile UI opens standalone forecast viewer and never claims geographic alignment',()=>{
+test('mobile navigation does not display the provider basemap image: real rain is Kakao aligned',()=>{
  const ui=readFileSync(new URL('../lib/ui.ts',import.meta.url),'utf8');
  const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
  const css=readFileSync(new URL('../app/navigation-ui.css',import.meta.url),'utf8');
- for(const id of ['navRadarPanel','navRadarQuick','navRadarToggle','navRadarLead','navRadarImage','navRadarStatus'])
+ for(const id of ['navRadarQuick','navRadarToggle','navRainGridTimeBar','navRainGridLead','navRainGridStatus'])
   assert.ok(ui.includes('id="'+id+'"'),id);
- assert.match(ui,/카카오 도로지도와 별도/);
- assert.match(app,/initRadarViewer/);
- assert.match(css,/\.sunny-radar-panel\{/);
- assert.match(css,/body\.sunny-guiding \.sunny-radar-panel/);
+ assert.doesNotMatch(ui,/id="navRadarPanel"/);
+ assert.doesNotMatch(ui,/id="navRadarImage"/);
+ assert.match(ui,/카카오 지도 위에 좌표대로 반투명 중첩/);
+ assert.match(app,/initNationalRainOverlay/);
+ assert.match(app,/rainGridOverlay\.setMap\(kmap\)/);
+ assert.match(css,/\.sunny-rain-grid-timeline\{/);
+ assert.match(css,/body\.sunny-guiding \.sunny-rain-grid-timeline/);
 });
