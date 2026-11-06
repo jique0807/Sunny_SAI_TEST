@@ -751,3 +751,24 @@ body{background:var(--bg);color:var(--ink)}
  .nav-weather-legend{flex-wrap:wrap}
  .nav-weather-legend small{font-size:9px}
 }
+
+/* Only Home may switch map providers. Route and Layers always use Kakao. */
+body[data-sunny-nav="route"] .nav-map-layer-control,
+body[data-sunny-nav="layers"] .nav-map-layer-control,
+body[data-sunny-nav="settings"] .nav-map-layer-control,
+body[data-sunny-nav="route"] .map-switch,
+body[data-sunny-nav="layers"] .map-switch,
+body[data-sunny-nav="settings"] .map-switch {
+ display:none!important;
+}
+/* Prevent alternate-map content from flashing before Kakao has initialized. */
+#schematic[hidden],#kakaoMap[hidden],#osmMap[hidden],#vworldMap[hidden],
+#actualRoute[hidden],#mapNotice[hidden] {display:none!important}
+#kakaoMap:not([hidden]) {display:block;min-height:100%}
+/* Kakao failure is explicit and retryable; do not silently show OSM. */
+#mapNotice:not([hidden]){max-width:480px;left:50%;right:auto;width:min(84%,480px);
+ transform:translateX(-50%);z-index:820;box-shadow:0 4px 22px #172b4742;
+ color:#163a55;background:#fff;padding:17px;white-space:normal;overflow-wrap:anywhere}
+.kakao-map-retry{display:block;margin:12px auto 0;padding:10px 15px;min-height:42px;
+ background:#1768ed;color:#fff;border-color:#1768ed;font-weight:700}
+.kakao-map-retry:focus-visible{outline:3px solid #2e86ff;outline-offset:2px}
