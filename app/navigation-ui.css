@@ -1326,3 +1326,12 @@ body.sunny-rain-grid-active .sunny-rain-grid-timeline,
 .sunny-route-point-pin[data-kind="current"] .sunny-route-pin-face{
  background:#1676dc;border-radius:11px 11px 11px 3px;
 }
+
+/* When the selected start is the real GPS position, show both markers.
+   Dashed leader connects the offset "current" badge to the same map point. */
+.sunny-route-point-pin.sunny-route-pin-colocated{position:relative;
+ transform:translate(37px,-2px)}
+.sunny-route-point-pin.sunny-route-pin-colocated::before{
+ content:"";position:absolute;left:-33px;top:15px;width:34px;
+ border-top:2px dashed #3979a9;opacity:.8;pointer-events:none
+}
