@@ -1489,7 +1489,7 @@ body.sunny-guiding .sunny-drive-alert:nth-child(2) .sunny-drive-alert-text small
 }
 body.sunny-guiding:not(.sunny-rain-grid-active) .sunny-radar-quick:not([hidden]){
  left:9px!important;right:auto!important;top:auto!important;
- bottom:calc(77px + env(safe-area-inset-bottom,0px))!important;
+ bottom:calc(84px + env(safe-area-inset-bottom,0px))!important;
  min-height:44px!important;
 }
 @media(max-width:360px){
