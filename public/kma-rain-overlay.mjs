@@ -20,6 +20,23 @@ export function gridCellCorners(nx,ny){
  return [gridCorner(nx-.5,ny-.5),gridCorner(nx+.5,ny-.5),
   gridCorner(nx+.5,ny+.5),gridCorner(nx-.5,ny+.5)];
 }
+// Pure renderer used by the real canvas and repeatable geometry tests.
+// Only returned nonzero KMA cells are painted; no fallback or simulated precipitation.
+export function drawRainCells(ctx,cells,bounds,project){
+ let drawn=0;
+ for(const [nx,ny,mm] of cells){
+  const color=rainShade(mm);if(!color)continue;
+  const center=gridCorner(nx,ny);
+  if(center.lat<bounds.south||center.lat>bounds.north||
+     center.lng<bounds.west||center.lng>bounds.east)continue;
+  const points=gridCellCorners(nx,ny).map(project);
+  if(points.some(p=>!p||!Number.isFinite(p.x)||!Number.isFinite(p.y)))continue;
+  ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);
+  for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x,points[i].y);
+  ctx.closePath();ctx.fill();drawn++;
+ }
+ return drawn;
+}
 const fmtTime=iso=>{
  const t=Date.parse(iso||'');
  return Number.isFinite(t)?new Date(t).toLocaleString('ko-KR',{
@@ -76,24 +93,16 @@ export function initNationalRainOverlay({onEnable}={}){
   const bounds=map.getBounds(),sw=bounds.getSouthWest(),ne=bounds.getNorthEast();
   const south=sw.getLat()-.12,north=ne.getLat()+.12,
    west=sw.getLng()-.12,east=ne.getLng()+.12;
-  let drawn=0;
-  for(const [nx,ny,mm] of forecast.cells){
-   const color=rainShade(mm);if(!color)continue;
-   const center=gridCorner(nx,ny);
-   if(center.lat<south||center.lat>north||center.lng<west||center.lng>east)continue;
-   const corners=gridCellCorners(nx,ny);
-   const points=corners.map(p=>projection.containerPointFromCoords(new kakao.maps.LatLng(p.lat,p.lng)));
-   if(points.some(p=>!p||!Number.isFinite(p.x)||!Number.isFinite(p.y)))continue;
-   ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);
-   for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x,points[i].y);
-   ctx.closePath();ctx.fill();drawn++;
-  }
+  const drawn=drawRainCells(ctx,forecast.cells,{south,north,west,east},
+   p=>projection.containerPointFromCoords(new kakao.maps.LatLng(p.lat,p.lng)));
   const dry=forecast.valid-forecast.cells.length;
-  message('기상청 전국 5km RN1 · 유효 '+fmtTime(forecast.validTime)+
-   ' · 현재 화면 강수 '+drawn+'격자 / 전국 '+forecast.cells.length+'격자'+
-   ' · 유효 0mm '+dry+'격자, 결측 '+forecast.missing+'격자'+
-   (drawn===0?' · 강수영역 없거나 현재 화면 미포함':'')+
-   ' · 레이더 실황 아님');
+  const summary=forecast.cells.length===0
+   ?'정상 수신 · 유효 격자 중 강수 예보 0개 → 표시할 강수 색상 없음'
+   :'정상 수신 · 전국 강수 '+forecast.cells.length+'격자 · 현재 지도 '+drawn+'격자'+
+    (drawn===0?' (현재 지도 범위에는 강수 없음 또는 표시 범위 밖)':'');
+  message(summary+' · '+fmtTime(forecast.validTime)+
+   ' · 유효 무강수 '+dry+'격자 / 결측 '+forecast.missing+'격자'+
+   ' · 결측은 무강수가 아님 · 레이더 실황 아님');
  }
  async function load(){
   if(!enabled)return;
@@ -124,6 +133,11 @@ export function initNationalRainOverlay({onEnable}={}){
      throw Error('강수예보 격자값 검증 실패');
    forecast=data;loadedAt=Date.now();
    if(when)when.textContent='예보 발표 '+fmtTime(data.issuedAt)+' · 유효 '+fmtTime(data.validTime);
+   if(data.cells.length===0){
+    message('정상 수신 · 유효 격자 '+data.valid.toLocaleString('ko-KR')+
+     '개 모두 강수량 0 · 결측 '+data.missing.toLocaleString('ko-KR')+
+     '개는 미확인 · 지도에 칠할 강수영역 없음');
+   }
    paint();
    if(!isKakao())message('강수자료 수신 · 카카오맵 연결 후 지도 위에 표시됩니다.');
   }catch(e){
