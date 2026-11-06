@@ -48,16 +48,31 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  const toggle=get('navRadarToggle'),quick=get('navRadarQuick');
  const panel=get('navRainGridTimeBar'),slider=get('navRainGridLead'),
   status=get('navRainGridStatus'),when=get('navRainGridValid'),
-  close=get('navRainGridClose'),refresh=get('navRainGridRefresh');
+  close=get('navRainGridClose'),refresh=get('navRainGridRefresh'),
+  play=get('navRainGridPlay'),pause=get('navRainGridPause'),reset=get('navRainGridReset'),
+  step=get('navRainGridStep'),badge=get('navRainSwitchBadge'),
+  quickLabel=get('navRainToggleLabel');
  let enabled=false,map=null,canvas=null,forecast=null,requestId=0,controller=null,
-  drawing=false,refreshTimer=null,loadedAt=0;
+  drawing=false,refreshTimer=null,playTimer=null,loadedAt=0;
+ const frameCache=new Map(),FRAME_CACHE_MS=240000;
+ const syncLead=()=>{if(step)step.textContent='+'+String(slider?.value||0)+'시간';};
+ const pausePlayback=()=>{
+  if(playTimer!==null){clearInterval(playTimer);playTimer=null;}
+  if(play)play.disabled=!enabled;
+  if(pause)pause.disabled=true;
+ };
  const message=t=>{if(status)status.textContent=t;};
  const isKakao=()=>Boolean(map&&window.kakao?.maps);
  const updateButtons=()=>{
   toggle?.setAttribute('aria-pressed',String(enabled));
   quick?.setAttribute('aria-pressed',String(enabled));
-  if(quick)quick.textContent=enabled?'🌧 강수예보 켜짐':'🌧 강수예보';
-  if(toggle)toggle.textContent=enabled?'🌧 전국 강수예보 중첩 끄기':'🌧 전국 강수예보 중첩 켜기';
+  if(quick){
+   quick.dataset.rainState=enabled?'on':'off';
+   quick.setAttribute('aria-label',enabled?'강수예보 켜짐, 눌러 끄기':'강수예보 꺼짐, 눌러 켜기');
+  }
+  if(badge)badge.textContent=enabled?'ON':'OFF';
+  if(quickLabel)quickLabel.textContent='강수예보';
+  if(toggle)toggle.textContent=enabled?'🌧 전국 강수예보 중첩 ON · 끄기':'🌧 전국 강수예보 중첩 OFF · 켜기';
   if(panel)panel.hidden=!enabled;
   document.body.classList.toggle('sunny-rain-grid-active',enabled);
  };
@@ -104,7 +119,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    ' · 유효 무강수 '+dry+'격자 / 결측 '+forecast.missing+'격자'+
    ' · 결측은 무강수가 아님 · 레이더 실황 아님');
  }
- async function load(){
+ async function load({force=false}={}){
   if(!enabled)return;
   controller?.abort();controller=new AbortController();const run=++requestId;
   clear();forecast=null;
@@ -116,14 +131,18 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    if(!Number.isInteger(lead)||lead<0||lead>3)throw Error('허용되지 않은 예측시간');
    if(typeof waitForSession==='function')await waitForSession();
    if(run!==requestId||!enabled)return;
-   const response=await fetch('/api/rain-grid?lead='+lead,{
-    credentials:'same-origin',cache:'no-store',signal:controller.signal});
-   if(!response.ok){
-    let reason='기상청 응답 HTTP '+response.status;
-    try{const v=await response.json();if(typeof v.error==='string')reason=v.error.slice(0,130);}catch{}
-    throw Error(reason);
+   const cached=!force?frameCache.get(lead):null;
+   let data=cached&&cached.until>Date.now()?cached.data:null;
+   if(!data){
+    const response=await fetch('/api/rain-grid?lead='+lead,{
+     credentials:'same-origin',cache:'no-store',signal:controller.signal});
+    if(!response.ok){
+     let reason='기상청 응답 HTTP '+response.status;
+     try{const v=await response.json();if(typeof v.error==='string')reason=v.error.slice(0,130);}catch{}
+     throw Error(reason);
+    }
+    data=await response.json();
    }
-   const data=await response.json();
    if(run!==requestId||!enabled)return;
    if(data.provider!=='kma'||data.nx!==149||data.ny!==253||!Array.isArray(data.cells)||
      !Number.isInteger(data.valid)||!Number.isInteger(data.missing)||
@@ -133,6 +152,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
      !Number.isInteger(c[0])||!Number.isInteger(c[1])||c[0]<1||c[0]>149||
      c[1]<1||c[1]>253||!Number.isFinite(c[2])||c[2]<=0))
      throw Error('강수예보 격자값 검증 실패');
+   frameCache.set(lead,{data,until:Date.now()+FRAME_CACHE_MS});
    forecast=data;loadedAt=Date.now();
    if(when)when.textContent='예보 발표 '+fmtTime(data.issuedAt)+' · 유효 '+fmtTime(data.validTime);
    if(data.cells.length===0){
@@ -150,13 +170,15 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   }finally{if(run===requestId&&refresh)refresh.disabled=false;}
  }
  function setEnabled(next){
-  enabled=Boolean(next);updateButtons();
+  enabled=Boolean(next);
+  if(!enabled)pausePlayback();
+  updateButtons();syncLead();
   if(enabled){
    onEnable?.();load();
-   if(!refreshTimer)refreshTimer=setInterval(()=>{if(!document.hidden)load();},300000);
+   if(!refreshTimer)refreshTimer=setInterval(()=>{if(!document.hidden){frameCache.clear();load({force:true});}},300000);
   }else{
    ++requestId;controller?.abort();forecast=null;clear();
-   clearInterval(refreshTimer);refreshTimer=null;loadedAt=0;
+   clearInterval(refreshTimer);refreshTimer=null;loadedAt=0;frameCache.clear();
    message('강수 예보를 켜면 전국 5km 격자값을 조회합니다.');
    if(when)when.textContent='자료 확인 전';
   }
@@ -171,15 +193,35 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    schedule();
   }
  }
+ function startPlayback(){
+  if(!enabled||playTimer!==null)return;
+  if(play)play.disabled=true;
+  if(pause)pause.disabled=false;
+  playTimer=setInterval(()=>{
+   if(!enabled||document.hidden){pausePlayback();return;}
+   slider.value=String((Number(slider?.value||0)+1)%4);
+   syncLead();void load();
+  },2800);
+ }
  toggle?.addEventListener('click',()=>setEnabled(!enabled));
  quick?.addEventListener('click',()=>setEnabled(!enabled));
  close?.addEventListener('click',()=>setEnabled(false));
- refresh?.addEventListener('click',()=>load());
- slider?.addEventListener('change',()=>{if(enabled)load();});
+ play?.addEventListener('click',startPlayback);
+ pause?.addEventListener('click',pausePlayback);
+ reset?.addEventListener('click',()=>{
+  pausePlayback();
+  if(slider)slider.value='0';syncLead();
+  // Reset only presentation settings; never invent or edit forecast values.
+  const opacity=get('navDemoOpacity');
+  if(opacity&&opacity.value!=='45'){opacity.value='45';opacity.dispatchEvent(new Event('input',{bubbles:true}));}
+  frameCache.clear();if(enabled)void load({force:true});
+ });
+ refresh?.addEventListener('click',()=>{frameCache.clear();void load({force:true});});
+ slider?.addEventListener('change',()=>{syncLead();if(enabled)void load();});
  get('navDemoOpacity')?.addEventListener('input',schedule);
- document.addEventListener('visibilitychange',()=>{if(enabled&&!document.hidden&&Date.now()-loadedAt>180000)load();});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)pausePlayback();else if(enabled&&Date.now()-loadedAt>180000)load({force:true});});
  window.addEventListener('resize',schedule);
- window.addEventListener('pagehide',()=>{controller?.abort();clearInterval(refreshTimer);});
- updateButtons();
+ window.addEventListener('pagehide',()=>{pausePlayback();controller?.abort();clearInterval(refreshTimer);});
+ updateButtons();syncLead();pausePlayback();
  return {setMap,redraw:schedule,disable:()=>setEnabled(false),isEnabled:()=>enabled};
 }
