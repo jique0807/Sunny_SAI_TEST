@@ -6,7 +6,7 @@ import {routeFraction} from '../public/drive-guidance.mjs';
 import {newSnowfall,matchKma} from '../lib/kma.mjs';
 const ui=readFileSync(new URL('../lib/ui.ts',import.meta.url),'utf8');
 const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
-const driving=readFileSync(new URL('../public/drive-guidance.mjs',import.meta.url),'utf8';
+const driving=readFileSync(new URL('../public/drive-guidance.mjs',import.meta.url),'utf8');
 const css=readFileSync(new URL('../app/navigation-ui.css',import.meta.url),'utf8');
 const path=[{lat:37.1,lng:127.1,seconds:0},{lat:37.2,lng:127.15,seconds:600},{lat:37.25,lng:127.3,seconds:1200}];
 const sample=(seconds,pty,overrides={})=>({
