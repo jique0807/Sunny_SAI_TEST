@@ -49,7 +49,7 @@ test('Kakao initialization does not accidentally enter the VWorld branch',async(
   mapSwitchViewport:null,captureMapViewport:()=>null,sessionPromise:Promise.resolve(),
   mapConfig:{kakao:'stub-key'},route:null,homePosition:null,
   clearDemoOverlays(){},clearFocus(){},updateMobileMapLayer(){},
-  routePolyline:null,kmarker:null,kend:null,
+  routePolyline:null,kmarker:null,kend:null,routeCurrentMarker:null,
   providerState,connectionStatus(){},focusRoad(){},drawWeatherOverlays(){},
   drawDemoOverlays(){},moveCar(){},drawGps(){},updateFlood(){},
   drivingUI:{isActive(){return false;}},followDrivingGps(){},
