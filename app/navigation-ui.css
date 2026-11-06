@@ -1135,7 +1135,13 @@ body:has(.nav-radar-panel:not([hidden])) .nav-map-layer-control {
 .sunny-rain-grid-disclaimer{font-size:9px;line-height:1.5;color:#61788c}
 body.sunny-guiding .sunny-rain-grid-timeline{bottom:calc(85px + env(safe-area-inset-bottom,0px));
  left:12px;transform:none;width:min(430px,calc(100vw - 94px));z-index:90}
-body.sunny-rain-grid-active .nav-map-layer-control{display:none!important}
+/* Keep base-map selector only on Home; lift it above the forecast timeline there. */
+body.sunny-rain-grid-active:not([data-sunny-nav="home"]) .nav-map-layer-control{display:none!important}
+@media(max-width:900px){
+ body.sunny-rain-grid-active[data-sunny-nav="home"] .nav-map-layer-control{
+  display:flex!important;bottom:calc(var(--sunny-bottom-nav-height) + 180px)!important;
+ }
+}
 @media(max-width:650px){
  .sunny-rain-grid-timeline{left:12px;transform:none;
   bottom:calc(77px + env(safe-area-inset-bottom,0px));width:calc(100vw - 85px);
