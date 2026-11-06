@@ -1044,3 +1044,50 @@ body.sunny-guiding .sunny-rail-hazard{pointer-events:auto!important}
  .sunny-rail-hazard{width:27px;height:27px}
  body.sunny-guiding .sunny-drive-hazard-detail{right:52px;width:min(240px,calc(100vw - 94px))}
 }
+
+
+/* Preview: actual KMA provider-rendered precipitation forecast image.
+   This is an independent image window; never pretend it is a geo-aligned overlay. */
+.nav-radar-open{display:block;width:100%;margin:9px 0 4px;padding:11px 12px;
+ border:1px solid #83bedc;border-radius:11px;background:#e5f5ff;color:#164866;
+ font-weight:750;font-size:12px;cursor:pointer;text-align:left}
+.nav-radar-open small{float:right;font-size:10px;color:#2b718f}
+.nav-radar-hint{font-size:10px;line-height:1.5;color:#537389;margin:0 0 9px}
+.sunny-radar-quick{position:fixed;right:78px;top:84px;z-index:65;
+ border:1px solid #c4dff4;background:rgba(255,255,255,.96);color:#175178;
+ border-radius:18px;padding:9px 12px;font-size:12px;font-weight:750;cursor:pointer;
+ box-shadow:0 3px 14px rgba(18,51,76,.19);touch-action:manipulation}
+.sunny-radar-panel[hidden]{display:none!important}
+.sunny-radar-panel{position:fixed;z-index:95;right:72px;top:135px;
+ width:min(344px,calc(100vw - 100px));max-height:min(70dvh,600px);
+ box-sizing:border-box;overflow-y:auto;overscroll-behavior:contain;
+ border:1px solid #b4d3eb;border-radius:17px;padding:12px;
+ background:rgba(255,255,255,.98);color:#153d5b;
+ box-shadow:0 9px 30px rgba(0,32,77,.27);font-size:11px;pointer-events:auto}
+.sunny-radar-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sunny-radar-head strong{font-size:14px;color:#184a6b}
+.sunny-radar-head button{width:33px;height:33px;flex:none;cursor:pointer;
+ border-radius:50%;border:1px solid #bdd5e6;background:#f4f9fc;color:#244c69;font-size:15px}
+.sunny-radar-intro,.sunny-radar-caution{margin:8px 0;color:#566f83;font-size:10px;line-height:1.5}
+.sunny-radar-image-wrap{display:flex;align-items:center;justify-content:center;
+ background:#edf4fa;min-height:100px;max-height:32dvh;overflow:hidden;border-radius:9px}
+.sunny-radar-image-wrap img{display:block;width:100%;max-height:32dvh;object-fit:contain}
+.sunny-radar-image-wrap img[hidden]{display:none!important}
+.sunny-radar-time{margin:9px 0 5px;font-size:11px;font-weight:750;color:#175484}
+.sunny-radar-slider-label{display:block;margin:8px 0 3px;font-size:10px;color:#476c89}
+#navRadarLead{display:block;width:100%;accent-color:#1487d6;min-height:25px}
+.sunny-radar-ticks{display:flex;justify-content:space-between;color:#628097;font-size:10px}
+.sunny-radar-footer{display:flex;align-items:center;justify-content:space-between;gap:7px;margin:10px 0 4px}
+.sunny-radar-footer button{padding:8px;border-radius:8px;border:1px solid #aacbdf;
+ background:#ecf7ff;color:#15517a;font-weight:750;cursor:pointer}
+.sunny-radar-footer button:disabled{opacity:.5}
+.sunny-radar-footer small{font-size:9px;color:#718a9c}
+.sunny-radar-status{margin:6px 0;color:#355b78;font-size:10px;line-height:1.4}
+.sunny-radar-caution{padding-top:7px;border-top:1px solid #e3edf4}
+@media(max-width:650px){
+ .sunny-radar-quick{top:calc(75px + env(safe-area-inset-top,0px));right:63px;font-size:11px;padding:8px 10px}
+ .sunny-radar-panel{left:12px;right:auto;top:auto;bottom:calc(80px + env(safe-area-inset-bottom,0px));
+  width:min(325px,calc(100vw - 88px));max-height:54dvh;padding:10px}
+ .sunny-radar-image-wrap,.sunny-radar-image-wrap img{max-height:23dvh}
+ body.sunny-guiding .sunny-radar-panel{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+}
