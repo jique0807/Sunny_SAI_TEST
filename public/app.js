@@ -34,12 +34,15 @@ navOpen?.addEventListener('click',()=>showNavSearch(true));
 navClose?.addEventListener('click',()=>showNavSearch(false));
 const navLayersSheet=document.getElementById('navLayersSheet');
 // Provider-rendered forecast image: standalone view until georeferencing is validated.
-const rainGridOverlay=initNationalRainOverlay({onEnable:()=>{
-  // Hide the settings sheet but keep navigation mode; never switch to a second basemap.
+const rainGridOverlay=initNationalRainOverlay({
+ waitForSession:()=>sessionPromise,
+ onEnable:()=>{
+  // Close layer settings and return to the actual underlying screen.
   if(navLayersSheet&&!navLayersSheet.hidden){
    navLayersSheet.hidden=true;
    document.getElementById('navLayers')?.setAttribute('aria-expanded','false');
-   setNavTab('navLayers');
+   setNavTab(drivingUI.isActive()?'navRoute':
+    document.getElementById('navSearchSheet')?.hidden?'navHome':'navRoute');
   }
   const oldRain=document.getElementById('navLayerrain');
   if(oldRain?.checked){oldRain.checked=false;oldRain.dispatchEvent(new Event('change'));}
