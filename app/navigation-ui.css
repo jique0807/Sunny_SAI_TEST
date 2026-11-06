@@ -1102,3 +1102,45 @@ body:has(.nav-layers-sheet:not([hidden])) .nav-map-layer-control,
 body:has(.nav-radar-panel:not([hidden])) .nav-map-layer-control {
  display:none!important;
 }
+
+/* Nationwide KMA 5km rainfall polygons in a canvas positioned over Kakao tiles.
+   Camera projection is recalculated for each map pan/zoom, including GPS navigation. */
+#kakaoMap .sunny-rain-grid-canvas{position:absolute;inset:0;z-index:12;
+ pointer-events:none!important;touch-action:none;user-select:none}
+.sunny-rain-grid-timeline[hidden]{display:none!important}
+.sunny-rain-grid-timeline{position:fixed;left:50%;transform:translateX(-50%);
+ bottom:calc(82px + env(safe-area-inset-bottom,0px));z-index:810;
+ box-sizing:border-box;width:min(430px,calc(100vw - 44px));max-height:46dvh;overflow-y:auto;
+ border-radius:15px;padding:11px 12px 12px;border:1px solid #c4dcea;
+ background:rgba(255,255,255,.97);color:#174363;box-shadow:0 7px 23px #132d4c42;
+ pointer-events:auto}
+.sunny-rain-grid-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sunny-rain-grid-head strong{font-size:12px}
+.sunny-rain-grid-head button{width:29px;height:29px;border:1px solid #c3d8e9;
+ background:#f1f7fc;border-radius:50%;cursor:pointer}
+.sunny-rain-grid-valid{font-size:11px;font-weight:700;color:#235c84;margin:4px 0 6px}
+.sunny-rain-grid-timeline label{font-size:10px;color:#5b7489}
+#navRainGridLead{display:block;width:100%;margin:5px 0;min-height:26px;accent-color:#187fd4}
+.sunny-rain-grid-ticks{display:flex;justify-content:space-between;font-size:9px;color:#597890}
+.sunny-rain-grid-legend{display:flex;align-items:center;gap:6px;margin:8px 0;font-size:9px}
+.sunny-rain-grid-legend>span{font-weight:700;white-space:nowrap}
+.sunny-rain-grid-legend i{height:9px;flex:1;border-radius:8px;
+ background:linear-gradient(90deg,#8bdef6,#43c2f1,#149ee0,#0872cd,#2261b6,#56369b)}
+.sunny-rain-grid-legend small{white-space:nowrap;color:#648198;font-size:9px}
+.sunny-rain-grid-actions{display:flex;gap:10px;align-items:center;margin:8px 0}
+.sunny-rain-grid-actions button{padding:6px 8px;border:1px solid #b6d3e7;
+ border-radius:8px;background:#f0faff;color:#1b5984;font-size:10px;font-weight:700;cursor:pointer}
+.sunny-rain-grid-actions span{font-size:9px;color:#66879b}
+#navRainGridStatus{font-size:10px;line-height:1.45;margin:5px 0;color:#356a8b}
+.sunny-rain-grid-disclaimer{font-size:9px;line-height:1.5;color:#61788c}
+body.sunny-guiding .sunny-rain-grid-timeline{bottom:calc(85px + env(safe-area-inset-bottom,0px));
+ left:12px;transform:none;width:min(430px,calc(100vw - 94px));z-index:90}
+body.sunny-rain-grid-active .nav-map-layer-control{display:none!important}
+@media(max-width:650px){
+ .sunny-rain-grid-timeline{left:12px;transform:none;
+  bottom:calc(77px + env(safe-area-inset-bottom,0px));width:calc(100vw - 85px);
+  max-height:37dvh;padding:9px 10px;z-index:775}
+ .sunny-rain-grid-legend{flex-wrap:wrap}
+ .sunny-rain-grid-legend i{min-width:80px}
+ .sunny-rain-grid-quick{font-size:11px}
+}
