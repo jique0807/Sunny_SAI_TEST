@@ -19,6 +19,7 @@ export const ui = `
    <span class="sunny-drive-origin">현재</span>
   </div>
   <div class="sunny-drive-footer">
+    <button id="sunnyDriveHome" type="button" class="sunny-drive-home" aria-label="초기화면으로 돌아가기">⌂ 홈</button>
     <div><strong id="sunnyDriveSummary">경로 위치 확인 중</strong><small id="sunnyDriveGpsText">GPS 권한 확인 중 · 화면 켜짐 필요</small></div>
     <button id="sunnyDriveStop" type="button" aria-label="Sunny SAI 주행 안내 종료">종료</button>
   </div>

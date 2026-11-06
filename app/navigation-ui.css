@@ -944,3 +944,17 @@ body.sunny-guiding .sunny-drive-footer button{min-height:40px!important;min-widt
  body.sunny-guiding .sunny-drive-footer strong{font-size:12px!important}
  body.sunny-guiding .sunny-drive-footer small{font-size:9px!important}
 }
+
+/* Driving screen: dedicated Home shortcut; bottom Home tab resets fully too. */
+body.sunny-guiding .sunny-drive-footer #sunnyDriveHome{
+ min-width:48px!important;min-height:40px!important;
+ border:1px solid #bed5e8!important;border-radius:9px!important;
+ color:#165c90!important;background:#eaf4ff!important;
+ font-size:12px!important;font-weight:800!important;white-space:nowrap!important;
+ padding:6px 8px!important;
+}
+body.sunny-guiding .sunny-drive-footer>div{min-width:0!important;flex:1!important}
+@media(max-width:370px){
+ body.sunny-guiding .sunny-drive-footer #sunnyDriveHome{min-width:42px!important;padding:6px!important;font-size:11px!important}
+ body.sunny-guiding .sunny-drive-footer{gap:5px!important}
+}

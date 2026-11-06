@@ -41,22 +41,17 @@ function showNavLayers(open){
  if(open){showNavSearch(false);setNavTab('navLayers');ensureNavigationKakao();}
  else setNavTab(drivingUI.isActive()?'navRoute':document.getElementById('navSearchSheet')?.hidden?'navHome':'navRoute');
 }
-document.getElementById('navHome')?.addEventListener('click',()=>{
+// Bottom Home and driving Home both mean a clean initial screen, rather than
+// retaining the previous route, navigation progress or weather overlays.
+function goToInitialHome(){
  if(drivingUI.isActive())stopRain();
- // Home must restore the map, not merely change the active bottom tab.
- showNavLayers(false);
- const routeResult=document.getElementById('navRouteResult');if(routeResult)routeResult.hidden=true;
- showNavSearch(false);
- document.body.classList.remove('nav-route-open','nav-sheet-open');
- const settings=document.getElementById('settings');if(settings?.open)settings.close();
- setNavTab('navHome');
- const map=document.getElementById('map');
- if(map){map.scrollIntoView({block:'start',behavior:'smooth'});}if(activeMap!=='kakao'&&!kmap)void showMap('kakao');
- else window.scrollTo({top:0,behavior:'smooth'});
- // Clear leftover focus from hidden search fields on mobile browsers.
- if(document.activeElement?.closest?.('#navSearchSheet'))document.activeElement.blur();
-});
-document.getElementById('sunnyBrandHome')?.addEventListener('click',()=>{ window.location.reload(); });
+ // A fresh session view also clears in-flight route searches and recovers
+ // the original Kakao first-load behavior. Local saved favorites remain intact.
+ window.location.reload();
+}
+document.getElementById('navHome')?.addEventListener('click',goToInitialHome);
+document.getElementById('sunnyBrandHome')?.addEventListener('click',goToInitialHome);
+document.getElementById('sunnyDriveHome')?.addEventListener('click',goToInitialHome);
 document.getElementById('navRoute')?.addEventListener('click',()=>{
  if(drivingUI.isActive()){showNavLayers(false);setNavTab('navRoute');return;}
  showNavLayers(false);
