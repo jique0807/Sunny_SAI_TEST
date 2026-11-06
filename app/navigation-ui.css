@@ -1429,3 +1429,77 @@ body.sunny-guiding .sunny-drive-alert:nth-child(2) .sunny-drive-alert-text stron
   width:calc(100% - 62px)!important;
  }
 }
+
+/* 2026-11-07: screenshot-guided driving overlay placement.
+   Keep weather cards near top-left as one tall card and one compact card below.
+   Forecast text still comes exclusively from actual KMA-backed guidance. */
+body.sunny-guiding .sunny-drive-alerts{
+ left:3px!important;
+ top:calc(3px + env(safe-area-inset-top,0px))!important;
+ width:min(220px,calc(100vw - 96px))!important;
+ height:150px!important;max-height:150px!important;
+ overflow:visible!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(1){
+ left:0!important;top:0!important;
+ width:min(213px,100%)!important;
+ height:102px!important;min-height:102px!important;max-height:102px!important;
+ padding:11px 10px!important;
+ align-items:flex-start!important;
+ border-radius:7px!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(1) .sunny-drive-alert-text{
+ justify-content:flex-start;gap:8px;min-width:0;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(1) .sunny-drive-alert-text strong{
+ white-space:normal!important;overflow:visible!important;
+ text-overflow:clip!important;line-height:1.4!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(1) .sunny-drive-alert-text small{
+ white-space:normal!important;overflow:visible!important;
+ text-overflow:clip!important;line-height:1.3!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(2){
+ left:0!important;top:104px!important;
+ width:min(168px,calc(100% - 22px))!important;
+ height:38px!important;min-height:38px!important;max-height:38px!important;
+ padding:4px 6px!important;
+ border-radius:5px!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(2) .sunny-drive-alert-icon{
+ font-size:13px!important;width:13px!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(2) .sunny-drive-alert-text{
+ gap:1px!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(2) .sunny-drive-alert-text strong{
+ font-size:10px!important;white-space:nowrap!important;
+ overflow:hidden!important;text-overflow:ellipsis!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(2) .sunny-drive-alert-text small{
+ font-size:8.5px!important;white-space:nowrap!important;
+ overflow:hidden!important;text-overflow:ellipsis!important;
+}
+/* Move the rain ON/OFF shortcut to the marked lower-left location, just above
+   the driving ETA banner, with a touchable 44px hit area and no overlap. */
+.sunny-radar-quick:not([hidden]){
+ left:10px!important;right:auto!important;top:auto!important;
+ bottom:calc(var(--sunny-bottom-nav-height,68px) + 11px)!important;
+ min-height:44px!important;
+}
+body.sunny-guiding:not(.sunny-rain-grid-active) .sunny-radar-quick:not([hidden]){
+ left:9px!important;right:auto!important;top:auto!important;
+ bottom:calc(77px + env(safe-area-inset-bottom,0px))!important;
+ min-height:44px!important;
+}
+@media(max-width:360px){
+ body.sunny-guiding .sunny-drive-alerts{
+  left:3px!important;width:min(220px,calc(100vw - 92px))!important;
+ }
+ body.sunny-guiding .sunny-drive-alert:nth-child(1){
+  width:min(213px,100%)!important;
+ }
+ body.sunny-guiding .sunny-drive-alert:nth-child(2){
+  width:min(168px,calc(100% - 22px))!important;
+ }
+}
