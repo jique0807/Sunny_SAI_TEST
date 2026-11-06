@@ -1091,3 +1091,14 @@ body.sunny-guiding .sunny-rail-hazard{pointer-events:auto!important}
  .sunny-radar-image-wrap,.sunny-radar-image-wrap img{max-height:23dvh}
  body.sunny-guiding .sunny-radar-panel{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 }
+
+/* Strict scope: base-map thumbnail selector is NEVER visible outside Home. */
+body:not([data-sunny-nav="home"]) .nav-map-layer-control,
+body:not([data-sunny-nav="home"]) .map-switch,
+body.nav-route-open .nav-map-layer-control,
+body.nav-sheet-open .nav-map-layer-control,
+body.sunny-guiding .nav-map-layer-control,
+body:has(.nav-layers-sheet:not([hidden])) .nav-map-layer-control,
+body:has(.nav-radar-panel:not([hidden])) .nav-map-layer-control {
+ display:none!important;
+}
