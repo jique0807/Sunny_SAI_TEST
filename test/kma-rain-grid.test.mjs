@@ -124,6 +124,28 @@ test('rain control is bottom-aligned and both map selector/quick action hide whi
  assert.match(css,/\.sunny-radar-quick\{\s*position:fixed!important;top:auto!important/);
  assert.match(css,/body\.sunny-rain-grid-active \.sunny-radar-quick,[\s\S]*?\.nav-map-layer-control,[\s\S]*?display:none!important;/);
  assert.match(css,/body\.sunny-guiding:not\(\.sunny-rain-grid-active\) \.sunny-radar-quick/);
+ assert.match(css,/body\.sunny-rain-grid-active\[data-sunny-nav="home"\] \.nav-map-layer-control\{\s*display:none!important/);
  assert.match(app,/setNavTab\(drivingUI\.isActive\(\)\?'navRoute'/);
  assert.match(app,/waitForSession:\(\)=>sessionPromise/);
+});
+
+test('preview forecast diagnostics genuinely checks all four leads without simulated provider rain',async()=>{
+ const origin='https://rain-diagnostic.test',key='not-exported-key';
+ const env={APP_ORIGIN:origin,SESSION_SECRET:'x'.repeat(64),KMA_API_KEY:key,VERCEL_ENV:'preview'};
+ const urls=[];
+ const response=await handle(new Request(origin+'/api/rain-grid-diagnostic'),env,async url=>{
+  urls.push(new URL(url));
+  return new Response(example(),{headers:{'Content-Type':'text/plain'}});
+ });
+ assert.equal(response.status,200);
+ const json=await response.json();
+ assert.equal(json.results.length,4);
+ assert.deepEqual(json.results.map(x=>x.lead),[0,1,2,3]);
+ assert.ok(json.results.every(x=>x.status==='received'&&x.wetCells===3&&x.zero===1));
+ assert.equal(urls.length,4);
+ assert.equal(new Set(urls.map(u=>u.searchParams.get('tmef'))).size,4);
+ assert.ok(!JSON.stringify(json).includes(key));
+ const production=await handle(new Request(origin+'/api/rain-grid-diagnostic'),
+  {...env,VERCEL_ENV:'production'},async()=>{throw Error('do not call');});
+ assert.equal(production.status,404);
 });
