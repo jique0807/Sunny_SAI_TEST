@@ -1139,7 +1139,7 @@ body.sunny-guiding .sunny-rain-grid-timeline{bottom:calc(85px + env(safe-area-in
 body.sunny-rain-grid-active:not([data-sunny-nav="home"]) .nav-map-layer-control{display:none!important}
 @media(max-width:900px){
  body.sunny-rain-grid-active[data-sunny-nav="home"] .nav-map-layer-control{
-  display:flex!important;bottom:calc(var(--sunny-bottom-nav-height) + 180px)!important;
+  display:none!important;
  }
 }
 @media(max-width:650px){
