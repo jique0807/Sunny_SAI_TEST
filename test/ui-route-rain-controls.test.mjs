@@ -62,7 +62,7 @@ test('route start/current/destination are separate accessible markers with no gu
 });
 
 test('compact map switch stays touchable on the rightmost Home edge',()=>{
- const marker=css.lastIndexOf('Home map selector: align at screenshot's upper-right map corner');
+ const marker=css.lastIndexOf("Home map selector: align at screenshot's upper-right map corner");
  assert.ok(marker>0,'latest compact Home control rules exist');
  const rules=css.slice(marker);
  assert.match(rules,/right:3px!important;left:auto!important;bottom:auto!important/);
@@ -74,7 +74,7 @@ test('compact map switch stays touchable on the rightmost Home edge',()=>{
  assert.match(rules,/@media\(min-width:901px\)/);
 });
 test('guidance footer lifts 19px and vertical route summary anchors to top-right',()=>{
- const marker=css.lastIndexOf('Home map selector: align at screenshot's upper-right map corner');
+ const marker=css.lastIndexOf("Home map selector: align at screenshot's upper-right map corner");
  const rules=css.slice(marker);
  assert.match(rules,/body\.sunny-guiding \.sunny-drive-footer\{[\s\S]*?bottom:calc\(19px \+ env\(safe-area-inset-bottom,0px\)\)!important/);
  assert.match(rules,/left:8px!important;right:8px!important;width:calc\(100% - 16px\)!important/);
