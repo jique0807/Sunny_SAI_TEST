@@ -9,6 +9,7 @@ const {pointAlong}=await import('/journey.mjs');
 const {ahead,locate,RainGate}=await import('/rain-monitor.mjs');
 const {initKmaMapOverlay}=await import('/kma-map-overlay.mjs');
 const {initNationalRainOverlay}=await import('/kma-rain-overlay.mjs');
+const {createRoutePin}=await import('/route-pin.mjs');
 const {initRoadRiskOverlay}=await import('/road-risk-overlay.mjs');
 const {initDriveGuidance,segmentMeters,routeFraction}=await import('/drive-guidance.mjs');
 const {buildRouteHazards,renderHazardRail,showHazardDetail}=await import('/route-hazards.mjs');
@@ -173,10 +174,25 @@ document.getElementById('navDemoOpacity')?.addEventListener('input',updateMapLay
 updateMapLayerOpacity();
 
 const $=id=>document.getElementById(id),escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let csrf='',advanced=false,mapConfig={},connections={},originPlace=null,destPlace=null,route=null,weather=null,sessionPromise=null,searchSeq=0,routeSeq=0,progress=0,timer=null,playing=false,activeAudio=null,voiceSeq=0,finishVoice=null,recognition=null,kmap=null,lmap=null,routePolyline=null,lroute=null,kmarker=null,lmarker=null,installPrompt=null;
+let csrf='',advanced=false,mapConfig={},connections={},originPlace=null,destPlace=null,route=null,weather=null,sessionPromise=null,searchSeq=0,routeSeq=0,progress=0,timer=null,playing=false,activeAudio=null,voiceSeq=0,finishVoice=null,recognition=null,kmap=null,lmap=null,routePolyline=null,lroute=null,kmarker=null,lmarker=null,routeCurrentMarker=null,installPrompt=null;
 let homePosition=null,homeLocationMarker=null,homeLocationPending=false,osmMap=null,osmMarker=null,osmRoute=null;
+// A current-position pin is independent of the starting point. Never fabricate GPS.
+function updateRouteCurrentMarker(){
+ const p=rainPosition||homePosition;
+ if(!route||route.demo||!route.vertices?.length||drivingUI.isActive()||
+    !['kakao','skyview'].includes(activeMap)||!kmap||!window.kakao?.maps||
+    !Number.isFinite(p?.lat)||!Number.isFinite(p?.lng)){
+  routeCurrentMarker?.setMap(null);routeCurrentMarker=null;return;
+ }
+ const position=new kakao.maps.LatLng(p.lat,p.lng);
+ if(!routeCurrentMarker){
+  routeCurrentMarker=new kakao.maps.CustomOverlay({map:kmap,position,
+   content:createRoutePin('current'),xAnchor:.5,yAnchor:1,zIndex:22});
+ }else routeCurrentMarker.setPosition(position);
+}
 function centerHomeMap(){
- if(!homePosition||route?.vertices?.length)return;
+ if(!homePosition)return;
+ if(route?.vertices?.length){updateRouteCurrentMarker();return;}
  if(kmap&&(activeMap==='kakao'||activeMap==='skyview')&&window.kakao?.maps){
   const p=new kakao.maps.LatLng(homePosition.lat,homePosition.lng);
   kmap.setCenter(p);kmap.setLevel(4);
@@ -317,6 +333,7 @@ function drawGps(){
  const p=rainPosition;
  if(kmap&&window.kakao){const pos=new kakao.maps.LatLng(p.lat,p.lng);
    if(drivingUI.isActive()){
+    routeCurrentMarker?.setMap(null);routeCurrentMarker=null;
     gpsMarker?.setMap(null);gpsMarker=null;
     if(!gpsNavArrow){
      const marker=document.createElement('span');marker.className='sunny-drive-gps-pointer';marker.textContent='▲';marker.setAttribute('aria-label','GPS 실시간 차량 위치');
@@ -324,7 +341,13 @@ function drawGps(){
     }else gpsNavArrow.setPosition(pos);
     const marker=gpsNavArrow.getContent?.();
     if(marker?.style)marker.style.rotate=(Number.isFinite(navBearing)?navBearing:Number.isFinite(p.heading)?p.heading:0)+'deg';
-   }else{gpsNavArrow?.setMap(null);gpsNavArrow=null;if(!gpsMarker)gpsMarker=new kakao.maps.Marker({map:kmap,position:pos,title:'실제 GPS 현재 위치'});else gpsMarker.setPosition(pos);}
+   }else{
+    gpsNavArrow?.setMap(null);gpsNavArrow=null;
+    if(route?.vertices?.length&&!route.demo){
+     gpsMarker?.setMap(null);gpsMarker=null;updateRouteCurrentMarker();
+    }else if(!gpsMarker)gpsMarker=new kakao.maps.Marker({map:kmap,position:pos,title:'실제 GPS 현재 위치'});
+    else gpsMarker.setPosition(pos);
+   }
   }
  if(lmap&&window.L){if(!gpsLeaflet)gpsLeaflet=L.circleMarker([p.lat,p.lng],{radius:9,color:'#fff',weight:3,fillColor:'#1769ff',fillOpacity:1}).bindTooltip('실제 GPS 현재 위치').addTo(lmap);else gpsLeaflet.setLatLng([p.lat,p.lng]);}
 }
@@ -588,8 +611,11 @@ async function showMap(type){if(document.body.dataset.sunnyNav!=='home'&&type!==
  if(type==='schematic'){rainGridOverlay.setMap(null);kmaMapOverlay.clear();roadRiskOverlay.clear();focusRoad();drawWeatherOverlays();drawDemoOverlays();moveCar();return;}
  if(route?.demo)notice('실제 도로 경로 · 자동차 이동·폭우·강풍·공사는 가상 시연입니다.');
  try{if(isKakao){if(!mapConfig.kakao)throw Error('운영자의 카카오 JavaScript 키가 필요합니다.');if(!kmap){await script('https://dapi.kakao.com/v2/maps/sdk.js?autoload=false&appkey='+encodeURIComponent(mapConfig.kakao));await new Promise((resolve,reject)=>{if(!window.kakao?.maps)return reject(Error('카카오 지도 SDK 응답을 확인해주세요.'));const timeout=setTimeout(()=>reject(Error('카카오 지도 초기화 시간 초과')),12000);kakao.maps.load(()=>{clearTimeout(timeout);resolve();});});if(run!==mapRun)return;kmap=new kakao.maps.Map($('kakaoMap'),{center:new kakao.maps.LatLng(36.85,127.44),level:10});/* Kakao zoom sidebar removed; home can still pinch/double-tap to zoom. */kakao.maps.event.addListener(kmap,'click',e=>mapClick({lat:e.latLng.getLat(),lng:e.latLng.getLng()}));kakao.maps.event.addListener(kmap,'idle',kmaMapOverlay.schedule);}
- if(run!==mapRun)return;kmap.relayout();rainGridOverlay.setMap(kmap);kmap.setMapTypeId(type==='skyview'?kakao.maps.MapTypeId.HYBRID:kakao.maps.MapTypeId.ROADMAP);providerState.kakao='SDK 초기화 확인';connectionStatus();routePolyline?.setMap(null);kmarker?.setMap(null);kend?.setMap(null);routePolyline=null;kmarker=null;kend=null;
- if(route?.demo){const bounds=new kakao.maps.LatLngBounds();[originPlace,destPlace].forEach(p=>bounds.extend(new kakao.maps.LatLng(p.lat,p.lng)));kmap.setBounds(bounds);}if(route?.vertices?.length){const pts=route.vertices.map(p=>new kakao.maps.LatLng(p.lat,p.lng));routePolyline=new kakao.maps.Polyline({map:kmap,path:pts,zIndex:10,strokeWeight:7,strokeColor:type==='skyview'?'#ffda7d':'#315fce',strokeOpacity:.95});kakao.maps.event.addListener(routePolyline,'click',e=>mapClick({lat:e.latLng.getLat(),lng:e.latLng.getLng()}));const bounds=new kakao.maps.LatLngBounds();pts.forEach(p=>bounds.extend(p));kmap.setBounds(bounds);kmarker=new kakao.maps.Marker({map:kmap,position:pts[0],title:'출발'});kend=new kakao.maps.Marker({map:kmap,position:pts[pts.length-1],title:'도착'});}if(!route?.vertices?.length&&viewport)restoreMapViewport(viewport);else if(!route?.vertices?.length&&homePosition)centerHomeMap();}
+ if(run!==mapRun)return;kmap.relayout();rainGridOverlay.setMap(kmap);kmap.setMapTypeId(type==='skyview'?kakao.maps.MapTypeId.HYBRID:kakao.maps.MapTypeId.ROADMAP);providerState.kakao='SDK 초기화 확인';connectionStatus();routePolyline?.setMap(null);kmarker?.setMap(null);kend?.setMap(null);routeCurrentMarker?.setMap(null);routePolyline=null;kmarker=null;kend=null;routeCurrentMarker=null;
+ if(route?.demo){const bounds=new kakao.maps.LatLngBounds();[originPlace,destPlace].forEach(p=>bounds.extend(new kakao.maps.LatLng(p.lat,p.lng)));kmap.setBounds(bounds);}if(route?.vertices?.length){const pts=route.vertices.map(p=>new kakao.maps.LatLng(p.lat,p.lng));routePolyline=new kakao.maps.Polyline({map:kmap,path:pts,zIndex:10,strokeWeight:7,strokeColor:type==='skyview'?'#ffda7d':'#315fce',strokeOpacity:.95});kakao.maps.event.addListener(routePolyline,'click',e=>mapClick({lat:e.latLng.getLat(),lng:e.latLng.getLng()}));const bounds=new kakao.maps.LatLngBounds();pts.forEach(p=>bounds.extend(p));kmap.setBounds(bounds);homeLocationMarker?.setMap(null);homeLocationMarker=null;
+ kmarker=new kakao.maps.CustomOverlay({map:kmap,position:pts[0],content:createRoutePin('start'),xAnchor:.5,yAnchor:1,zIndex:21});
+ kend=new kakao.maps.CustomOverlay({map:kmap,position:pts[pts.length-1],content:createRoutePin('destination'),xAnchor:.5,yAnchor:1,zIndex:21});
+ updateRouteCurrentMarker();}if(!route?.vertices?.length&&viewport)restoreMapViewport(viewport);else if(!route?.vertices?.length&&homePosition)centerHomeMap();}
  else {rainGridOverlay.setMap(null);if(!mapConfig.vworld)throw Error('운영자의 브이월드 키와 서비스 도메인 등록이 필요합니다.');if(!window.L){const c=document.createElement('link');c.rel='stylesheet';c.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.append(c);await script('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');}if(run!==mapRun)return;if(!lmap){lmap=L.map('vworldMap').setView([36.85,127.44],8);lmap.on('moveend',scheduleFlood);lmap.on('moveend',kmaMapOverlay.schedule);lmap.on('click',e=>mapClick({lat:e.latlng.lat,lng:e.latlng.lng}));const base='https://api.vworld.kr/req/wmts/1.0.0/'+encodeURIComponent(mapConfig.vworld);L.tileLayer(base+'/Satellite/{z}/{y}/{x}.jpeg',{maxZoom:19,attribution:'© VWorld / 국토교통부 · 촬영시점은 위치별로 다름'}).on('tileload',()=>{tileLoaded++;satelliteStatus();}).on('tileerror',()=>{tileFailed++;satelliteStatus();}).on('loading',()=>{tileLoaded=0;tileFailed=0;}).addTo(lmap);L.tileLayer(base+'/Hybrid/{z}/{y}/{x}.png',{maxZoom:19,attribution:'도로명 © VWorld'}).addTo(lmap);L.control.scale({imperial:false}).addTo(lmap);}
  lmap.invalidateSize();if(!route?.vertices?.length&&viewport)restoreMapViewport(viewport);if(lroute)lmap.removeLayer(lroute);if(lmarker)lmap.removeLayer(lmarker);if(lend)lmap.removeLayer(lend);lroute=null;lmarker=null;lend=null;if(route?.demo)lmap.fitBounds([originPlace,destPlace].map(p=>[p.lat,p.lng]),{padding:[25,25]});if(route?.vertices?.length){const pts=route.vertices.map(p=>[p.lat,p.lng]);lroute=L.polyline(pts,{color:'#ffda7d',weight:7}).addTo(lmap);lmarker=L.circleMarker(pts[0],{radius:8,color:'#fff',fillColor:'#315fce',fillOpacity:1}).bindTooltip('출발').addTo(lmap);lend=L.circleMarker(pts[pts.length-1],{radius:8,color:'#fff',fillColor:'#c87046',fillOpacity:1}).bindTooltip('도착').addTo(lmap);lmap.fitBounds(lroute.getBounds(),{padding:[25,25]});}satelliteStatus();}
  if(isKakao&&!route?.demo)notice('');focusRoad();drawWeatherOverlays();drawDemoOverlays();moveCar();drawGps();if(drivingUI.isActive())followDrivingGps();updateFlood();kmaMapOverlay.schedule();roadRiskOverlay.repaint();}catch(e){if(run!==mapRun)return;providerState[isKakao?'kakao':'vworld']='연결 실패';connectionStatus();let message=isKakao?(type==='skyview'?'카카오 항공지도':'카카오맵')+' 연결 실패: '+(e?.message||'SDK 응답 오류')+'.':'브이월드 지도 연결 실패: '+(e?.message||'지도 응답 오류')+'.';if(isKakao){$('kakaoMap').hidden=false;$('schematic').hidden=true;$('osmMap').hidden=true;$('vworldMap').hidden=true;$('mapProvider').textContent='카카오맵 · 연결 확인 필요';kakaoConnectError(message+' 현재 접속 도메인 '+location.origin+' 이 카카오디벨로퍼스 JavaScript SDK 허용 도메인에 등록되어 있는지 확인하세요. 테스트는 고정 프리뷰 주소 https://sunny-sai-preview.vercel.app 를 사용하세요.');}else{toast(message);notice(message);}}}
