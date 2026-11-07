@@ -1832,3 +1832,11 @@ body.sunny-rain-grid-minimized .sunny-radar-quick:not([hidden]){
 #navForecastImage{grid-row:1;width:100%;height:100%;object-fit:contain}
 #navForecastImageStatus{grid-row:2;margin:0;padding:6px;text-align:center;background:white;color:#17314a}
 #navForecastImageToggle{min-height:34px}
+
+.sunny-forecast-image-controls{grid-row:2;background:#fff;padding:6px 10px;display:grid;gap:4px}
+.sunny-forecast-image-controls button{min-height:36px;margin-inline-end:6px}
+.sunny-forecast-image-controls label{display:grid;grid-template-columns:auto 1fr;gap:4px 8px}
+#navForecastImageLead{grid-column:1 / -1;width:100%}
+#navForecastImageStatus[data-receive-state="loading"]{background:#e1efff;color:#145daa}
+#navForecastImageStatus[data-receive-state="received"]{background:#e2f4e8;color:#176743}
+#navForecastImageStatus[data-receive-state="failed"]{background:#fce5e8;color:#a62633}

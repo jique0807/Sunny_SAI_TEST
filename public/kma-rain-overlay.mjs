@@ -288,11 +288,14 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  const imageStatus=get('navForecastImageStatus');
  const imageLead=get('navForecastImageLead');
  const imagePlay=get('navForecastImagePlay');
+ const imageStop=get('navForecastImageStop');
+ const imageTime=get('navForecastImageTime');
  let imageController,imageTimer,imageBase;
  const images=new Map();
  function stopImagePlayback(){
   clearInterval(imageTimer);imageTimer=null;
-  if(imagePlay)imagePlay.textContent='재생';
+  if(imagePlay)imagePlay.disabled=false;
+  if(imageStop)imageStop.disabled=true;
  }
  function hideForecastImage(){
   stopImagePlayback();imageController?.abort();imageController=null;
@@ -301,13 +304,15 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   for(const frame of images.values())URL.revokeObjectURL(frame.url);
   images.clear();imageBase=null;
   imageToggle?.setAttribute('aria-pressed','false');
+  if(imageToggle)imageToggle.textContent='레이더 영상 시작';
  }
  async function loadForecastImage(){
   imageController?.abort();
   const controller=new AbortController();
   imageController=controller;
   const lead=Number(imageLead.value);
-  imageStatus.textContent='+'+lead+'분 · 수신 중';
+  imageTime.textContent='+'+lead+'분';
+  imageStatus.textContent='수신 중';imageStatus.dataset.receiveState='loading';
   try{
    await waitForSession?.();
    let frame=images.get(lead);
@@ -327,11 +332,12 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    }
    if(controller.signal.aborted)return;
    image.src=frame.url;image.hidden=false;
-   imageStatus.textContent='+'+lead+'분 · '+fmtTime(frame.valid);
+   imageTime.textContent='+'+lead+'분 · '+fmtTime(frame.valid);
+   imageStatus.textContent='수신 완료';imageStatus.dataset.receiveState='received';
   }catch{
    if(!controller.signal.aborted){
     image.hidden=true;
-    imageStatus.textContent='+'+lead+'분 · 수신 실패';
+    imageStatus.textContent='수신 실패';imageStatus.dataset.receiveState='failed';
    }
   }finally{
    if(imageController===controller)imageController=null;
@@ -339,19 +345,22 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  }
  imageLead?.addEventListener('input',()=>{stopImagePlayback();void loadForecastImage();});
  imagePlay?.addEventListener('click',()=>{
-  if(imageTimer!==null&&imageTimer!==undefined){stopImagePlayback();return;}
-  imagePlay.textContent='정지';
+  if(imageTimer!=null)return;
+  imagePlay.disabled=true;
+  if(imageStop)imageStop.disabled=false;
   imageTimer=setInterval(()=>{
    if(imageController)return;
    imageLead.value=String(Number(imageLead.value)%120+10);
    void loadForecastImage();
   },2000);
  });
+ imageStop?.addEventListener('click',stopImagePlayback);
  imageToggle?.addEventListener('click',()=>{
-  if(!imageView||!image||!imageStatus||!imageLead)return;
+  if(!imageView||!image||!imageStatus||!imageLead||!imageTime)return;
   if(!imageView.hidden){hideForecastImage();return;}
   imageView.hidden=false;image.hidden=true;imageLead.value='10';
   imageToggle.setAttribute('aria-pressed','true');
+  imageToggle.textContent='레이더 영상 종료';
   void loadForecastImage();
  });
  function setEnabled(next){
