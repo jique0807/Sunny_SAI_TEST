@@ -185,7 +185,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
     data=await loadHSRFrame(frame,{signal:controller.signal,waitForSession});
    }
    if(run!==requestId||!enabled||source!=='radar'){
-    if(data&&!cache?.data&&data.url)URL.revokeObjectURL(data.url);
+    if(data&&data!==cache?.data&&data.url)URL.revokeObjectURL(data.url);
     return;
    }
    if(!cache?.data||cache.data!==data){
