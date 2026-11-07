@@ -1824,8 +1824,27 @@ body.sunny-rain-grid-minimized .sunny-radar-quick:not([hidden]){
 
 #navRainGridTimeBar [hidden]{display:none!important}
 
+#navForecastImageView[hidden],#navForecastImage[hidden]{display:none!important}
+#navForecastImageView{
+ position:absolute;inset:0;z-index:30;background:#edf3f7;
+ display:grid;grid-template-rows:minmax(0,1fr) auto;align-items:center;
+}
+#navForecastImage{grid-row:1;width:100%;height:100%;object-fit:contain}
+#navForecastImageStatus{grid-row:2;margin:0;padding:6px;text-align:center;background:white;color:#17314a}
+#navForecastImageToggle{min-height:34px}
+
+.sunny-forecast-image-controls{grid-row:2;background:#fff;padding:6px 10px;display:grid;gap:4px}
+.sunny-forecast-image-controls button{min-height:36px;margin-inline-end:6px}
+.sunny-forecast-image-controls label{display:grid;grid-template-columns:auto 1fr;gap:4px 8px}
+#navForecastImageLead{grid-column:1 / -1;width:100%}
+#navForecastImageStatus[data-receive-state="loading"]{background:#e1efff;color:#145daa}
+#navForecastImageStatus[data-receive-state="received"]{background:#e2f4e8;color:#176743}
+#navForecastImageStatus[data-receive-state="failed"]{background:#fce5e8;color:#a62633}
+
 #navHsrReception{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:3px}
 #navHsrReception span{padding:3px 0;text-align:center;font-size:9px;background:#eef1f4;color:#31475c;border-radius:3px}
 #navHsrReception [data-state="loading"]{background:#dceeff}
 #navHsrReception [data-state="received"]{background:#cbeed9;color:#145b3c}
 #navHsrReception [data-state="failed"]{background:#f9d6db;color:#932630}
+
+.sunny-rain-mode-buttons{display:grid;grid-template-columns:1fr 1fr;gap:6px}
