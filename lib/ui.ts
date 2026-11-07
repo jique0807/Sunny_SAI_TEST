@@ -35,6 +35,7 @@ export const ui = `
   <div class="sunny-drive-footer">
     <button id="sunnyDriveHome" type="button" class="sunny-drive-home" aria-label="초기화면으로 돌아가기">⌂ 홈</button>
     <div><strong id="sunnyDriveSummary">경로 위치 확인 중</strong><small id="sunnyDriveGpsText">GPS 권한 확인 중 · 화면 켜짐 필요</small></div>
+    <button id="sunnyDriveReroute" type="button" hidden title="정차 후 현재 GPS 위치에서 경로 재탐색" aria-label="현재 GPS 위치 기준 차량 경로 다시 조회">↻ 재탐색</button>
     <button id="sunnyDriveStop" type="button" aria-label="Sunny SAI 주행 안내 종료">종료</button>
   </div>
  </div><div id="mapNotice" class="map-notice" role="status" aria-live="polite">카카오맵을 불러오는 중입니다.</div><div class="map-floating"><span class="floating-icon">◈</span><div><b id="floatingTitle">날씨를 따라가는 길잡이</b><small id="floatingSub">경로를 선택하면 구간별 정보를 확인할 수 있어요.</small></div></div></div>
@@ -46,7 +47,7 @@ export const ui = `
 <section class="sunny-settings-section" aria-labelledby="drivePreferencesHeading">
  <h3 id="drivePreferencesHeading">주행 지도</h3>
  <label class="sunny-setting-option"><span><b>GPS 위치 자동 추적</b><small>안내 중 차량을 따라 지도가 자동으로 이동합니다.</small></span><input id="settingFollowGps" type="checkbox" checked/></label>
- <label class="sunny-setting-option"><span><b>지도 진행방향</b><small>진행방향 위쪽은 GPS가 정확할 때만 적용됩니다. 웹지도 회전은 실험적 기능입니다.</small></span><select id="settingHeadingMode"><option value="course">진행방향 위쪽 (실험적)</option><option value="north">북쪽 고정 (안정적)</option></select></label>
+ <label class="sunny-setting-option"><span><b>지도 진행방향</b><small>도로명과 지명을 읽을 수 있도록 지도는 회전하지 않습니다. 차량 화살표만 GPS 진행방향에 맞춰 표시할 수 있습니다.</small></span><select id="settingHeadingMode"><option value="course">지도 북쪽 고정 · 화살표로 진행방향 표시</option><option value="north">지도 북쪽 고정 · 고정 화살표</option></select></label>
 </section>
 <section class="sunny-settings-section" aria-labelledby="weatherPreferencesHeading">
  <h3 id="weatherPreferencesHeading">전방 기상안내</h3>
