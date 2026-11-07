@@ -29,7 +29,7 @@ test('rain canvas controls are wired to existing real API logic',()=>{
  assert.match(src,/frameCache\.clear\(\);clearHSRCache\(\);void load\(\{force:true\}\)/);
  assert.match(src,/\/api\/rain-grid\?lead=/);
  assert.match(src,/loadHSRFrame\(frame,\{signal:controller.signal,waitForSession\}\)/);
- assert.match(src,/source==='radar'\?600000:300000/);
+ assert.match(src,/\},600000\)/);
 });
 test('compact touch targets and icon alignment survive narrow displays',()=>{
  assert.match(css,/Sunny SAI 2026-11-07 UI QA: aligned close, reload, reset/);
@@ -94,13 +94,25 @@ test('rain panel close and reload trigger the same state machine in simple DOM',
   node('navRainGridRefresh').dispatch('click');
   await flush();
   assert.equal(calls.length,2);
-  node('navRainGridClose').dispatch('click');
+  assert.equal(node('navRainGridStep').textContent,'13:00');
+  assert.match(node('navRainGridTicks').innerHTML,/13:00.*14:00.*15:00.*16:00/);
+  assert.equal(node('navRainGridStatus').dataset.receiveState,'received');
+  node('navRainGridMinimize').dispatch('click');
+  assert.equal(classSet.has('sunny-rain-grid-active'),true);
+  assert.equal(node('navRainGridTimeBar').hidden,true);
+  assert.equal(node('navRainSwitchBadge').textContent,'ON');
+  node('navRadarQuick').dispatch('click');
+  assert.equal(node('navRainGridTimeBar').hidden,false);
+  assert.equal(calls.length,2);
+  globalThis.fetch=async()=>Response.json({error:'일시적 오류'},{status:502});
+  node('navRainGridRefresh').dispatch('click');
+  assert.equal(node('navRainGridStatus').dataset.receiveState,'loading');
   await flush();
+  assert.equal(node('navRainGridStatus').dataset.receiveState,'failed');
+  node('navRainGridClose').dispatch('click');
   assert.equal(classSet.has('sunny-rain-grid-active'),false);
   assert.equal(node('navRainGridTimeBar').hidden,true);
-  node('navRainModeRadar').dispatch('click');
-  assert.equal(node('navRainModeRadar').attributes['aria-pressed'],'true');
-  assert.equal(node('navRainModeForecast').attributes['aria-pressed'],'false');
+  assert.equal(node('navRainSwitchBadge').textContent,'OFF');
  }finally{
   overlay?.disable();
   for(const [k,v] of Object.entries(original)){

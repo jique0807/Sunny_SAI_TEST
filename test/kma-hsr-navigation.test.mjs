@@ -76,22 +76,22 @@ test('shared HSR mesh draws true source image exclusively over Kakao with WGS84 
   if(original===undefined)delete globalThis.kakao;else globalThis.kakao=original;
  }
 });
-test('main rain panel exposes mutually exclusive real observed radar and forecast modes',()=>{
- for(const id of ['navRainModeForecast','navRainModeRadar','navRainSourceTitle',
+test('forecast popup has a single source and radar remains selectable in the layer menu',()=>{
+ for(const id of ['navRainGridMinimize','navRainSourceTitle',
   'navRainGridLead','navRainGridTicks','navRainLegendTitle','navRainGridDisclaimer'])
   assert.equal(ui.split('id="'+id+'"').length-1,1,id);
- assert.match(ui,/초단기예보 RN1/);
+ assert.match(ui,/초단기 예보/);
  assert.match(ui,/레이더 실황 HSR/);
  assert.match(overlay,/source='forecast'/);
  assert.match(overlay,/setSource\('forecast'\)/);
- assert.match(overlay,/setSource\('radar'\)/);
+ assert.match(overlay,/\[nationalRadar,'radar'\]/);
  assert.match(overlay,/loadHSRFrame\(frame,\{signal:controller.signal,waitForSession\}\)/);
  assert.match(overlay,/drawHSROverKakao\(ctx,radarFrame,projection,density\)/);
  assert.match(overlay,/실제 레이더 관측/);
  assert.match(overlay,/강수량\(mm\) 자료 아님/);
- assert.match(overlay,/source==='radar'\?600000:300000/);
+ assert.match(overlay,/\},600000\)/);
  assert.match(overlay,/clearHSRCache\(\)/);
  assert.match(overlay,/\/api\/rain-grid\?lead=/);
  assert.match(overlay,/frameCache\.set\(lead/);
- assert.match(css,/sunny-rain-source-mode button\[aria-pressed="true"\]/);
+ assert.doesNotMatch(ui,/id="navRainDataMode"/);
 });

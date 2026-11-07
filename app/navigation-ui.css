@@ -1810,3 +1810,12 @@ body.sunny-guiding .sunny-drive-alert:nth-child(2){
   min-width:48px!important;font-size:10px!important;padding:3px 4px!important;
  }
 }
+
+#navRainGridStatus{margin:0;font-weight:650}
+#navRainGridStatus::before{content:"●";margin-inline-end:.4em}
+#navRainGridStatus[data-receive-state="loading"]{color:#145daa}
+#navRainGridStatus[data-receive-state="received"]{color:#176743}
+#navRainGridStatus[data-receive-state="failed"]{color:#a62633}
+body.sunny-rain-grid-minimized .sunny-radar-quick:not([hidden]){
+ display:flex!important;visibility:visible!important;
+}

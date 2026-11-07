@@ -47,17 +47,16 @@ const fmtTime=iso=>{
 export function initNationalRainOverlay({onEnable,waitForSession}={}){
  const get=id=>document.getElementById(id);
  const nationalRain=get('navNationalRain'),nationalRadar=get('navNationalRadar'),quick=get('navRadarQuick');
- const modeRN1=get('navRainModeForecast'),modeHSR=get('navRainModeRadar'),
-  sourceTitle=get('navRainSourceTitle'),sourceSub=get('navRainSourceSub'),
+ const sourceTitle=get('navRainSourceTitle'),sourceSub=get('navRainSourceSub'),
   ticks=get('navRainGridTicks'),legendTitle=get('navRainLegendTitle'),
   legendScale=get('navRainLegendScale'),disclaimer=get('navRainGridDisclaimer');
  const panel=get('navRainGridTimeBar'),slider=get('navRainGridLead'),
   status=get('navRainGridStatus'),when=get('navRainGridValid'),
-  close=get('navRainGridClose'),refresh=get('navRainGridRefresh'),
+  close=get('navRainGridClose'),minimize=get('navRainGridMinimize'),refresh=get('navRainGridRefresh'),
   play=get('navRainGridPlay'),pause=get('navRainGridPause'),reset=get('navRainGridReset'),
   step=get('navRainGridStep'),badge=get('navRainSwitchBadge'),
   quickLabel=get('navRainToggleLabel');
- let enabled=false,map=null,canvas=null,forecast=null,radarFrame=null,
+ let enabled=false,expanded=false,firstValidTime=null,map=null,canvas=null,forecast=null,radarFrame=null,
   source='forecast',requestId=0,controller=null,drawing=false,
   refreshTimer=null,playTimer=null,loadedAt=0;
  const frameCache=new Map(),FRAME_CACHE_MS=240000;
@@ -66,29 +65,33 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   for(const item of hsrCache.values()){if(item?.data?.url)URL.revokeObjectURL(item.data.url);}
   hsrCache.clear();
  };
+ const hourLabel=new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
  const syncLead=()=>{
   const value=Number(slider?.value||0);
-  if(step)step.textContent=source==='radar'?(value===0?'최근 관측':'-'+(value*10)+'분'):'+'+value+'시간';
+  if(source==='radar'){
+   if(step)step.textContent=value===0?'최근 관측':'-'+(value*10)+'분';
+   if(ticks)ticks.innerHTML='<span>최근</span><span>-20분</span><span>-40분</span><span>-60분</span>';
+   return;
+  }
+  const labels=Array.from({length:4},(_,i)=>firstValidTime===null?'—':hourLabel.format(firstValidTime+i*3600000));
+  if(step)step.textContent=labels[value]??'—';
+  if(ticks)ticks.innerHTML=labels.map(label=>'<span>'+label+'</span>').join('');
+  slider?.setAttribute('aria-valuetext',firstValidTime===null?'예보 시각 확인 전':labels[value]);
  };
  const syncSourceUI=()=>{
-  modeRN1?.setAttribute('aria-pressed',String(source==='forecast'));
-  modeHSR?.setAttribute('aria-pressed',String(source==='radar'));
-  if(sourceTitle)sourceTitle.textContent=source==='radar'?'레이더 실황':'강수예보';
-  if(sourceSub)sourceSub.textContent=source==='radar'?'HSR 관측':'5km RN1';
+  if(sourceTitle)sourceTitle.textContent=source==='radar'?'레이더 실황':'초단기 예보';
+  if(sourceSub)sourceSub.textContent=source==='radar'?'HSR 관측':'5km';
   if(slider){
    slider.max=source==='radar'?String(HSR_MAX_FRAME):'3';
    slider.setAttribute('aria-label',source==='radar'?
     '레이더 관측 10분 단위 과거시각 선택 (0~60분 전)':'강수예보 유효시각 선택 (0~3시간)');
   }
-  if(ticks)ticks.innerHTML=source==='radar'?
-   '<span>최근</span><span>-20분</span><span>-40분</span><span>-60분</span>':
-   '<span>현재</span><span>+1h</span><span>+2h</span><span>+3h</span>';
   if(legendTitle)legendTitle.textContent=source==='radar'?'레이더 에코':'강수량 mm/1h';
   if(legendScale)legendScale.textContent=source==='radar'?
    '상대 강도 색상 · 강수량(mm) 아님':'0.1 · 1 · 3 · 7 · 15 · 30+';
   if(disclaimer)disclaimer.textContent=source==='radar'?
    'HSR 실제 레이더 관측 · 10분 간격 선택 · 최신 자료는 약 30분 지연 조회 · 영상 색으로 강수량 추정 불가':
-   '실제 5km RN1 예보 · 결측은 무강수가 아닙니다.';
+   '실제 5km 예보 · 결측은 무강수가 아닙니다.';
   syncLead();
  };
  const pausePlayback=()=>{
@@ -96,7 +99,9 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   if(play)play.disabled=!enabled;
   if(pause)pause.disabled=true;
  };
- const message=t=>{if(status)status.textContent=t;};
+ const message=(text,state='idle')=>{
+  if(status){status.textContent=text;status.dataset.receiveState=state;}
+ };
  const isKakao=()=>Boolean(map&&window.kakao?.maps);
  const updateButtons=()=>{
   if(nationalRain)nationalRain.checked=enabled&&source==='forecast';
@@ -104,14 +109,14 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   quick?.setAttribute('aria-pressed',String(enabled));
   if(quick){
    quick.dataset.rainState=enabled?'on':'off';
-   quick.setAttribute('aria-label',source==='radar'?
-    (enabled?'레이더 실황 켜짐, 눌러 끄기':'레이더 실황 꺼짐, 눌러 켜기'):
-    (enabled?'강수예보 켜짐, 눌러 끄기':'강수예보 꺼짐, 눌러 켜기'));
+   quick.setAttribute('aria-expanded',String(enabled&&expanded));
+   quick.setAttribute('aria-label',enabled?'강수예보 켜짐, 팝업 열기':'강수예보 꺼짐, 눌러 켜기');
   }
   if(badge)badge.textContent=enabled?'ON':'OFF';
   if(quickLabel)quickLabel.textContent=source==='radar'?'레이더':'강수예보';
-  if(panel)panel.hidden=!enabled;
+  if(panel)panel.hidden=!(enabled&&expanded);
   document.body.classList.toggle('sunny-rain-grid-active',enabled);
+  document.body.classList.toggle('sunny-rain-grid-minimized',enabled&&!expanded);
  };
  function clear(){
   if(canvas){canvas.remove();canvas=null;}
@@ -155,16 +160,8 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   const bounds=map.getBounds(),sw=bounds.getSouthWest(),ne=bounds.getNorthEast();
   const south=sw.getLat()-.12,north=ne.getLat()+.12,
    west=sw.getLng()-.12,east=ne.getLng()+.12;
-  const drawn=drawRainCells(ctx,forecast.cells,{south,north,west,east},
+  drawRainCells(ctx,forecast.cells,{south,north,west,east},
    p=>projection.containerPointFromCoords(new kakao.maps.LatLng(p.lat,p.lng)));
-  const dry=forecast.valid-forecast.cells.length;
-  const summary=forecast.cells.length===0
-   ?'정상 수신 · 유효 격자 중 강수 예보 0개 → 표시할 강수 색상 없음'
-   :'정상 수신 · 전국 강수 '+forecast.cells.length+'격자 · 현재 지도 '+drawn+'격자'+
-    (drawn===0?' (현재 지도 범위에는 강수 없음 또는 표시 범위 밖)':'');
-  message(summary+' · '+fmtTime(forecast.validTime)+
-   ' · 유효 무강수 '+dry+'격자 / 결측 '+forecast.missing+'격자'+
-   ' · 결측은 무강수가 아님 · 레이더 실황 아님');
  }
  async function loadRadar({force=false}={}){
   if(!enabled||source!=='radar')return;
@@ -211,7 +208,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   clear();radarFrame=null;forecast=null;
   if(refresh)refresh.disabled=true;
   if(when)when.textContent='실제 강수격자 확인 중';
-  message('기상청 전국 RN1 강수예보 5km 격자를 확인하고 있습니다.');
+  message('수신 중','loading');
   try{
    const lead=Number(slider?.value||0);
    if(!Number.isInteger(lead)||lead<0||lead>3)throw Error('허용되지 않은 예측시간');
@@ -238,20 +235,19 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
      !Number.isInteger(c[0])||!Number.isInteger(c[1])||c[0]<1||c[0]>149||
      c[1]<1||c[1]>253||!Number.isFinite(c[2])||c[2]<=0))
      throw Error('강수예보 격자값 검증 실패');
+   const validTime=Date.parse(data.validTime);
+   if(!Number.isFinite(validTime))throw Error('예보 시각 검증 실패');
+   firstValidTime=validTime-lead*3600000;
+   syncLead();
    frameCache.set(lead,{data,until:Date.now()+FRAME_CACHE_MS});
    forecast=data;loadedAt=Date.now();
    if(when)when.textContent='예보 발표 '+fmtTime(data.issuedAt)+' · 유효 '+fmtTime(data.validTime);
-   if(data.cells.length===0){
-    message('정상 수신 · 유효 격자 '+data.valid.toLocaleString('ko-KR')+
-     '개 모두 강수량 0 · 결측 '+data.missing.toLocaleString('ko-KR')+
-     '개는 미확인 · 지도에 칠할 강수영역 없음');
-   }
+   const coverage=data.valid===0?' · 유효 격자 없음':data.cells.length===0?' · 유효 격자에 강수 없음':'';
+   message('수신 완료'+coverage,'received');
    paint();
-   if(!isKakao())message('강수자료 수신 · 카카오맵 연결 후 지도 위에 표시됩니다.');
   }catch(e){
    if(run!==requestId||!enabled||e?.name==='AbortError')return;
-   forecast=null;clear();message('강수 격자 미수신 · '+(e?.message||'자료 제공 상태 확인 필요')+
-     ' · 미조회 지역을 무강수로 판단하지 마세요.');
+   forecast=null;clear();message('수신 실패 · '+(e?.message||'자료 제공 상태 확인 필요'),'failed');
    if(when)when.textContent='실제 강수격자 수신 실패';
   }finally{if(run===requestId&&refresh)refresh.disabled=false;}
  }
@@ -270,14 +266,14 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    }else{
     frameCache.clear();void load({force:true});
    }
-  },source==='radar'?600000:300000);
+  },600000);
  }
  function setSource(next){
   if(next!=='radar'&&next!=='forecast')return;
   if(source===next)return;
   pausePlayback();++requestId;controller?.abort();
   forecast=null;radarFrame=null;clear();frameCache.clear();clearHSRCache();
-  source=next;
+  source=next;firstValidTime=null;
   if(slider)slider.value='0';
   syncSourceUI();updateButtons();startRefresh();
   if(enabled)void load({force:true});
@@ -288,7 +284,8 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   }
  }
  function setEnabled(next){
-  enabled=Boolean(next);
+  enabled=Boolean(next);expanded=enabled;
+  if(!enabled){firstValidTime=null;if(slider)slider.value='0';}
   if(!enabled)pausePlayback();
   updateButtons();syncSourceUI();
   if(enabled){onEnable?.();void load();startRefresh();}
@@ -327,16 +324,22 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    syncLead();void load();
   },2800);
  }
- modeRN1?.addEventListener('click',()=>setSource('forecast'));
- modeHSR?.addEventListener('click',()=>setSource('radar'));
  for(const [control,mode] of [[nationalRain,'forecast'],[nationalRadar,'radar']]){
   control?.addEventListener('change',()=>{
    if(!control.checked){setEnabled(false);return;}
-   if(enabled){setSource(mode);onEnable?.();return;}
+   if(enabled){expanded=true;setSource(mode);updateButtons();onEnable?.();return;}
    setSource(mode);setEnabled(true);
   });
  }
- quick?.addEventListener('click',()=>setEnabled(!enabled));
+ quick?.addEventListener('click',()=>{
+  expanded=true;
+  setSource('forecast');
+  if(enabled)updateButtons();
+  else setEnabled(true);
+ });
+ minimize?.addEventListener('click',()=>{
+  expanded=false;updateButtons();quick?.focus?.();
+ });
  close?.addEventListener('click',()=>setEnabled(false));
  play?.addEventListener('click',startPlayback);
  pause?.addEventListener('click',pausePlayback);

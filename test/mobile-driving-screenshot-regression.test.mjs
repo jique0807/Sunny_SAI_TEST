@@ -54,10 +54,10 @@ test('screenshot: rain forecast and radar sheet is wide and shorter without repl
  assert.match(css,/left:env\(safe-area-inset-left,0px\)!important;\s*right:env\(safe-area-inset-right,0px\)!important;transform:none!important;\s*width:auto!important/);
  assert.match(css,/max-height:min\(210px,42dvh\)!important/);
  assert.match(css,/body\.sunny-rain-grid-active\.sunny-guiding \.sunny-rain-grid-timeline/);
- for(const id of ['navRainModeForecast','navRainModeRadar','navRainGridClose',
+ for(const id of ['navRainGridMinimize','navRainGridClose',
   'navRainGridRefresh','navRainGridReset'])
   assert.equal(ui.split('id="'+id+'"').length-1,1,id);
- assert.match(ui,/초단기예보 RN1/);
+ assert.match(ui,/초단기 예보/);
  assert.match(ui,/레이더 실황 HSR/);
 });
 test('driving panel shows only one neutral no-rain card, but retains two real alerts',()=>{
