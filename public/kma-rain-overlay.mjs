@@ -305,90 +305,9 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    if(when)when.textContent='자료 확인 전';
   }
  }
- const imageToggle=get('navForecastImageToggle');
- const imageView=get('navForecastImageView');
- const image=get('navForecastImage');
- const imageStatus=get('navForecastImageStatus');
- const imageLead=get('navForecastImageLead');
- const imagePlay=get('navForecastImagePlay');
- const imageStop=get('navForecastImageStop');
- const imageTime=get('navForecastImageTime');
- let imageController,imageTimer,imageBase;
- const images=new Map();
- function stopImagePlayback(){
-  clearInterval(imageTimer);imageTimer=null;
-  if(imagePlay)imagePlay.disabled=false;
-  if(imageStop)imageStop.disabled=true;
- }
- function hideForecastImage(){
-  stopImagePlayback();imageController?.abort();imageController=null;
-  if(imageView)imageView.hidden=true;
-  image?.removeAttribute?.('src');
-  for(const frame of images.values())URL.revokeObjectURL(frame.url);
-  images.clear();imageBase=null;
-  imageToggle?.setAttribute('aria-pressed','false');
-  if(imageToggle)imageToggle.textContent='레이더 영상 시작';
- }
- async function loadForecastImage(){
-  imageController?.abort();
-  const controller=new AbortController();
-  imageController=controller;
-  const lead=Number(imageLead.value);
-  imageTime.textContent='+'+lead+'분';
-  imageStatus.textContent='수신 중';imageStatus.dataset.receiveState='loading';
-  try{
-   await waitForSession?.();
-   let frame=images.get(lead);
-   if(!frame){
-    const query=new URLSearchParams({lead:String(lead)});
-    if(imageBase)query.set('base',imageBase);
-    const response=await fetch('/api/radar-frame?'+query,{signal:controller.signal});
-    if(!response.ok||!response.headers.get('content-type')?.startsWith('image/'))throw Error();
-    const base=response.headers.get('x-radar-base-time');
-    const valid=response.headers.get('x-radar-requested-valid-time');
-    if(!base||!valid||imageBase&&base!==imageBase)throw Error();
-    const blob=await response.blob();
-    if(controller.signal.aborted)return;
-    imageBase=base;
-    frame={url:URL.createObjectURL(blob),valid};
-    images.set(lead,frame);
-   }
-   if(controller.signal.aborted)return;
-   image.src=frame.url;image.hidden=false;
-   imageTime.textContent='+'+lead+'분 · '+fmtTime(frame.valid);
-   imageStatus.textContent='수신 완료';imageStatus.dataset.receiveState='received';
-  }catch{
-   if(!controller.signal.aborted){
-    image.hidden=true;
-    imageStatus.textContent='수신 실패';imageStatus.dataset.receiveState='failed';
-   }
-  }finally{
-   if(imageController===controller)imageController=null;
-  }
- }
- imageLead?.addEventListener('input',()=>{stopImagePlayback();void loadForecastImage();});
- imagePlay?.addEventListener('click',()=>{
-  if(imageTimer!=null)return;
-  imagePlay.disabled=true;
-  if(imageStop)imageStop.disabled=false;
-  imageTimer=setInterval(()=>{
-   if(imageController)return;
-   imageLead.value=String(Number(imageLead.value)%120+10);
-   void loadForecastImage();
-  },2000);
- });
- imageStop?.addEventListener('click',stopImagePlayback);
- imageToggle?.addEventListener('click',()=>{
-  if(!imageView||!image||!imageStatus||!imageLead||!imageTime)return;
-  if(!imageView.hidden){hideForecastImage();return;}
-  imageView.hidden=false;image.hidden=true;imageLead.value='10';
-  imageToggle.setAttribute('aria-pressed','true');
-  imageToggle.textContent='레이더 영상 종료';
-  void loadForecastImage();
- });
  function setEnabled(next){
   enabled=Boolean(next);expanded=enabled;
-  if(!enabled){hideForecastImage();received.clear();}
+  if(!enabled)received.clear();
   if(!enabled){firstValidTime=null;if(slider)slider.value='0';}
   pausePlayback();
   updateButtons();syncSourceUI();
@@ -450,7 +369,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   pausePlayback();slider.value='0';syncLead();void load();
  });
  get('navOpenHsr')?.addEventListener('click',()=>{
-  hideForecastImage();setSource('radar');
+  setSource('radar');
  });
 
  reset?.addEventListener('click',()=>{
