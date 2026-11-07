@@ -312,17 +312,33 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  const imageLead=get('navForecastImageLead');
  const imagePlay=get('navForecastImagePlay');
  const imageStop=get('navForecastImageStop');
+ const imagePause=get('navForecastImagePause');
+ const imageControls=get('navForecastControls');
+ const imageReception=get('navForecastReception');
+ const imageStates=new Map();
+ function updateImageReception(lead,state){
+  imageStates.set(lead,state);
+  if(imageReception)imageReception.innerHTML=Array.from({length:12},(_,i)=>{
+   const minute=(i+1)*10;
+   const status=imageStates.get(minute)??'idle';
+   const label={idle:'미조회',loading:'수신 중',received:'수신 완료',failed:'수신 실패'}[status];
+   return '<span data-state="'+status+'" title="+'+minute+'분 '+label+'"></span>';
+  }).join('');
+ }
  const imageTime=get('navForecastImageTime');
  let imageController,imageTimer,imageBase;
  const images=new Map();
  function stopImagePlayback(){
   clearInterval(imageTimer);imageTimer=null;
   if(imagePlay)imagePlay.disabled=false;
-  if(imageStop)imageStop.disabled=true;
+  if(imagePause)imagePause.disabled=true;
  }
  function hideForecastImage(){
   stopImagePlayback();imageController?.abort();imageController=null;
   if(imageView)imageView.hidden=true;
+  if(imageControls)imageControls.hidden=true;
+  panel?.classList?.remove('sunny-forecast-active');
+  imageStates.clear();
   image?.removeAttribute?.('src');
   for(const frame of images.values())URL.revokeObjectURL(frame.url);
   images.clear();imageBase=null;
@@ -334,6 +350,8 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   const controller=new AbortController();
   imageController=controller;
   const lead=Number(imageLead.value);
+  for(const [minute,state] of imageStates)if(state==='loading')imageStates.delete(minute);
+  updateImageReception(lead,'loading');
   imageTime.textContent='+'+lead+'분';
   imageStatus.textContent='수신 중';imageStatus.dataset.receiveState='loading';
   try{
@@ -356,10 +374,12 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    if(controller.signal.aborted)return;
    image.src=frame.url;image.hidden=false;
    imageTime.textContent='+'+lead+'분 · '+fmtTime(frame.valid);
+   updateImageReception(lead,'received');
    imageStatus.textContent='수신 완료';imageStatus.dataset.receiveState='received';
   }catch{
    if(!controller.signal.aborted){
     image.hidden=true;
+    updateImageReception(lead,'failed');
     imageStatus.textContent='수신 실패';imageStatus.dataset.receiveState='failed';
    }
   }finally{
@@ -370,19 +390,24 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  imagePlay?.addEventListener('click',()=>{
   if(imageTimer!=null)return;
   imagePlay.disabled=true;
-  if(imageStop)imageStop.disabled=false;
+  if(imagePause)imagePause.disabled=false;
   imageTimer=setInterval(()=>{
    if(imageController)return;
    imageLead.value=String(Number(imageLead.value)%120+10);
    void loadForecastImage();
   },2000);
  });
- imageStop?.addEventListener('click',stopImagePlayback);
+ imagePause?.addEventListener('click',stopImagePlayback);
+ imageStop?.addEventListener('click',()=>{
+  stopImagePlayback();imageLead.value='10';void loadForecastImage();
+ });
  imageToggle?.addEventListener('click',()=>{
   if(!imageView||!image||!imageStatus||!imageLead||!imageTime)return;
   if(!imageView.hidden){hideForecastImage();return;}
   setSource('forecast');
   imageView.hidden=false;image.hidden=true;imageLead.value='10';
+  if(imageControls)imageControls.hidden=false;
+  panel?.classList?.add('sunny-forecast-active');
   imageToggle.setAttribute('aria-pressed','true');
   imageToggle.textContent='초단기 강수예측 종료';
   void loadForecastImage();

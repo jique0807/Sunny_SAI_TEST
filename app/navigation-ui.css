@@ -1848,3 +1848,13 @@ body.sunny-rain-grid-minimized .sunny-radar-quick:not([hidden]){
 #navHsrReception [data-state="failed"]{background:#f9d6db;color:#932630}
 
 .sunny-rain-mode-buttons{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+
+#navForecastImageView{grid-template-rows:minmax(0,1fr)}
+#navForecastControls{display:grid;gap:4px}
+#navForecastControls .sunny-rain-grid-controls{display:flex;flex-wrap:wrap}
+#navForecastReception{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:3px}
+#navForecastReception span{min-height:8px;border-radius:3px;background:#eef1f4}
+#navForecastReception [data-state="loading"]{background:#92c5ff}
+#navForecastReception [data-state="received"]{background:#70c998}
+#navForecastReception [data-state="failed"]{background:#ef909a}
+.sunny-forecast-active > :is(#navRainGridValid,#navRainGridStatus,.sunny-rain-grid-legend,#navRainGridDisclaimer){display:none!important}
