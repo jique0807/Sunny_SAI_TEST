@@ -10,6 +10,7 @@ function harness(kma=true){
  const context=vm.createContext({$,ahead,locate,RainGate,Math,Number,Date:class extends Date{static now(){return time;}},navigator:{geolocation:{watchPosition(ok,bad){geo.ok=ok;geo.bad=bad;return 7;},clearWatch(){geo.cleared=true;}}},window:{isSecureContext:true},document:{hidden:false,body:{classList:{add(){},remove(){}}},addEventListener(n,fn){events[n]=fn;}},route:{demo:false,rainPath:[{lat:37,lng:127,seconds:0},{lat:37,lng:127.1,seconds:6000}]},weather:null,connections:{kma},appPrefs:{refreshMinutes:1,voiceAlerts:true,followGps:true,headingMode:'course'},fmt:()=> '10:00',toast:()=>{},reply:()=>{},stopVoice:()=>{},kmap:null,lmap:null,gpsNavArrow:null,
   drivingUI:{start(){},stop(){},update(){},setAhead(){},isActive(){return false;}},resetDrivingMapHeading(){},updateDrivingMapHeading(){return '북쪽 기준';},
   setNavTab(){},showMap:async()=>{},followDrivingGps(){},setInterval:fn=>{geo.tick=fn;return 1;},clearInterval:()=>{},api:async(path,data)=>{calls.push({path,data});return {samples:data.samples.map(p=>({...p,status:'forecast',forecast:{provider:'kma',product:'초단기예보',rain:0,precipitationType:0}})),fetchedAt:new Date(time).toISOString()};}});
+ vm.runInContext(source.match(/^const routeWeatherEnabled=.*;$/m)[0],context);
  vm.runInContext(source.slice(source.indexOf('let rainWatch='),source.indexOf("\n$('departure').value")),context);
  const fix=(lng=127.01,accuracy=10)=>geo.ok({coords:{latitude:37,longitude:lng,accuracy},timestamp:time});
  return {$,geo,context,calls,events,fix,advance:ms=>time+=ms};
@@ -19,6 +20,21 @@ test('actual app GPS callbacks update diagnostics immediately; weather throttles
 test('temporary GPS timeout recovers; denied permission stops and late callbacks are ignored',async()=>{const h=harness();h.$('rainStart').onclick();h.geo.bad({code:3});assert.equal(h.geo.cleared,undefined);h.fix();await settle();assert.match(h.$('gpsStatus').textContent,/GPS 10/);h.geo.bad({code:1});const text=h.$('gpsStatus').textContent;h.fix();assert.equal(h.$('gpsStatus').textContent,text);assert.equal(h.geo.cleared,true);});
 test('foreground return resumes without losing watch; no calls while hidden',async()=>{const h=harness();h.$('rainStart').onclick();h.fix();await settle();h.context.document.hidden=true;h.events.visibilitychange();h.advance(310000);h.fix(127.03);await settle();assert.equal(h.calls.length,1);h.context.document.hidden=false;h.events.visibilitychange();await settle();assert.equal(h.calls.length,2);assert.equal(h.geo.cleared,undefined);});
 test('GPS works without KMA key; bad accuracy never fetches weather; off-route is visible',async()=>{const h=harness(false);h.$('rainStart').onclick();h.fix(127.01,1000);await settle();assert.equal(h.calls.length,0);assert.match(h.$('gpsStatus').textContent,/정확도 부족/);h.fix();await settle();assert.match(h.$('rainStatus').textContent,/키 미설정/);h.fix(128);await settle();assert.match(h.$('gpsStatus').textContent,/이탈/);assert.equal(h.calls.length,0);});
+
+test('disabling route weather preserves GPS and skips weather requests',async()=>{
+ const h=harness();
+ h.$('navLayerWeather').checked=false;
+ h.$('rainStart').onclick();
+ h.fix();
+ await settle();
+ assert.match(h.$('gpsStatus').textContent,/127.01000/);
+ assert.equal(h.calls.length,0);
+ h.$('navLayerWeather').checked=true;
+ h.fix(127.012);
+ await settle();
+ assert.match(h.$('gpsStatus').textContent,/127.01200/);
+ assert.equal(h.calls.length,1);
+});
 
 test('actual API client renews expired session once and does not repeat key mutations',async()=>{
  let requests=0,renewals=0;

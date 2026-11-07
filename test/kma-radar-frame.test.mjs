@@ -71,11 +71,11 @@ test('mobile navigation does not display the provider basemap image: real rain i
  const ui=readFileSync(new URL('../lib/ui.ts',import.meta.url),'utf8');
  const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
  const css=readFileSync(new URL('../app/navigation-ui.css',import.meta.url),'utf8');
- for(const id of ['navRadarQuick','navRadarToggle','navRainGridTimeBar','navRainGridLead','navRainGridStatus'])
+ for(const id of ['navRadarQuick','navNationalRain','navNationalRadar','navRainGridTimeBar','navRainGridLead','navRainGridStatus'])
   assert.ok(ui.includes('id="'+id+'"'),id);
  assert.doesNotMatch(ui,/id="navRadarPanel"/);
  assert.doesNotMatch(ui,/id="navRadarImage"/);
- assert.match(ui,/카카오 지도 위에 좌표대로 반투명 중첩/);
+ assert.match(ui,/실제 5km 예보 · 결측은 무강수가 아닙니다/);
  assert.match(app,/initNationalRainOverlay/);
  assert.match(app,/rainGridOverlay\.setMap\(kmap\)/);
  assert.match(css,/\.sunny-rain-grid-timeline\{/);

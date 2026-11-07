@@ -43,7 +43,7 @@ test('screenshot: north-up readable place labels are never rotated as a whole Ka
 test('screenshot: four bottom tabs are fixed and accessible even during active guidance',()=>{
  for(const id of ['navHome','navRoute','navLayers','navSettings'])
   assert.equal(ui.split('id="'+id+'"').length-1,1,id);
- assert.match(css,/body\.sunny-guiding \.nav-bottom-bar\{\s*display:grid!important/);
+ assert.match(css,/\.nav-bottom-bar\{\s*display:grid!important;position:fixed!important/);
  assert.match(css,/body\.sunny-guiding \.dashboard \.map-canvas,[\s\S]*?height:calc\(100dvh - var\(--sunny-drive-navbar\)\)!important/);
  assert.match(css,/body\.sunny-guiding \.sunny-drive-footer\{[\s\S]*?bottom:7px!important/);
  const activeHandler=app.slice(app.indexOf("document.getElementById('navRoute')?.addEventListener"),app.indexOf("document.getElementById('navLayers')?.addEventListener"));
@@ -51,8 +51,8 @@ test('screenshot: four bottom tabs are fixed and accessible even during active g
  assert.ok(!activeHandler.includes('if(drivingUI.isActive()){showNavLayers(false);setNavTab'), 'driving search tab must not be inert');
 });
 test('screenshot: rain forecast and radar sheet is wide and shorter without replacing real modes',()=>{
- assert.match(css,/width:calc\(100vw - 14px\)!important/);
- assert.match(css,/max-height:min\(242px,42dvh\)!important/);
+ assert.match(css,/left:env\(safe-area-inset-left,0px\)!important;\s*right:env\(safe-area-inset-right,0px\)!important;transform:none!important;\s*width:auto!important/);
+ assert.match(css,/max-height:min\(210px,42dvh\)!important/);
  assert.match(css,/body\.sunny-rain-grid-active\.sunny-guiding \.sunny-rain-grid-timeline/);
  for(const id of ['navRainModeForecast','navRainModeRadar','navRainGridClose',
   'navRainGridRefresh','navRainGridReset'])
