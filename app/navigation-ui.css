@@ -1683,3 +1683,22 @@ body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
  .sunny-source-row{padding:9px}
  .sunny-source-row-copy strong{font-size:12px}
 }
+
+/* The long diagnostics list stays folded until the user explicitly expands it. */
+.sunny-source-fold{border:1px solid #dbe6ed;border-radius:12px;padding:9px 11px;background:#fcfdff}
+.sunny-source-fold>summary{
+ display:flex;align-items:center;gap:10px;cursor:pointer;min-height:35px;
+ color:#243f56;font-size:13px;line-height:1.4;list-style:none;
+}
+.sunny-source-fold>summary::-webkit-details-marker{display:none}
+.sunny-source-fold>summary strong{flex:1 1 auto;min-width:0}
+.sunny-source-fold>summary small{font-size:10px;font-weight:500;color:#6a7e8d;text-align:right}
+.sunny-source-fold>summary:after{content:"▾";font-size:18px;color:#536e83;line-height:1}
+.sunny-source-fold[open]>summary:after{content:"▴"}
+.sunny-source-fold>summary:focus-visible{outline:3px solid #177eb7;outline-offset:3px;border-radius:6px}
+.sunny-source-fold[open]>.sunny-source-settings-head{margin-top:10px}
+@media(max-width:650px){
+ .sunny-source-fold>summary{flex-wrap:wrap}
+ .sunny-source-fold>summary small{flex-basis:100%;text-align:left}
+ .sunny-source-fold>summary:after{margin-left:auto}
+}
