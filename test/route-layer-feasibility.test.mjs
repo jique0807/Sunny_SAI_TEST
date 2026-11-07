@@ -37,7 +37,7 @@ test('road-risk ZIP not verified means unavailable; never invent map coordinates
 });
 test('WMS transparent PNG is not proof of live road flooding',async()=>{
  const r=await probeFloodWms(safemapKey,mockedProvider);
- assert.equal(r.state,'png_received');
+ assert.equal(r.state,'png_content_type_received');
  assert.equal(r.spatialIntersectionVerified,false);
  assert.ok(!JSON.stringify(r).includes(safemapKey));
 });
@@ -45,7 +45,7 @@ test('combined preliminary provider feasibility reveals genuine gaps and omitted
  const r=await checkRouteLayerFeasibility({kmaKey:key,safemapKey,fetcher:mockedProvider});
  assert.equal(r.warning.state,'text_received');
  assert.equal(r.road.state,'request_or_format_failed');
- assert.equal(r.flood.state,'png_received');
+ assert.equal(r.flood.state,'png_content_type_received');
  for(const item of ['humidity','wind_direction','general_temperature','cctv'])
   assert.ok(r.constraints.excludes.includes(item));
  assert.ok(!JSON.stringify(r).includes(key));
