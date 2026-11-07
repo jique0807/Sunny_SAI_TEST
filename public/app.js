@@ -17,6 +17,8 @@ const {resolveDrivingHeading,angleStep}=await import('/heading-up.mjs');
 const {DEFAULT_APP_SETTINGS,initAppSettings}=await import('/app-settings.mjs');
 const {initConnectionStatusPanel}=await import('/connection-status.mjs');
 let demoOverlays=[],carOverlay=null;
+// Bind the DOM selector before any top-level UI event wiring (prevent TDZ startup crash).
+const $=id=>document.getElementById(id);
 
 /* Navigation-first mobile shell. Existing services remain available behind search. */
 const navSheet=document.getElementById('navSearchSheet');
@@ -187,7 +189,7 @@ function updateMapLayerOpacity(){
 document.getElementById('navDemoOpacity')?.addEventListener('input',updateMapLayerOpacity);
 updateMapLayerOpacity();
 
-const $=id=>document.getElementById(id),escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let csrf='',advanced=false,mapConfig={},connections={},originPlace=null,destPlace=null,route=null,weather=null,sessionPromise=null,searchSeq=0,routeSeq=0,progress=0,timer=null,playing=false,activeAudio=null,voiceSeq=0,finishVoice=null,recognition=null,kmap=null,lmap=null,routePolyline=null,lroute=null,kmarker=null,lmarker=null,routeCurrentMarker=null,installPrompt=null;
 let homePosition=null,homeLocationMarker=null,homeLocationPending=false,osmMap=null,osmMarker=null,osmRoute=null;
 // A current-position pin is independent of the starting point. Never fabricate GPS.
