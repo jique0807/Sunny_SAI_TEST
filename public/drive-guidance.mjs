@@ -52,7 +52,7 @@ export function upcomingRisks(samples,seconds,limit=2){
  }
  return selected;
 }
-export function initDriveGuidance({onStop,formatTime}){
+export function initDriveGuidance({onStop,onReroute,formatTime}){
  const root=document.getElementById('sunnyDriveOverlay');
  const alerts=document.getElementById('sunnyDriveAlerts');
  const fill=document.getElementById('sunnyDriveProgressFill');
@@ -63,8 +63,10 @@ export function initDriveGuidance({onStop,formatTime}){
  const summary=document.getElementById('sunnyDriveSummary');
  const gps=document.getElementById('sunnyDriveGpsText');
  const close=document.getElementById('sunnyDriveStop');
+ const reroute=document.getElementById('sunnyDriveReroute');
  let active=false,route=null,seconds=0,weather=null,aheadSamples=null,offRoute=false,alertCount=2;
  close?.addEventListener('click',()=>onStop());
+ reroute?.addEventListener('click',()=>onReroute?.());
  const setText=(node,text)=>{if(node)node.textContent=text;};
  function combinedSamples(){
   const data=[...(weather?.samples||[]),...(aheadSamples||[])];
@@ -72,6 +74,7 @@ export function initDriveGuidance({onStop,formatTime}){
  }
  function render(){
   if(!active||!route)return;
+  if(reroute)reroute.hidden=!offRoute;
   const fraction=routeFraction(route.rainPath,seconds);
   if(fill)fill.style.height=(fraction*100).toFixed(2)+'%';
   if(pointer)pointer.style.bottom=(fraction*100).toFixed(2)+'%';
@@ -94,12 +97,13 @@ export function initDriveGuidance({onStop,formatTime}){
       title:(item.minutes===0?'현재 부근':item.minutes+'분 후')+' · '+item.title,
       subtitle:item.label+' · '+item.source,icon:item.icon,status:false
     });
-    const known=combinedSamples().length>0;
-    while(slots.length<2){
-      // A partial/failed grid forecast must never imply that an unchecked road segment is safe.
+    // A single neutral no-event card is enough. Two identical cards looked
+    // like duplicated provider warnings in the actual mobile driving test.
+    if(!slots.length){
+      const known=combinedSamples().length>0;
       slots.push({title:known?'조회 지점에 추가 비·눈 예보 없음':'전방 기상예보 미확인',
-        subtitle:known?'미조회 구간은 판단 불가':'실제 기상자료 미수신 · 위험 여부 판단 불가',
-        icon:'·',status:true});
+       subtitle:known?'미조회 구간은 판단 불가':'실제 기상자료 미수신 · 위험 여부 판단 불가',
+       icon:'·',status:true});
     }
    }
    for(const [index,item] of slots.slice(0,alertCount).entries()){
@@ -124,11 +128,13 @@ export function initDriveGuidance({onStop,formatTime}){
  function start(newRoute,forecast){
   route=newRoute;weather=forecast||null;aheadSamples=null;seconds=0;offRoute=false;active=true;
   if(root)root.hidden=false;
+  if(reroute)reroute.hidden=true;
   document.body.classList.add('sunny-guiding');setText(gps,'GPS 위치 확인 중');render();
  }
  function stop(){
   active=false;route=null;weather=null;aheadSamples=null;seconds=0;offRoute=false;
   document.body.classList.remove('sunny-guiding');if(root)root.hidden=true;
+  if(reroute)reroute.hidden=true;
   if(alerts)alerts.replaceChildren();if(marks)marks.replaceChildren();
   if(hazardPanel){hazardPanel.hidden=true;hazardPanel.replaceChildren();}
  }
