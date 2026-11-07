@@ -147,7 +147,7 @@ test('rate-limit response is not treated as successful data and unmapped sources
   return Response.json(journey);
  }});
  await panel.refresh();
- assert.equal(panel.getStatus().rain.state,'error');
+ assert.equal(panel.getStatus().rain.state,'unverified');
  assert.match(panel.getStatus().rain.detail,/검사 횟수 제한/);
  assert.equal(panel.getStatus().floodLocal.state,'pending');
 });
