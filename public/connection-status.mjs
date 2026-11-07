@@ -15,7 +15,7 @@ export const DATA_CONNECTION_SOURCES=[
  {id:'riverLevel',group:'침수·수위',name:'하천수위 측정정보',description:'XML 신청 목록 확인 · 프로그램 연동 전'}
 ];
 export const CONNECTION_STATE_TEXT={
- unknown:'검사 전',checking:'조회 중',configured:'키 등록',
+ unknown:'검사 전',unverified:'검사 보류',checking:'조회 중',configured:'키 등록',
  ok:'수신 성공',partial:'부분 확인',error:'수신 오류',missing:'키 없음',pending:'미연동'
 };
 export function initialConnectionResults(){
@@ -104,12 +104,12 @@ export function mapConnectionProbe(kind,data,previous){
  return result;
 }
 export function summarizeConnectionResults(results){
- const counts={ok:0,partial:0,error:0,missing:0,pending:0,unknown:0,checking:0,configured:0};
+ const counts={ok:0,partial:0,error:0,missing:0,pending:0,unknown:0,unverified:0,checking:0,configured:0};
  for(const v of Object.values(results))counts[v.state]=(counts[v.state]||0)+1;
  return {counts,text:[
   counts.ok?'수신 성공 '+counts.ok:'',counts.partial?'부분 확인 '+counts.partial:'',
   counts.error?'오류 '+counts.error:'',counts.missing?'키 없음 '+counts.missing:'',
-  counts.pending?'연동 대기 '+counts.pending:'',counts.checking?'검사 중 '+counts.checking:''
+  counts.pending?'연동 대기 '+counts.pending:'',counts.unverified?'검사 보류 '+counts.unverified:'',counts.checking?'검사 중 '+counts.checking:''
  ].filter(Boolean).join(' · ')||'검사 전'};
 }
 export function initConnectionStatusPanel({
@@ -196,7 +196,7 @@ export function initConnectionStatusPanel({
      if(run!==request)return;
      const message=providerFailure(e?.http);
      for(const id of ids)if(values[id]?.state==='checking')
-      values[id]=state('error',message);
+      values[id]=state([401,404,429].includes(e?.http)||e?.name==='AbortError'?'unverified':'error',message);
      render();
     }
    }));
