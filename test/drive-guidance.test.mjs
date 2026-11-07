@@ -101,15 +101,14 @@ test('heading-up uses observed GPS travel direction, falling back to reliable mo
  assert.equal(poor.source,'unreliable');assert.equal(poor.bearing,null);
  assert.ok(Math.abs(angleStep(350,10)-1)<.1);
 });
-test('heading-up rotates the entire Kakao map only in active foreground guidance, never calls unsupported setRotation',()=>{
+test('GPS direction rotates the vehicle arrow only and Kakao map labels stay north-up',()=>{
  assert.match(app,/resolveDrivingHeading\(lastHeadingFix,fix,navBearing,navBearingAt\)/);
- assert.match(app,/--sunny-map-rotation/);
- assert.match(app,/classList\.add\('sunny-heading-up'\)/);
- assert.match(app,/classList\.remove\('sunny-heading-up'\)/);
- assert.match(app,/kmap\?\.setDraggable\?\.\(false\)/);
+ assert.match(app,/marker\.style\.rotate=/);
+ assert.doesNotMatch(app,/classList\.add\('sunny-heading-up'\)/);
+ assert.doesNotMatch(app,/setDraggable\?\.\(false\)/);
  assert.doesNotMatch(app,/\.setRotation\(/);
- assert.match(css,/sunny-guiding\.sunny-heading-up .*#kakaoMap/);
- assert.match(css,/rotate\(var\(--sunny-map-rotation,0deg\)\)/);
+ assert.doesNotMatch(css,/rotate\(var\(--sunny-map-rotation,0deg\)\)/);
+ assert.match(css,/Never apply CSS transforms to the entire map\/tile container/);
 });
 test('right-side zoom control is gone and route progress rail is repositioned',()=>{
  assert.doesNotMatch(app,/new kakao\.maps\.ZoomControl\(\)/);
@@ -123,7 +122,8 @@ test('bottom summary is anchored to viewport and two staggered small rectangular
  assert.match(css,/body\.sunny-guiding \.sunny-drive-alert:nth-child\(2\)/);
  assert.match(css,/top:34px!important;left:16px!important/);
  const source=readFileSync(new URL('../public/drive-guidance.mjs',import.meta.url),'utf8');
- assert.match(source,/while\(slots\.length<2\)/);
+ assert.match(source,/if\(!slots\.length\)/);
+ assert.doesNotMatch(source,/while\(slots\.length<2\)/);
  assert.match(source,/slots\.slice\(0,alertCount\)/);
 });
 test('chronological weather alerts allow distinct later instances of the same weather type',()=>{
