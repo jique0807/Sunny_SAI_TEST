@@ -1522,3 +1522,103 @@ body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
   max-height:min(290px,56dvh)!important;overflow-y:auto!important}
  .sunny-rain-source-mode button{font-size:10.5px;min-height:34px}
 }
+
+/* Sunny SAI 2026-11-07 UI QA: aligned close, reload, reset and honest layer states. */
+.nav-layer-row[hidden]{display:none!important}
+.nav-layer-section-title{
+ display:flex;align-items:center;justify-content:space-between;gap:8px;
+ margin:12px 0 6px;padding:7px 2px 5px;border-bottom:1px solid #e6ecf4;
+ font-size:13px;font-weight:800;color:#233d56;
+}
+.nav-layer-section-title small{font-size:10px;font-weight:550;color:#60788f;text-align:right}
+.nav-layer-pending{display:grid;gap:6px;margin:5px 0 10px}
+.nav-layer-pending>div{
+ display:flex;align-items:center;justify-content:space-between;gap:8px;
+ padding:10px 9px;background:#f4f6f9;border:1px solid #e2e8f0;border-radius:9px;
+}
+.nav-layer-pending span{display:flex;flex-direction:column;gap:4px;min-width:0}
+.nav-layer-pending b{font-size:12px;color:#405269}
+.nav-layer-pending small{font-size:10px;color:#687c90;line-height:1.4}
+.nav-layer-pending em{
+ flex:0 0 auto;font-size:10px;font-style:normal;font-weight:700;
+ color:#5f7180;background:#e7ebef;padding:5px 7px;border-radius:6px;white-space:nowrap;
+}
+.nav-layers-sheet .nav-layers-head{
+ display:grid!important;grid-template-columns:minmax(0,1fr) 44px;
+ align-items:center!important;gap:12px!important;
+}
+.nav-layers-head strong{min-width:0;overflow-wrap:anywhere}
+.nav-layers-sheet .nav-layers-close{
+ width:44px!important;height:44px!important;min-width:44px!important;
+ min-height:44px!important;max-width:44px!important;flex:0 0 44px!important;
+ display:inline-flex!important;justify-content:center!important;
+ align-items:center!important;line-height:1!important;padding:0!important;
+ box-sizing:border-box!important;
+}
+.nav-layers-sheet .nav-layers-close span,
+#navSearchClose span,#navRouteResultClose span,
+#navWeatherTimeClose span{display:inline-flex;align-items:center;justify-content:center;line-height:1;font-size:23px}
+.sunny-rain-grid-head{
+ display:grid!important;grid-template-columns:minmax(0,1fr) auto;
+ gap:7px!important;align-items:center!important;min-height:43px!important;
+}
+.sunny-rain-grid-head strong{
+ min-width:0;display:flex!important;align-items:center;flex-wrap:wrap;gap:3px 5px!important;
+ line-height:1.35;
+}
+.sunny-rain-grid-head-actions{
+ display:flex!important;flex:0 0 auto;align-items:center!important;justify-content:flex-end;
+ gap:5px!important;white-space:nowrap;
+}
+.sunny-rain-grid-head-actions button{
+ display:inline-flex!important;align-items:center!important;justify-content:center!important;
+ padding:0!important;width:40px!important;height:40px!important;
+ min-width:40px!important;min-height:40px!important;max-width:40px!important;
+ line-height:1!important;font-size:20px!important;font-weight:600!important;
+ box-sizing:border-box!important;border-radius:10px!important;
+ flex:0 0 40px;cursor:pointer;touch-action:manipulation;
+}
+.sunny-rain-grid-head-actions button span{
+ display:inline-flex;align-items:center;justify-content:center;
+ width:100%;height:100%;line-height:1;transform:translateY(-1px);
+}
+#navRainGridRefresh{color:#146f9b!important;background:#e5f4fe!important}
+#navRainGridReset{color:#36566c!important;background:#f2f5f8!important}
+#navRainGridClose{color:#994542!important;background:#fff1f0!important;border-color:#ebc3c1!important}
+.sunny-rain-grid-timeline{max-height:min(350px,60dvh)!important}
+.sunny-rain-grid-controls button{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:36px!important;min-width:70px;box-sizing:border-box;
+}
+#navWeatherTimeClose{display:inline-flex;align-items:center;justify-content:center;
+ width:40px!important;height:40px!important;min-width:40px!important;
+ min-height:40px!important;max-width:40px!important;flex:0 0 40px!important;
+ box-sizing:border-box;padding:0!important;
+}
+.nav-weather-timehead{min-height:40px!important}
+.nav-weather-timehead strong{min-width:0;white-space:normal!important;line-height:1.3}
+.nav-weather-timehead span{min-width:0;overflow-wrap:anywhere}
+#navSearchClose,#navRouteResultClose{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-width:40px;min-height:40px;box-sizing:border-box;touch-action:manipulation;
+}
+.nav-kma-refresh{display:inline-flex!important;align-items:center;justify-content:center;gap:7px}
+.nav-kma-refresh>span{display:inline-flex;align-items:center;justify-content:center;font-size:17px;line-height:1}
+.nav-layers-close:focus-visible,.sunny-rain-grid-head-actions button:focus-visible,
+#navSearchClose:focus-visible,#navRouteResultClose:focus-visible,
+#navWeatherTimeClose:focus-visible,.nav-kma-refresh:focus-visible{
+ outline:3px solid #1877c9!important;outline-offset:2px!important;
+}
+@media(max-width:650px){
+ .sunny-rain-grid-timeline,
+ body.sunny-rain-grid-active .sunny-rain-grid-timeline,
+ body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
+  max-height:min(355px,60dvh)!important;overflow-y:auto!important;
+ }
+ .sunny-rain-grid-head-actions button{
+  width:38px!important;min-width:38px!important;max-width:38px!important;
+  height:38px!important;min-height:38px!important;flex-basis:38px!important;
+ }
+ .nav-layer-section-title{font-size:12px}
+ .nav-layer-pending small{font-size:9.5px}
+}
