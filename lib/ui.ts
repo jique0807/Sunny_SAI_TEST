@@ -10,6 +10,7 @@ export const ui = `
   <div class="sunny-rain-grid-ticks"><span>+10분</span><span>+60분</span><span>+120분</span></div>
   <div id="navForecastReception" aria-label="예측 영상 12장 수신 상태"></div>
   <p id="navForecastImageStatus" role="status"></p>
+  <div class="sunny-rain-grid-legend"><span>강수강도 (mm/h)</span><i class="sunny-qpf-legend" aria-hidden="true"></i><small>약 → 강</small></div>
  </div>
  <p id="navRainGridValid" class="sunny-rain-grid-valid">발표 — · 유효 —</p>
  <div class="sunny-rain-grid-controls" hidden><button id="navRainGridPlay" type="button" aria-label="시간별 강수예보 재생">▶ 재생</button><button id="navRainGridPause" type="button" aria-label="강수예보 재생 정지" disabled>Ⅱ 일시정지</button><button id="navHsrStop" type="button">■ 정지</button><output id="navRainGridStep" for="navRainGridLead">—</output></div>

@@ -97,7 +97,8 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    if(control)control.hidden=!radar;
   }
   renderReception();
-  if(sourceTitle)sourceTitle.textContent=source==='radar'?'레이더 실황':'초단기 예보';
+  panel?.classList?.toggle('sunny-hsr-active',radar);
+  if(sourceTitle)sourceTitle.textContent=source==='radar'?'HSR 레이더 실황':'초단기 예보';
   if(sourceSub)sourceSub.textContent=source==='radar'?'HSR 관측':'5km';
   if(slider){
    slider.style.direction=radar?'rtl':'ltr';
@@ -107,7 +108,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   }
   if(legendTitle)legendTitle.textContent=source==='radar'?'레이더 에코':'강수량 mm/1h';
   if(legendScale)legendScale.textContent=source==='radar'?
-   '상대 강도 색상 · 강수량(mm) 아님':'0.1 · 1 · 3 · 7 · 15 · 30+';
+   '약 → 강':'0.1 · 1 · 3 · 7 · 15 · 30+';
   if(disclaimer)disclaimer.textContent=source==='radar'?
    'HSR 실제 레이더 관측 · 10분 간격 선택 · 최신 자료는 약 30분 지연 조회 · 영상 색으로 강수량 추정 불가':
    '실제 5km 예보 · 결측은 무강수가 아닙니다.';
@@ -342,6 +343,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   image?.removeAttribute?.('src');
   for(const frame of images.values())URL.revokeObjectURL(frame.url);
   images.clear();imageBase=null;
+  if(imageToggle?.getAttribute?.('aria-pressed')==='true')syncSourceUI();
   imageToggle?.setAttribute('aria-pressed','false');
   if(imageToggle)imageToggle.textContent='초단기 강수예측';
  }
@@ -353,7 +355,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   for(const [minute,state] of imageStates)if(state==='loading')imageStates.delete(minute);
   updateImageReception(lead,'loading');
   imageTime.textContent='+'+lead+'분';
-  imageStatus.textContent='수신 중';imageStatus.dataset.receiveState='loading';
+  imageStatus.textContent='';imageStatus.dataset.receiveState='loading';
   try{
    await waitForSession?.();
    let frame=images.get(lead);
@@ -375,7 +377,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    image.src=frame.url;image.hidden=false;
    imageTime.textContent='+'+lead+'분 · '+fmtTime(frame.valid);
    updateImageReception(lead,'received');
-   imageStatus.textContent='수신 완료';imageStatus.dataset.receiveState='received';
+   imageStatus.textContent='';imageStatus.dataset.receiveState='received';
   }catch{
    if(!controller.signal.aborted){
     image.hidden=true;
@@ -395,7 +397,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    if(imageController)return;
    imageLead.value=String(Number(imageLead.value)%120+10);
    void loadForecastImage();
-  },2000);
+  },1000);
  });
  imagePause?.addEventListener('click',stopImagePlayback);
  imageStop?.addEventListener('click',()=>{
@@ -408,6 +410,8 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   imageView.hidden=false;image.hidden=true;imageLead.value='10';
   if(imageControls)imageControls.hidden=false;
   panel?.classList?.add('sunny-forecast-active');
+  if(sourceTitle)sourceTitle.textContent='초단기 강수예측';
+  if(sourceSub)sourceSub.textContent='';
   imageToggle.setAttribute('aria-pressed','true');
   imageToggle.textContent='초단기 강수예측 종료';
   void loadForecastImage();
@@ -452,7 +456,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
     slider.value=String(current===0?HSR_MAX_FRAME:current-1);
    }else slider.value=String((Number(slider?.value||0)+1)%4);
    syncLead();void load();
-  },2800);
+  },1000);
  }
  for(const [control,mode] of [[nationalRain,'forecast'],[nationalRadar,'radar']]){
   control?.addEventListener('change',()=>{
