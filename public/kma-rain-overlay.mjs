@@ -76,7 +76,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    const state=states.includes('failed')?'failed':states.includes('loading')?'loading':
     states.every(v=>v==='received')?'received':'idle';
    const label={failed:'실패',loading:'수신 중',received:'수신 완료',idle:'미조회'}[state];
-   return '<span data-state="'+state+'" title="'+label+'">'+label+'</span>';
+   return '<span data-state="'+state+'" title="'+label+'"></span>';
   }).join('');
  };
  const syncLead=()=>{

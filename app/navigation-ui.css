@@ -1866,3 +1866,18 @@ body.sunny-rain-grid-minimized .sunny-radar-quick:not([hidden]){
 .sunny-hsr-active #navRainGridStatus{display:none!important}
 .sunny-hsr-active .sunny-rain-grid-controls{display:flex;flex-wrap:wrap}
 .sunny-qpf-legend{height:8px;min-width:80px;border-radius:4px;background:linear-gradient(to right,#b4efff,#00cfff,#0057ff,#00f700,#008c45,#ffef00,#ff7d00,#cc1500,#d17aff,#160038)}
+
+/* Both radar modes use the same compact control layout. */
+#navRainGridTimeBar .sunny-rain-grid-head{justify-content:flex-end}
+#navRainGridTimeBar .sunny-rain-grid-head strong,
+#navRainGridTimeBar .sunny-rain-grid-ticks,
+#navRainGridTimeBar #navRainGridValid,
+#navRainGridTimeBar #navRainGridStatus,
+#navRainGridTimeBar #navRainGridDisclaimer,
+#navRainGridTimeBar #navRainGridStep,
+#navRainGridTimeBar #navForecastImageTime,
+#navRainGridTimeBar:not(.sunny-hsr-active) > .sunny-rain-grid-legend{display:none!important}
+#navRainGridTimeBar .sunny-rain-grid-controls{justify-content:flex-start;gap:4px}
+#navRainGridTimeBar :is(#navRainGridLead,#navForecastImageLead){width:100%;margin:0}
+#navRainGridTimeBar :is(#navHsrReception,#navForecastReception) span{min-height:8px;padding:0}
+#navRainGridTimeBar .sunny-rain-mode-buttons button{min-height:36px}
