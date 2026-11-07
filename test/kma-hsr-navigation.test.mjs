@@ -88,7 +88,6 @@ test('forecast popup exposes forecast only',()=>{
  assert.match(overlay,/loadHSRFrame\(frame,\{signal:controller.signal,waitForSession\}\)/);
  assert.match(overlay,/drawHSROverKakao\(ctx,radarFrame,projection,density\)/);
  assert.match(overlay,/실제 레이더 관측/);
- assert.match(overlay,/강수량\(mm\) 자료 아님/);
  assert.match(overlay,/\},600000\)/);
  assert.match(overlay,/clearHSRCache\(\)/);
  assert.match(overlay,/\/api\/rain-grid\?lead=/);

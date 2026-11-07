@@ -1,4 +1,4 @@
-import {loadHSRFrame,drawHSROverKakao,radarKstLabel,HSR_MAX_FRAME} from './kma-hsr-overlay.mjs';
+import {loadHSRFrame,drawHSROverKakao,HSR_MAX_FRAME} from './kma-hsr-overlay.mjs';
 // Georegistered nationwide KMA 5-km 1-hour rainfall forecast drawn *over* Kakao.
 // No second basemap, invented rain cells or spatial interpolation.
 // Kakao MapProjection.containerPointFromCoords aligns with the actual map viewport.
@@ -75,14 +75,14 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    const states=frame===1?[received.get(1),received.get(0)]:[received.get(frame)];
    const state=states.includes('failed')?'failed':states.includes('loading')?'loading':
     states.every(v=>v==='received')?'received':'idle';
-   const label={failed:'실패',loading:'수신 중',received:'수신 완료',idle:'미조회'}[state];
+   const label={failed:'실패',loading:'수신 중',received:'수신 완료',idle:''}[state];
    return '<span data-state="'+state+'" title="'+label+'"></span>';
   }).join('');
  };
  const syncLead=()=>{
   const value=Number(slider?.value||0);
   if(source==='radar'){
-   if(step)step.textContent=value===0?'최근 관측':'-'+(value*10)+'분';
+   if(step)step.textContent='';
    if(ticks)ticks.innerHTML='<span>−60분</span><span>−40분</span><span>−20분</span><span>최근</span>';
    return;
   }
@@ -173,8 +173,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
     message('레이더 지도 좌표 변환 실패 · 중첩을 표시하지 않았습니다.');
     return;
    }
-   message('기상청 HSR 실제 레이더 관측 · '+radarKstLabel(radarFrame.timeKst)+
-    ' · 투명 PNG 중첩 · 10분 간격 · 최근 영상 조회는 약 30분 지연 · 강수량(mm) 자료 아님');
+   message('');
    return;
   }
   const bounds=map.getBounds(),sw=bounds.getSouthWest(),ne=bounds.getNorthEast();
@@ -212,8 +211,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    }
    received.set(frame,'received');renderReception();
    radarFrame=data;loadedAt=Date.now();
-   if(when)when.textContent='실제 관측 '+radarKstLabel(data.timeKst)+
-    ' · 영상 시각 간격 10분';
+   if(when)when.textContent='';
    paint();
    if(!isKakao())message('레이더 실제 자료 수신 · 카카오 지도 연결 시 중첩됩니다.');
   }catch(e){
@@ -322,7 +320,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   if(imageReception)imageReception.innerHTML=Array.from({length:12},(_,i)=>{
    const minute=(i+1)*10;
    const status=imageStates.get(minute)??'idle';
-   const label={idle:'미조회',loading:'수신 중',received:'수신 완료',failed:'수신 실패'}[status];
+   const label={idle:'',loading:'수신 중',received:'수신 완료',failed:'수신 실패'}[status];
    return '<span data-state="'+status+'" title="+'+minute+'분 '+label+'"></span>';
   }).join('');
  }
