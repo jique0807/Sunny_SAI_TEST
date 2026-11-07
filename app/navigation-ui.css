@@ -1503,3 +1503,22 @@ body.sunny-guiding:not(.sunny-rain-grid-active) .sunny-radar-quick:not([hidden])
   width:min(168px,calc(100% - 22px))!important;
  }
 }
+
+/* RN1 forecast / HSR observed radar selector lives in the existing rain panel.
+   Both sources share one map canvas and time panel: never show two layers at once. */
+.sunny-rain-source-mode{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+ gap:4px;margin:7px 0 5px}
+.sunny-rain-source-mode button{font:inherit;font-size:11px;font-weight:750;
+ min-height:36px;padding:6px 5px;cursor:pointer;color:#35617c;
+ border:1px solid #b8d4e3;border-radius:8px;background:#eef5f9}
+.sunny-rain-source-mode button[aria-pressed="true"]{
+ color:#fff;background:#176f9d;border-color:#176f9d;
+ box-shadow:0 1px 4px #164d7340}
+.sunny-rain-grid-timeline{max-height:min(290px,58dvh)!important}
+body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
+ max-height:min(290px,56dvh)!important}
+@media(max-width:650px){
+ body.sunny-rain-grid-active .sunny-rain-grid-timeline{
+  max-height:min(290px,56dvh)!important;overflow-y:auto!important}
+ .sunny-rain-source-mode button{font-size:10.5px;min-height:34px}
+}
