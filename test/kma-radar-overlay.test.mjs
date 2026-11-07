@@ -21,6 +21,12 @@ test('only verified provider path, observation time, coverage and basemap-free i
  assert.ok(info.coverage.left<0&&info.coverage.right>0);
  assert.ok(!JSON.stringify(visibleRadarMetadata(info)).includes(sourcePath));
  assert.equal(radarObservationTime('case'),RADAR_TEST_CASE);
+ assert.equal(radarObservationTime('case',Date.now(),1),'202407100850');
+ assert.equal(radarObservationTime('case',Date.now(),6),'202407100800');
+ assert.equal(radarObservationTime('latest',Date.parse('2026-11-07T03:13:00Z'),0),'202611071140');
+ assert.equal(radarObservationTime('latest',Date.parse('2026-11-07T03:13:00Z'),1),'202611071130');
+ assert.throws(()=>radarObservationTime('case',Date.now(),7),/10-minute frame/);
+ assert.throws(()=>radarObservationTime('latest',Date.now(),-1),/10-minute frame/);
  assert.throws(()=>verifyRadarImageMetadata(source,'202407100910'),/different observation time/);
  assert.throws(()=>verifyRadarImageMetadata({...source,data:{url:'https://example.com/x.png'}},RADAR_TEST_CASE),/Untrusted/);
  assert.throws(()=>verifyRadarImageMetadata({...source,meta:{...source.meta,imageCoverageEndProjX:'-500000'}},RADAR_TEST_CASE),/projection bounds/);
@@ -85,7 +91,47 @@ test('radar lab shows a separate historical test mode and marks geolocation as u
  assert.match(html,/과거 사례 · 2024\.07\.10 09:00/);
  assert.match(html,/이 화면은 연구용 중첩 시험입니다/);
  assert.match(html,/투영좌표 정합을 검증하기 전까지 운전 판단에 사용할 수 없습니다/);
- assert.match(js,/api\/radar-overlay-meta/);
- assert.match(js,/api\/radar-overlay-image/);
+ assert.match(js,/api\/radar-overlay-frame/);
+ assert.match(js,/x-radar-obs-kst/);
+ assert.match(js,/x-radar-coverage/);
+ assert.match(js,/AUTO_REFRESH_MS=600000/);
+ assert.match(js,/ANIMATION_HOLD_MS=2600/);
  assert.match(js,/카카오맵/);
+ for(const id of ['radarEarlier','radarLater','radarFrameRange','radarPlay','radarPause','radarAutoUpdate'])
+  assert.ok(html.includes('id="'+id+'"'),id);
+ assert.match(html,/표출 간격: 10분/);
+});
+
+test('HSR 10-minute image endpoint returns one synchronized PNG and timestamp',async()=>{
+ const root='https://sunny-radar-frame.test',key='other-frame-secret';
+ const env={APP_ORIGIN:root,SESSION_SECRET:'x'.repeat(64),KMA_API_KEY:key,VERCEL_ENV:'preview'};
+ const create=await handle(new Request(root+'/api/session'),env);
+ const cookie=create.headers.getSetCookie()[0].split(';')[0];
+ const url=root+'/api/radar-overlay-frame?mode=case&frame=1';
+ const requested=[];
+ const fetcher=async u=>{
+  const target=new URL(u);requested.push(target);
+  if(target.pathname.endsWith('nph-rdr_cmp1_imgp')){
+   assert.equal(target.searchParams.get('tm'),'202407100850');
+   const tmSource={...source,data:{url:sourcePath.replace('202407100900','202407100850')}};
+   return new Response(JSON.stringify(tmSource),{headers:{'content-type':'text/html'}});
+  }
+  assert.equal(target.pathname,sourcePath.replace('202407100900','202407100850'));
+  return new Response(image(),{headers:{'content-type':'image/png'}});
+ };
+ const result=await handle(new Request(url,{headers:{Cookie:cookie}}),env,fetcher);
+ assert.equal(result.status,200);
+ assert.equal(result.headers.get('x-radar-obs-kst'),'202407100850');
+ assert.equal(result.headers.get('x-radar-interval-minutes'),'10');
+ assert.equal(result.headers.get('x-radar-frame'),'1');
+ assert.equal(result.headers.get('content-type'),'image/png');
+ const bounds=result.headers.get('x-radar-coverage').split(',').map(Number);
+ assert.equal(bounds.length,4);assert.ok(bounds[2]>bounds[0]);
+ assert.equal(requested.length,2);
+ const bad=await handle(new Request(root+'/api/radar-overlay-frame?mode=case&frame=7',
+  {headers:{Cookie:cookie}}),env,fetcher);
+ assert.equal(bad.status,400);
+ const prod=await handle(new Request(url,{headers:{Cookie:cookie}}),
+  {...env,VERCEL_ENV:'production'},async()=>{throw Error('No production provider access');});
+ assert.equal(prod.status,404);
 });
