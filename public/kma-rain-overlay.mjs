@@ -286,7 +286,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  function setEnabled(next){
   enabled=Boolean(next);expanded=enabled;
   if(!enabled){firstValidTime=null;if(slider)slider.value='0';}
-  if(!enabled)pausePlayback();
+  pausePlayback();
   updateButtons();syncSourceUI();
   if(enabled){onEnable?.();void load();startRefresh();}
   else{

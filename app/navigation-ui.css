@@ -1819,3 +1819,5 @@ body.sunny-guiding .sunny-drive-alert:nth-child(2){
 body.sunny-rain-grid-minimized .sunny-radar-quick:not([hidden]){
  display:flex!important;visibility:visible!important;
 }
+
+.sunny-rain-grid-head-actions button[hidden]{display:none!important}

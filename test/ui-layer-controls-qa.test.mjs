@@ -14,7 +14,7 @@ test('all panel close/reload/reset buttons appear exactly once and are accessibl
  assert.ok(rain.indexOf('id="navRainGridRefresh"')<rain.indexOf('id="navRainGridReset"'));
  assert.ok(rain.indexOf('id="navRainGridReset"')<rain.indexOf('id="navRainGridClose"'));
  assert.match(rain,/id="navRainGridRefresh"[^>]*aria-label="[^"]*다시 조회"/);
- assert.doesNotMatch(rain,/id="navRainGridRefresh"[^>]*\bhidden\b/);
+ assert.match(rain,/id="navRainGridRefresh"[^>]*\bhidden\b/);
  assert.match(ui,/id="navRainGridClose"[^>]*aria-label="[^"]*닫기"/);
  assert.match(ui,/id="navLayersClose"[^>]*aria-label="[^"]*닫기"/);
  assert.match(ui,/id="navWeatherTimeClose"[^>]*aria-label="[^"]*닫기"/);
@@ -90,6 +90,11 @@ test('rain panel close and reload trigger the same state machine in simple DOM',
   assert.equal(classSet.has('sunny-rain-grid-active'),true);
   assert.equal(node('navRainGridTimeBar').hidden,false);
   assert.equal(calls.length,1);
+  assert.equal(node('navRainGridPlay').disabled,false);
+  node('navRainGridPlay').dispatch('click');
+  assert.equal(node('navRainGridPause').disabled,false);
+  node('navRainGridPause').dispatch('click');
+  assert.equal(node('navRainGridPlay').disabled,false);
   assert.match(calls[0],/\/api\/rain-grid\?lead=0/);
   node('navRainGridRefresh').dispatch('click');
   await flush();
