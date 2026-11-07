@@ -401,7 +401,7 @@ async function refreshRouteFromGps(){
  if(lastRerouteAt&&Date.now()-lastRerouteAt<30000){
   toast('경로를 방금 조회했습니다. 잠시 후 다시 시도해주세요.');return;
  }
- const previous=route,destination=destPlace,location={...rainPosition};
+ const previous=route,destination=destPlace,location={...rainPosition},sessionRun=rainRun;
  rerouteBusy=true;lastRerouteAt=Date.now();
  const button=$('sunnyDriveReroute');if(button)button.disabled=true;
  $('gpsStatus').textContent='현재 GPS 기준 경로 재탐색 중…';
@@ -411,7 +411,7 @@ async function refreshRouteFromGps(){
    origin,destination,departure:new Date().toISOString()
   });
   // A newer user route or stopped guidance invalidates this in-flight reply.
-  if(!drivingUI.isActive()||rainWatch===null||route!==previous||destPlace!==destination)return;
+  if(!drivingUI.isActive()||rainWatch===null||sessionRun!==rainRun||route!==previous||destPlace!==destination)return;
   if(!result.rainPath?.length||!result.vertices?.length)throw Error('새 도로 좌표를 받지 못했습니다.');
   originPlace=origin;route={...result,demo:false};weather=null;
   rainProgress=0;rainLastFetch=0;rainLastPoint=null;rainGate=new RainGate();
