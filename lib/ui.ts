@@ -55,6 +55,16 @@ export const ui = `
  <label class="sunny-setting-option sunny-setting-slider"><span><b>지도 기상영역 투명도</b><small>기상 영역은 실제 수신한 격자에만 표시됩니다.</small></span><output id="settingOverlayOpacityValue" for="settingOverlayOpacity">45%</output><input id="settingOverlayOpacity" type="range" min="0" max="100" step="5" value="45"/></label>
 </section>
 <section class="sunny-settings-section" aria-labelledby="voicePreferencesHeading"><h3 id="voicePreferencesHeading">음성안내</h3><div class="setting-row"><div><b>기본 음성</b><p>기기에 설치된 한국어 목소리로 안내해요.</p></div><span class="pill">기본 제공</span></div><label for="speed">말하기 속도</label><input id="speed" type="range" min="0.7" max="1.3" step="0.1" value="1"/><label class="checklabel"><input id="autoVoice" type="checkbox" checked/> 주행 중 중요한 기상변화 음성 안내 (시연 포함)</label><details open><summary>자연스러운 Google 음성</summary><p>AI Studio에서 발급한 키는 Gemini, Cloud Text-to-Speech용 키는 Cloud TTS를 선택하세요. 미리듣기·안내에 Google API 사용료가 발생할 수 있습니다.</p><p>키는 HTTPS로 전송하고 AES-256-GCM으로 암호화한 HttpOnly 쿠키에 최대 30분 보관합니다. GitHub·평문 저장소에는 기록하지 않습니다. 영구 저장은 지원하지 않습니다.</p><label for="voiceProvider">키를 발급받은 서비스</label><select id="voiceProvider"><option value="gemini">Google AI Studio · Gemini 음성</option><option value="cloud">Google Cloud · Chirp 3 HD 음성</option></select><label for="googleKey">개인 Google API 키</label><input id="googleKey" type="password" autocomplete="off" spellcheck="false" placeholder="API 키 입력"/><div class="buttonrow"><button id="connect" type="button" class="primary">임시 연결</button><button id="disconnect" type="button">연결 삭제</button></div><label for="voiceChoice">목소리 선택 · 한국어로 재생</label><select id="voiceChoice" aria-label="안내 목소리"></select><button id="previewVoice" type="button" class="voice-preview">▷ 선택한 목소리 미리듣기</button><p class="hint">목소리를 고른 뒤 미리듣기를 눌러 비교하세요. Google 재생 실패 시 기본 음성으로 자동 변경하지 않습니다.</p><p id="keyStatus" role="status">연결 상태 확인 중</p></details></section>
+<section id="settingsDataConnections" class="sunny-settings-section sunny-source-settings" aria-labelledby="settingsDataConnectionsHeading">
+ <div class="sunny-source-settings-head">
+  <div><h3 id="settingsDataConnectionsHeading">데이터 연결 상태</h3><p>지도·경로·기상·도로위험 자료의 서버 연결 및 수신 여부를 확인합니다.</p></div>
+  <button id="settingConnectionRefresh" type="button" aria-label="전체 데이터 연결 상태 다시 검사"><span aria-hidden="true">↻</span> 상태 새로고침</button>
+ </div>
+ <p id="settingConnectionSummary" class="sunny-source-summary" role="status" aria-live="polite">검사 전 · 자료별 상태를 조회해주세요.</p>
+ <div id="settingConnectionItems" class="sunny-source-items" role="list" aria-label="API 데이터 종류별 연결 상태"></div>
+ <p id="settingConnectionCheckedAt" class="sunny-source-checked">최종 검사: 없음</p>
+ <p class="sunny-source-caution">인증키 등록 ≠ 실제 수신 성공. 자료를 받더라도 위험등급·위치·유효시각이 검증되기 전에는 운전 경보로 사용하지 않습니다. API 키나 GPS 위치는 표시하지 않습니다.</p>
+</section>
 <div class="sunny-settings-bottom">
  <button id="settingReset" type="button">기본값으로 복원</button>
  <p id="appSettingsStatus" role="status" class="hint">이 기기에 설정을 저장합니다.</p>
