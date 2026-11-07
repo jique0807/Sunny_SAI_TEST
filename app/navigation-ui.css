@@ -859,7 +859,6 @@ body.sunny-guiding .nav-weather-timebar{display:none!important}
 }
 
 /* 2026-11-06: compact staggered driving weather and viewport-edge summary. */
-body.sunny-guiding .nav-bottom-bar,
 body.sunny-guiding .topbar,
 body.sunny-guiding .sunny-mobile-brand-banner,
 body.sunny-guiding .nav-map-layer-control,
@@ -1693,10 +1692,10 @@ body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
    labels, prevent overlapping driving banners and widen the rainfall sheet. */
 @media(max-width:900px){
  :root{--sunny-drive-navbar:var(--sunny-bottom-nav-height,68px)}
- body.sunny-guiding .nav-bottom-bar{
+ .nav-bottom-bar{
   display:grid!important;position:fixed!important;
   bottom:0!important;left:0!important;right:0!important;
-  height:var(--sunny-drive-navbar)!important;
+  height:var(--sunny-drive-navbar)!important;min-height:0!important;
   visibility:visible!important;z-index:1400!important;
  }
  body.sunny-guiding .dashboard .map-canvas,
@@ -1746,10 +1745,12 @@ body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
  body.sunny-rain-grid-active .sunny-rain-grid-timeline,
  body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
   position:fixed!important;
-  left:7px!important;right:7px!important;transform:none!important;
-  width:calc(100vw - 14px)!important;max-width:none!important;
+  left:env(safe-area-inset-left,0px)!important;
+  right:env(safe-area-inset-right,0px)!important;transform:none!important;
+  width:auto!important;max-width:none!important;
+  display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;
   box-sizing:border-box!important;
-  max-height:min(242px,42dvh)!important;
+  max-height:min(210px,42dvh)!important;
   overflow-x:hidden!important;overflow-y:auto!important;
   padding:7px 9px 8px!important;
   border-radius:12px!important;z-index:1150!important;
@@ -1760,6 +1761,7 @@ body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
  body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
   bottom:calc(var(--sunny-drive-navbar) + 83px)!important;
  }
+ .sunny-rain-grid-timeline > :not(.sunny-rain-grid-valid):not(.sunny-rain-grid-controls){grid-column:1 / -1}
  .sunny-rain-grid-head{min-height:38px!important;gap:7px!important}
  .sunny-rain-grid-head strong{font-size:12px!important;line-height:1.2!important}
  .sunny-rain-grid-head-actions button{
@@ -1768,7 +1770,7 @@ body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
  }
  .sunny-rain-source-mode{margin:3px 0!important;gap:6px!important}
  .sunny-rain-source-mode button{min-height:32px!important;padding:4px!important}
- .sunny-rain-grid-valid{font-size:10px!important;margin:2px 0 3px!important}
+ .sunny-rain-grid-valid{align-self:center;font-size:10px!important;margin:0!important}
  .sunny-rain-grid-controls{margin:1px 0!important}
  .sunny-rain-grid-controls button{min-height:30px!important;padding:3px 7px!important}
  #navRainGridLead{height:17px!important;min-height:17px!important;margin:0!important}
@@ -1806,8 +1808,5 @@ body.sunny-guiding .sunny-drive-alert:nth-child(2){
  }
  body.sunny-guiding .sunny-drive-footer #sunnyDriveReroute:not([hidden]){
   min-width:48px!important;font-size:10px!important;padding:3px 4px!important;
- }
- body.sunny-rain-grid-active .sunny-rain-grid-timeline{
-  left:5px!important;right:5px!important;width:calc(100vw - 10px)!important;
  }
 }
