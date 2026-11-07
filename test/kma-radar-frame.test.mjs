@@ -9,7 +9,7 @@ const now=Date.parse('2026-11-06T04:25:00Z');
 const key='mock-secret-should-never-appear';
 const png=Uint8Array.from([137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82,0,0,0,1]);
 test('radar requests use only the official KMA host and bounded times',()=>{
- assert.deepEqual([...RADAR_LEADS],[0,30,60,90,120]);
+ assert.deepEqual([...RADAR_LEADS],[0,10,20,30,40,50,60,70,80,90,100,110,120]);
  assert.deepEqual([...FORECAST_LEADS],[...RADAR_LEADS]);
  for(const lead of RADAR_LEADS){
   const url=radarRequest(lead,key,now);

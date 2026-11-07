@@ -286,37 +286,73 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  const imageView=get('navForecastImageView');
  const image=get('navForecastImage');
  const imageStatus=get('navForecastImageStatus');
- let imageRequest=0;
+ const imageLead=get('navForecastImageLead');
+ const imagePlay=get('navForecastImagePlay');
+ let imageController,imageTimer,imageBase;
+ const images=new Map();
+ function stopImagePlayback(){
+  clearInterval(imageTimer);imageTimer=null;
+  if(imagePlay)imagePlay.textContent='재생';
+ }
  function hideForecastImage(){
-  imageRequest++;
+  stopImagePlayback();imageController?.abort();imageController=null;
   if(imageView)imageView.hidden=true;
   image?.removeAttribute?.('src');
+  for(const frame of images.values())URL.revokeObjectURL(frame.url);
+  images.clear();imageBase=null;
   imageToggle?.setAttribute('aria-pressed','false');
  }
- imageToggle?.addEventListener('click',async()=>{
-  if(!imageView||!image||!imageStatus)return;
-  if(!imageView.hidden){hideForecastImage();return;}
-  const request=++imageRequest;
-  imageView.hidden=false;
-  image.hidden=true;
-  imageToggle.setAttribute('aria-pressed','true');
-  imageStatus.textContent='기상청 레이더 예측영상 수신 중';
+ async function loadForecastImage(){
+  imageController?.abort();
+  const controller=new AbortController();
+  imageController=controller;
+  const lead=Number(imageLead.value);
+  imageStatus.textContent='+'+lead+'분 · 수신 중';
   try{
    await waitForSession?.();
-   if(request!==imageRequest)return;
-   image.onload=()=>{
-    if(request!==imageRequest)return;
-    image.hidden=false;
-    imageStatus.textContent='기상청 레이더 1시간 강수예측';
-   };
-   image.onerror=()=>{
-    if(request!==imageRequest)return;
-    imageStatus.textContent='레이더 예측영상을 받지 못했습니다. 다시 선택하면 카카오맵으로 돌아갑니다.';
-   };
-   image.src='/api/radar-frame?lead=60';
+   let frame=images.get(lead);
+   if(!frame){
+    const query=new URLSearchParams({lead:String(lead)});
+    if(imageBase)query.set('base',imageBase);
+    const response=await fetch('/api/radar-frame?'+query,{signal:controller.signal});
+    if(!response.ok||!response.headers.get('content-type')?.startsWith('image/'))throw Error();
+    const base=response.headers.get('x-radar-base-time');
+    const valid=response.headers.get('x-radar-requested-valid-time');
+    if(!base||!valid||imageBase&&base!==imageBase)throw Error();
+    const blob=await response.blob();
+    if(controller.signal.aborted)return;
+    imageBase=base;
+    frame={url:URL.createObjectURL(blob),valid};
+    images.set(lead,frame);
+   }
+   if(controller.signal.aborted)return;
+   image.src=frame.url;image.hidden=false;
+   imageStatus.textContent='+'+lead+'분 · '+fmtTime(frame.valid);
   }catch{
-   if(request===imageRequest)imageStatus.textContent='레이더 예측영상 연결 실패';
+   if(!controller.signal.aborted){
+    image.hidden=true;
+    imageStatus.textContent='+'+lead+'분 · 수신 실패';
+   }
+  }finally{
+   if(imageController===controller)imageController=null;
   }
+ }
+ imageLead?.addEventListener('input',()=>{stopImagePlayback();void loadForecastImage();});
+ imagePlay?.addEventListener('click',()=>{
+  if(imageTimer!==null&&imageTimer!==undefined){stopImagePlayback();return;}
+  imagePlay.textContent='정지';
+  imageTimer=setInterval(()=>{
+   if(imageController)return;
+   imageLead.value=String(Number(imageLead.value)%120+10);
+   void loadForecastImage();
+  },2000);
+ });
+ imageToggle?.addEventListener('click',()=>{
+  if(!imageView||!image||!imageStatus||!imageLead)return;
+  if(!imageView.hidden){hideForecastImage();return;}
+  imageView.hidden=false;image.hidden=true;imageLead.value='10';
+  imageToggle.setAttribute('aria-pressed','true');
+  void loadForecastImage();
  });
  function setEnabled(next){
   enabled=Boolean(next);expanded=enabled;
