@@ -15,6 +15,7 @@ const {initDriveGuidance,segmentMeters,routeFraction}=await import('/drive-guida
 const {buildRouteHazards,renderHazardRail,showHazardDetail}=await import('/route-hazards.mjs');
 const {resolveDrivingHeading,angleStep}=await import('/heading-up.mjs');
 const {DEFAULT_APP_SETTINGS,initAppSettings}=await import('/app-settings.mjs');
+const {initConnectionStatusPanel}=await import('/connection-status.mjs');
 let demoOverlays=[],carOverlay=null;
 
 /* Navigation-first mobile shell. Existing services remain available behind search. */
@@ -411,6 +412,9 @@ function keyStatus(){$('keyStatus').textContent=advanced?'암호화해 임시 �
 async function api(path,data,method='POST',retried=false){await sessionPromise;if(!csrf)throw Error('보안 세션이 준비되지 않았습니다. 새로고침 후 다시 시도해주세요.');const r=await fetch(path,{method,credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:data?JSON.stringify(data):undefined,cache:'no-store'});let d;try{d=await r.json();}catch{throw Error('서버 응답을 확인하지 못했습니다.');}if(r.status===401){csrf='';advanced=false;keyStatus();if(!retried&&['/api/weather','/api/route','/api/search','/api/map-health','/api/map-forecast','/api/road-risk'].includes(path)){sessionPromise=session();await sessionPromise;return api(path,data,method,true);}}if(!r.ok)throw Error(d.error||'요청을 처리하지 못했습니다.');return d;}
 function connectionStatus(){$('weatherConnection').textContent=connections.kma?'기상청 서버 키 설정됨 · 실제 응답은 경로 조회 후 확인':'기상청 키 설정 대기 · 자동 모드에서는 Open-Meteo 예보를 표시합니다.';const rows=[['카카오 장소 검색·차량 경로',connections.route?'키 설정됨 · 실제 호출 확인 필요':'운영자 REST 키 필요'],['카카오 지도',mapConfig.kakao?'키 설정됨 · '+providerState.kakao:'운영자 JavaScript 키 필요'],['브이월드 위성 배경',mapConfig.vworld?'키 설정됨 · '+providerState.vworld:'운영자 키 필요'],['기상청 API허브',connections.kma?'서버 키 설정됨 · 경로 선택 후 호출 확인':'KMA_API_KEY 설정 대기'],['기상청 도로살얼음·저시정',connections.roadRisk?'서버 키 설정됨 · 위험정보 ZIP 별도 승인 및 위치정보 검증 필요':'KMA_API_KEY 설정 대기'],['생활안전지도 국가하천 WMS',connections.safemap?'서버 키 설정됨 · 실제 응답 검증 필요':'SAFEMAP_API_KEY 설정 대기'],['대체 기상예보','Open-Meteo · 출처 별도 표시'],['GK2A·공사·통제·지형','미연결 · 실시간 판단에 사용하지 않음']];$('connectionList').innerHTML=rows.map(([a,b])=>`<div class="connection-row"><b>${escape(a)}</b><span>${escape(b)}</span></div>`).join('');}
 sessionPromise=session().catch(e=>{$('keyStatus').textContent=e.message;connectionStatus();});
+// The environment settings now contain a real, read-only source health dashboard.
+// Tests only run when the user presses refresh, avoiding extra provider/API usage.
+const connectionPanel=initConnectionStatusPanel({document,waitForSession:async()=>{await sessionPromise;}});
 $('checkDataSources').onclick=async()=>{
  const button=$('checkDataSources'),target=$('dataHealth');button.disabled=true;target.textContent='기상청·생활안전지도 서버에 실제 조회 중입니다.';
  try{const result=await api('/api/data-health',{});target.replaceChildren();
