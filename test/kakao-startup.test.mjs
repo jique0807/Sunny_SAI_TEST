@@ -35,7 +35,7 @@ test('only Home exposes provider picker on route and layer screens',()=>{
  assert.equal(document.body.dataset.sunnyNav,'home');
 });
 test('Kakao initialization does not accidentally enter the VWorld branch',async()=>{
- const start=app.indexOf('async function showMap(type){');
+ const start=app.indexOf('async function showMap(type,');
  const end=app.indexOf("\n['schematic','kakao','vworld','skyview'].forEach",start);
  assert.ok(start>0&&end>start);
  const elements=new Map(),events=[];

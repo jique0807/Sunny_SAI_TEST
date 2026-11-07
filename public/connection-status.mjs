@@ -3,6 +3,7 @@
 // Never display credentials or infer road safety from key presence or raw data.
 export const DATA_CONNECTION_SOURCES=[
  {id:'map',group:'지도·길찾기',name:'카카오맵 지도',description:'JavaScript SDK · 프리뷰 허용 도메인'},
+ {id:'vworld',group:'지도·길찾기',name:'VWorld 위성지도',description:'키·허용 도메인 · 실제 타일 수신은 지도에서 확인'},
  {id:'search',group:'지도·길찾기',name:'카카오 장소검색',description:'장소명·주소 찾기'},
  {id:'route',group:'지도·길찾기',name:'카카오 자동차 길찾기',description:'도로 경로·거리·예상 통과시각'},
  {id:'forecast',group:'강수·눈',name:'경로별 기상예보',description:'예상 통과시각의 기상청 예보'},
@@ -36,7 +37,8 @@ function providerFailure(http){
 export function applySessionConfiguration(current,session){
  const copy={...current},config=session?.connections||{};
  const configured={
-  map:Boolean(session?.mapConfig?.kakao),search:config.route,route:config.route,
+  map:Boolean(session?.mapConfig?.kakao),vworld:Boolean(session?.mapConfig?.vworld),
+  search:config.route,route:config.route,
   forecast:config.kma,rain:config.kma,radar:config.kma,
   road:config.roadRisk,warning:config.kma,floodNational:config.safemap
  };
@@ -109,7 +111,9 @@ export function summarizeConnectionResults(results){
  return {counts,text:[
   counts.ok?'수신 성공 '+counts.ok:'',counts.partial?'부분 확인 '+counts.partial:'',
   counts.error?'오류 '+counts.error:'',counts.missing?'키 없음 '+counts.missing:'',
-  counts.pending?'연동 대기 '+counts.pending:'',counts.unverified?'검사 보류 '+counts.unverified:'',counts.checking?'검사 중 '+counts.checking:''
+  counts.configured?'키 등록 '+counts.configured:'',counts.pending?'연동 대기 '+counts.pending:'',
+  counts.unverified?'검사 보류 '+counts.unverified:'',counts.checking?'검사 중 '+counts.checking:'',
+  counts.unknown?'검사 전 '+counts.unknown:''
  ].filter(Boolean).join(' · ')||'검사 전'};
 }
 export function initConnectionStatusPanel({

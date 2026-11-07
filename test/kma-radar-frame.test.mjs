@@ -9,7 +9,7 @@ const now=Date.parse('2026-11-06T04:25:00Z');
 const key='mock-secret-should-never-appear';
 const png=Uint8Array.from([137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82,0,0,0,1]);
 test('radar requests use only the official KMA host and bounded times',()=>{
- assert.deepEqual([...RADAR_LEADS],[0,30,60,90,120]);
+ assert.deepEqual([...RADAR_LEADS],[0,10,20,30,40,50,60,70,80,90,100,110,120]);
  assert.deepEqual([...FORECAST_LEADS],[...RADAR_LEADS]);
  for(const lead of RADAR_LEADS){
   const url=radarRequest(lead,key,now);
@@ -71,11 +71,11 @@ test('mobile navigation does not display the provider basemap image: real rain i
  const ui=readFileSync(new URL('../lib/ui.ts',import.meta.url),'utf8');
  const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
  const css=readFileSync(new URL('../app/navigation-ui.css',import.meta.url),'utf8');
- for(const id of ['navRadarQuick','navRadarToggle','navRainGridTimeBar','navRainGridLead','navRainGridStatus'])
+ for(const id of ['navRadarQuick','navNationalRain','navRainGridTimeBar','navRainGridLead','navRainGridStatus'])
   assert.ok(ui.includes('id="'+id+'"'),id);
  assert.doesNotMatch(ui,/id="navRadarPanel"/);
  assert.doesNotMatch(ui,/id="navRadarImage"/);
- assert.match(ui,/카카오 지도 위에 좌표대로 반투명 중첩/);
+ assert.match(ui,/실제 5km 예보 · 결측은 무강수가 아닙니다/);
  assert.match(app,/initNationalRainOverlay/);
  assert.match(app,/rainGridOverlay\.setMap\(kmap\)/);
  assert.match(css,/\.sunny-rain-grid-timeline\{/);

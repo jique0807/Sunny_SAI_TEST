@@ -118,9 +118,9 @@ test('right-side zoom control is gone and route progress rail is repositioned',(
 test('bottom summary is anchored to viewport and two staggered small rectangular alert slots are laid out',()=>{
  assert.match(css,/body\.sunny-guiding \.sunny-drive-footer\{/);
  assert.match(css,/bottom:0!important/);
- assert.match(css,/body\.sunny-guiding \.nav-bottom-bar/);
+ assert.match(css,/\.nav-bottom-bar\{\s*display:grid!important;position:fixed!important/);
  assert.match(css,/body\.sunny-guiding \.sunny-drive-alert:nth-child\(2\)/);
- assert.match(css,/top:34px!important;left:16px!important/);
+ assert.match(css,/top:66px!important;left:9px!important/);
  const source=readFileSync(new URL('../public/drive-guidance.mjs',import.meta.url),'utf8');
  assert.match(source,/if\(!slots\.length\)/);
  assert.doesNotMatch(source,/while\(slots\.length<2\)/);

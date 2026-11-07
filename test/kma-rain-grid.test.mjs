@@ -51,6 +51,11 @@ test('official nationwide provider request uses KMA host and real date',async()=
  assert.match(res.caution,/레이더 관측/);
  assert.ok(!JSON.stringify(res).includes('secret'));
 });
+test('the first frame stays at or ahead of the current hour across midnight KST',()=>{
+ const now=Date.parse('2026-11-07T14:20:00Z');
+ assert.equal(rainGridRequest(0,'key',now).validTime,'2026-11-07T15:00:00.000Z');
+ assert.equal(rainGridRequest(3,'key',now).url.searchParams.get('tmef'),'2026110803');
+});
 test('actual forecast endpoint is preview-only, session bound and rejects invalid time',async()=>{
  const origin='https://rain.test',secret='x'.repeat(64),key='server-secret-key';
  const env={APP_ORIGIN:origin,SESSION_SECRET:secret,KMA_API_KEY:key,VERCEL_ENV:'preview'};
@@ -83,7 +88,7 @@ test('non-home map switch is suppressed and full-country grid is drawn on Kakao 
  assert.match(css,/body:not\(\[data-sunny-nav="home"\]\) \.nav-map-layer-control/);
  assert.match(css,/\.sunny-rain-grid-canvas/);
  assert.match(app,/rainGridOverlay\.setMap\(kmap\)/);
- assert.match(ui,/레이더 실황이 아닌 초단기예보/);
+ assert.match(ui,/초단기 예보/);
  assert.doesNotMatch(ui,/id="navRadarImage"/);
 });
 

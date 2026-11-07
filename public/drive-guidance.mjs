@@ -52,7 +52,7 @@ export function upcomingRisks(samples,seconds,limit=2){
  }
  return selected;
 }
-export function initDriveGuidance({onStop,onReroute,formatTime}){
+export function initDriveGuidance({onStop,onReroute,formatTime,isWeatherEnabled=()=>true}){
  const root=document.getElementById('sunnyDriveOverlay');
  const alerts=document.getElementById('sunnyDriveAlerts');
  const fill=document.getElementById('sunnyDriveProgressFill');
@@ -85,14 +85,16 @@ export function initDriveGuidance({onStop,onReroute,formatTime}){
   const mins=Math.round(duration/60);
   const eta=formatTime?formatTime(new Date(Date.now()+duration*1000).toISOString()):'—';
   setText(summary,km+' 남음 · 약 '+mins+'분 · '+eta+' 도착 예상');
-  const risks=offRoute?[]:upcomingRisks(combinedSamples(),seconds,alertCount);
+  const showWeather=isWeatherEnabled();
+  if(!showWeather&&hazardPanel)hazardPanel.hidden=true;
+  const risks=offRoute||!showWeather?[]:upcomingRisks(combinedSamples(),seconds,alertCount);
   if(alerts){
    alerts.replaceChildren();
    const slots=[];
    if(offRoute){
     slots.push({title:'경로 이탈 감지',subtitle:'정차 후 ↻ 재탐색을 눌러 현재 위치에서 다시 검색하세요',icon:'!',status:true});
-    slots.push({title:'전방 기상안내 일시중지',subtitle:'경로 복귀 후 다시 확인',icon:'·',status:true});
-   }else{
+    if(showWeather)slots.push({title:'전방 기상안내 일시중지',subtitle:'경로 복귀 후 다시 확인',icon:'·',status:true});
+   }else if(showWeather){
     for(const item of risks)slots.push({
       title:(item.minutes===0?'현재 부근':item.minutes+'분 후')+' · '+item.title,
       subtitle:item.label+' · '+item.source,icon:item.icon,status:false
@@ -118,7 +120,7 @@ export function initDriveGuidance({onStop,onReroute,formatTime}){
    }
   }
   if(marks){
-   const official=buildRouteHazards(combinedSamples());
+   const official=showWeather&&!offRoute?buildRouteHazards(combinedSamples()).filter(hazard=>hazard.seconds>=seconds):[];
    renderHazardRail(marks,official,route.rainPath,{
     fractionAt:routeFraction,max:10,
     onSelect:hazard=>showHazardDetail(hazardPanel,hazard,formatTime)

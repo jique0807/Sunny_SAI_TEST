@@ -1,6 +1,6 @@
 // Official KMA forecast image viewer. The KMA image contains its own basemap;
 // its pixel coordinates are NOT registered to Kakao road coordinates.
-export const FORECAST_LEADS=Object.freeze([0,30,60,90,120]);
+export const FORECAST_LEADS=Object.freeze([0,10,20,30,40,50,60,70,80,90,100,110,120]);
 export function radarTimeLabel(iso){
  const time=Date.parse(iso||'');
  return Number.isFinite(time)?new Date(time).toLocaleString('ko-KR',{
