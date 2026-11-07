@@ -87,7 +87,7 @@ test('main rain panel exposes mutually exclusive real observed radar and forecas
  assert.match(overlay,/setSource\('radar'\)/);
  assert.match(overlay,/loadHSRFrame\(frame,\{signal:controller.signal,waitForSession\}\)/);
  assert.match(overlay,/drawHSROverKakao\(ctx,radarFrame,projection,density\)/);
- assert.match(overlay,/레이더 실제 관측/);
+ assert.match(overlay,/실제 레이더 관측/);
  assert.match(overlay,/강수량\(mm\) 자료 아님/);
  assert.match(overlay,/source==='radar'\?600000:300000/);
  assert.match(overlay,/clearHSRCache\(\)/);
