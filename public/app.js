@@ -74,7 +74,8 @@ document.getElementById('navHome')?.addEventListener('click',goToInitialHome);
 document.getElementById('sunnyBrandHome')?.addEventListener('click',goToInitialHome);
 document.getElementById('sunnyDriveHome')?.addEventListener('click',goToInitialHome);
 document.getElementById('navRoute')?.addEventListener('click',()=>{
- if(drivingUI.isActive()){showNavLayers(false);setNavTab('navRoute');return;}
+ // Bottom navigation remains usable even during guidance. The search sheet
+ // allows a NEW destination; the dedicated reroute control keeps this trip.
  showNavLayers(false);
  if(document.getElementById('navRouteResult')?.hidden===false){document.body.classList.add('nav-route-open');showNavSearch(false);ensureNavigationKakao();}
  else showNavSearch(true);
@@ -255,7 +256,11 @@ const providerState={kakao:'미확인',vworld:'미확인'};
 const gate=new AlertGate();
 const fmt=iso=>new Date(iso).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Seoul'});
 const localInput=d=>new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
-const drivingUI=initDriveGuidance({onStop:()=>stopRain(),formatTime:fmt});
+const drivingUI=initDriveGuidance({
+ onStop:()=>stopRain(),
+ onReroute:()=>{void refreshRouteFromGps();},
+ formatTime:fmt
+});
 // Settings are device-local and affect the actual running navigation logic.
 let appPrefs={...DEFAULT_APP_SETTINGS};
 const appSettings=initAppSettings({
@@ -283,41 +288,30 @@ drivingUI.setPreferences(appPrefs);
 if($('navDemoOpacity')){$('navDemoOpacity').value=String(appPrefs.overlayOpacity);updateMapLayerOpacity();}
 $('navDemoOpacity')?.addEventListener('input',()=>appSettings.set({overlayOpacity:Number($('navDemoOpacity').value)}));
 let gpsNavArrow=null,lastFollowTime=0,lastFollowPosition=null;
-let lastHeadingFix=null,navBearing=null,navBearingAt=0,headingVisualReady=false;
+let lastHeadingFix=null,navBearing=null,navBearingAt=0;
+// Keep the provider-rendered Kakao map NORTH-UP. Rotating its tile container
+// also rotates/warps the place-name labels and breaks route touch geometry.
+// Only the GPS vehicle arrow indicates observed direction of travel.
 function resetDrivingMapHeading(){
  document.body.classList.remove('sunny-heading-up');
  document.body.style.removeProperty('--sunny-map-rotation');
- headingVisualReady=false;lastHeadingFix=null;navBearing=null;navBearingAt=0;
+ lastHeadingFix=null;navBearing=null;navBearingAt=0;
  kmap?.setDraggable?.(true);kmap?.setZoomable?.(true);
  if(kmap&&activeMap==='kakao')kmap.relayout?.();
 }
 function updateDrivingMapHeading(fix){
- if(!drivingUI.isActive()||!fix)return '북쪽 기준';
- if(appPrefs.headingMode==='north'){if(headingVisualReady)resetDrivingMapHeading();return '북쪽 고정';}
+ if(!drivingUI.isActive()||!fix)return '지도 북쪽 고정';
+ if(appPrefs.headingMode==='north')return '지도 북쪽 고정';
  const candidate=resolveDrivingHeading(lastHeadingFix,fix,navBearing,navBearingAt);
  if(Number.isFinite(fix.accuracy)&&fix.accuracy<=60)lastHeadingFix={...fix};
  if(Number.isFinite(candidate.bearing)){
   navBearing=angleStep(navBearing,candidate.bearing);
   if(candidate.source==='gps'||candidate.source==='motion')navBearingAt=fix.timestamp;
-  document.body.style.setProperty('--sunny-map-rotation',(-navBearing).toFixed(2)+'deg');
-  document.body.classList.add('sunny-heading-up');
-  kmap?.setDraggable?.(false);kmap?.setZoomable?.(false);
-  if(!headingVisualReady){
-   headingVisualReady=true;
-   if(typeof requestAnimationFrame==='function')requestAnimationFrame(()=>kmap?.relayout?.());
-   else kmap?.relayout?.();
-  }
-  return candidate.source==='held'?'진행방향 유지':'진행방향 위쪽';
+  return candidate.source==='held'?'진행방향 유지 · 지도 북쪽 고정':
+   '차량 방향 화살표 · 지도 북쪽 고정';
  }
- if(headingVisualReady){
-  document.body.classList.remove('sunny-heading-up');
-  document.body.style.removeProperty('--sunny-map-rotation');
-  kmap?.setDraggable?.(true);kmap?.setZoomable?.(true);
-  headingVisualReady=false;
-  if(typeof requestAnimationFrame==='function')requestAnimationFrame(()=>kmap?.relayout?.());
-  else kmap?.relayout?.();
- }
- return candidate.source==='unreliable'?'GPS 방향 정확도 낮음':'방향 확인 중 · 북쪽 기준';
+ return candidate.source==='unreliable'?'GPS 방향 정확도 낮음 · 지도 북쪽 고정':
+  '차량 방향 확인 중 · 지도 북쪽 고정';
 }
 function followDrivingGps(){
  if(!drivingUI.isActive()||!appPrefs.followGps||!rainPosition||!kmap||activeMap!=='kakao'||document.hidden)return;
@@ -362,7 +356,7 @@ function drawGps(){
   }
  if(lmap&&window.L){if(!gpsLeaflet)gpsLeaflet=L.circleMarker([p.lat,p.lng],{radius:9,color:'#fff',weight:3,fillColor:'#1769ff',fillOpacity:1}).bindTooltip('실제 GPS 현재 위치').addTo(lmap);else gpsLeaflet.setLatLng([p.lat,p.lng]);}
 }
-function stopRain(){drivingUI.stop();resetDrivingMapHeading();lastFollowTime=0;lastFollowPosition=null;rainRun++;if(rainWatch!==null)navigator.geolocation?.clearWatch(rainWatch);rainWatch=null;clearInterval(rainTimer);rainTimer=null;rainPosition=null;rainProgress=0;rainBusy=null;rainLastFetch=0;rainLastPoint=null;rainGate=new RainGate();clearGpsMarker();$('rainStop').hidden=true;$('rainStart').disabled=false;$('rainStatus').textContent='비 예보 음성 안내 종료';}
+function stopRain(){rerouteBusy=false;drivingUI.stop();resetDrivingMapHeading();lastFollowTime=0;lastFollowPosition=null;rainRun++;if(rainWatch!==null)navigator.geolocation?.clearWatch(rainWatch);rainWatch=null;clearInterval(rainTimer);rainTimer=null;rainPosition=null;rainProgress=0;rainBusy=null;rainLastFetch=0;rainLastPoint=null;rainGate=new RainGate();clearGpsMarker();$('rainStop').hidden=true;$('rainStart').disabled=false;$('rainStatus').textContent='비 예보 음성 안내 종료';}
 async function checkRain(){
  if(!rainPosition||!route||route.demo||document.hidden)return;
  const now=Date.now();if(now-rainPosition.timestamp>60000){$('gpsStatus').textContent='GPS 수신 지연 · 마지막 위치가 1분 이상 오래됨';return;}
@@ -393,6 +387,46 @@ function startRainGuidance(){
   rainPosition={lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy,heading:p.coords.heading,speed:p.coords.speed,timestamp:p.timestamp};rainPosition.directionStatus=updateDrivingMapHeading(rainPosition);drawGps();checkRain();
  },e=>{if(run!==rainRun)return;if(e.code===1){stopRain();$('gpsStatus').textContent='GPS 권한 거부 · 브라우저와 휴대폰 위치 권한 확인 필요';}else $('gpsStatus').textContent=e.code===3?'GPS 일시 시간초과 · 감시 유지, 재수신 대기':'GPS 위치 수신 불가 · 감시 유지, 실외에서 재수신 대기';},{enableHighAccuracy:true,maximumAge:5000,timeout:20000});
  rainTimer=setInterval(checkRain,10000);
+}
+// User-requested reroute from the latest reliable GPS fix. Only explicit
+// user action triggers Mobility routing; don't silently change a driven route.
+let rerouteBusy=false,lastRerouteAt=0;
+async function refreshRouteFromGps(){
+ if(rerouteBusy||!drivingUI.isActive()||rainWatch===null)return;
+ if(!route||route.demo||!destPlace||!rainPosition){toast('GPS·목적지를 먼저 확인해주세요.');return;}
+ if(!Number.isFinite(rainPosition.accuracy)||rainPosition.accuracy>60||
+    Date.now()-rainPosition.timestamp>30000){
+  toast('GPS 정확도가 충분하지 않습니다. 실외에서 위치를 다시 확인하세요.');return;
+ }
+ if(lastRerouteAt&&Date.now()-lastRerouteAt<30000){
+  toast('경로를 방금 조회했습니다. 잠시 후 다시 시도해주세요.');return;
+ }
+ const previous=route,destination=destPlace,location={...rainPosition};
+ rerouteBusy=true;lastRerouteAt=Date.now();
+ const button=$('sunnyDriveReroute');if(button)button.disabled=true;
+ $('gpsStatus').textContent='현재 GPS 기준 경로 재탐색 중…';
+ try{
+  const origin={lat:location.lat,lng:location.lng,name:'현재 위치'};
+  const result=await api('/api/route',{
+   origin,destination,departure:new Date().toISOString()
+  });
+  // A newer user route or stopped guidance invalidates this in-flight reply.
+  if(!drivingUI.isActive()||rainWatch===null||route!==previous||destPlace!==destination)return;
+  if(!result.rainPath?.length||!result.vertices?.length)throw Error('새 도로 좌표를 받지 못했습니다.');
+  originPlace=origin;route={...result,demo:false};weather=null;
+  rainProgress=0;rainLastFetch=0;rainLastPoint=null;rainGate=new RainGate();
+  lastFollowTime=0;lastFollowPosition=null;
+  resetDrivingMapHeading();
+  drivingUI.start(route,null);renderRoute();
+  await Promise.all([loadWeather(),showMap('kakao')]);
+  if(!drivingUI.isActive()||route.demo)return;
+  rainPosition.directionStatus=updateDrivingMapHeading(rainPosition);
+  drawGps();void checkRain();
+  toast('현재 GPS 위치 기준으로 차량 경로와 기상예보를 새로 조회했습니다.');
+ }catch(e){
+  $('gpsStatus').textContent='재탐색 실패 · 기존 경로 유지';
+  toast('경로 재탐색 실패 · '+String(e.message||'네트워크 상태 확인'));
+ }finally{rerouteBusy=false;if(button)button.disabled=false;}
 }
 $('rainStart').onclick=startRainGuidance;
 $('rainStop').onclick=()=>{stopRain();stopVoice();};
