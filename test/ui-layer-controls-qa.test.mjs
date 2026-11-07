@@ -47,7 +47,7 @@ test('main layer menu omits generic temperature/wind and does not fake hazard av
  assert.ok(menu.length>1000);
  assert.doesNotMatch(menu,/id="navNowcastRow"|온도|풍속/);
  assert.match(menu,/id="navLayerWeather" type="checkbox" checked/);
- assert.equal(menu.match(/type="checkbox"/g)?.length,8);
+ assert.equal(menu.match(/type="checkbox"/g)?.length,7);
  for(const group of ['도로 살얼음·안개','기상특보','침수위험']){
   const row=menu.split('<label class="nav-layer-row">').find(row=>row.startsWith('<span><b>'+group+'</b>'));
   assert.match(row??'', /준비 중<\/small><\/span><input type="checkbox" disabled/);

@@ -210,8 +210,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   if(when)when.textContent='실제 강수격자 확인 중';
   message('수신 중','loading');
   try{
-   const lead=Number(slider?.value||0);
-   if(!Number.isInteger(lead)||lead<0||lead>3)throw Error('허용되지 않은 예측시간');
+   const lead=0;
    if(typeof waitForSession==='function')await waitForSession();
    if(run!==requestId||!enabled)return;
    const cached=!force?frameCache.get(lead):null;

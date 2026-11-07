@@ -1821,3 +1821,5 @@ body.sunny-rain-grid-minimized .sunny-radar-quick:not([hidden]){
 }
 
 .sunny-rain-grid-head-actions button[hidden]{display:none!important}
+
+#navRainGridTimeBar [hidden]{display:none!important}

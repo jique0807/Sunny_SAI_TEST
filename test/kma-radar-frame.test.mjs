@@ -71,7 +71,7 @@ test('mobile navigation does not display the provider basemap image: real rain i
  const ui=readFileSync(new URL('../lib/ui.ts',import.meta.url),'utf8');
  const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
  const css=readFileSync(new URL('../app/navigation-ui.css',import.meta.url),'utf8');
- for(const id of ['navRadarQuick','navNationalRain','navNationalRadar','navRainGridTimeBar','navRainGridLead','navRainGridStatus'])
+ for(const id of ['navRadarQuick','navNationalRain','navRainGridTimeBar','navRainGridLead','navRainGridStatus'])
   assert.ok(ui.includes('id="'+id+'"'),id);
  assert.doesNotMatch(ui,/id="navRadarPanel"/);
  assert.doesNotMatch(ui,/id="navRadarImage"/);

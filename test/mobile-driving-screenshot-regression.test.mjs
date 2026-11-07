@@ -58,7 +58,7 @@ test('screenshot: rain forecast and radar sheet is wide and shorter without repl
   'navRainGridRefresh','navRainGridReset'])
   assert.equal(ui.split('id="'+id+'"').length-1,1,id);
  assert.match(ui,/초단기 예보/);
- assert.match(ui,/레이더 실황 HSR/);
+ assert.doesNotMatch(ui,/id="navNationalRadar"/);
 });
 test('driving panel shows only one neutral no-rain card, but retains two real alerts',()=>{
  const original=globalThis.document;
