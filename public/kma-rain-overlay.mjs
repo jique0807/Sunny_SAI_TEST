@@ -46,7 +46,7 @@ const fmtTime=iso=>{
 };
 export function initNationalRainOverlay({onEnable,waitForSession}={}){
  const get=id=>document.getElementById(id);
- const toggle=get('navRadarToggle'),quick=get('navRadarQuick');
+ const nationalRain=get('navNationalRain'),nationalRadar=get('navNationalRadar'),quick=get('navRadarQuick');
  const modeRN1=get('navRainModeForecast'),modeHSR=get('navRainModeRadar'),
   sourceTitle=get('navRainSourceTitle'),sourceSub=get('navRainSourceSub'),
   ticks=get('navRainGridTicks'),legendTitle=get('navRainLegendTitle'),
@@ -99,7 +99,8 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  const message=t=>{if(status)status.textContent=t;};
  const isKakao=()=>Boolean(map&&window.kakao?.maps);
  const updateButtons=()=>{
-  toggle?.setAttribute('aria-pressed',String(enabled));
+  if(nationalRain)nationalRain.checked=enabled&&source==='forecast';
+  if(nationalRadar)nationalRadar.checked=enabled&&source==='radar';
   quick?.setAttribute('aria-pressed',String(enabled));
   if(quick){
    quick.dataset.rainState=enabled?'on':'off';
@@ -109,9 +110,6 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   }
   if(badge)badge.textContent=enabled?'ON':'OFF';
   if(quickLabel)quickLabel.textContent=source==='radar'?'레이더':'강수예보';
-  if(toggle)toggle.textContent=source==='radar'?
-   (enabled?'🌧 레이더 실황 중첩 ON · 끄기':'🌧 레이더 실황 중첩 OFF · 켜기'):
-   (enabled?'🌧 전국 강수예보 중첩 ON · 끄기':'🌧 전국 강수예보 중첩 OFF · 켜기');
   if(panel)panel.hidden=!enabled;
   document.body.classList.toggle('sunny-rain-grid-active',enabled);
  };
@@ -331,7 +329,13 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  }
  modeRN1?.addEventListener('click',()=>setSource('forecast'));
  modeHSR?.addEventListener('click',()=>setSource('radar'));
- toggle?.addEventListener('click',()=>setEnabled(!enabled));
+ for(const [control,mode] of [[nationalRain,'forecast'],[nationalRadar,'radar']]){
+  control?.addEventListener('change',()=>{
+   if(!control.checked){setEnabled(false);return;}
+   if(enabled){setSource(mode);onEnable?.();return;}
+   setSource(mode);setEnabled(true);
+  });
+ }
  quick?.addEventListener('click',()=>setEnabled(!enabled));
  close?.addEventListener('click',()=>setEnabled(false));
  play?.addEventListener('click',startPlayback);
