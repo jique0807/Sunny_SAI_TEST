@@ -9,7 +9,7 @@ import {
 const ui=readFileSync(new URL('../lib/ui.ts',import.meta.url),'utf8');
 const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
 const css=readFileSync(new URL('../app/navigation-ui.css',import.meta.url),'utf8');
-const session={mapConfig:{kakao:'public-js-app-id'},
+const session={mapConfig:{kakao:'public-js-app-id',vworld:'public-vworld-id'},
  connections:{route:true,kma:true,roadRisk:true,safemap:true}};
 const journey={
  mapSdk:{fixedPreviewAlias:{status:'received',http:200}},
@@ -45,7 +45,8 @@ function dom(){
 test('source inventory covers all agreed menu sources but excludes CCTV and ordinary temperature',()=>{
  const ids=DATA_CONNECTION_SOURCES.map(x=>x.id);
  assert.equal(new Set(ids).size,ids.length);
- assert.ok(ids.includes('map')&&ids.includes('rain')&&ids.includes('radar'));
+ assert.ok(ids.includes('map')&&ids.includes('vworld')&&ids.includes('rain')&&ids.includes('radar'));
+ assert.equal(ids.length,12);
  assert.ok(ids.includes('road')&&ids.includes('warning'));
  assert.ok(ids.includes('floodNational')&&ids.includes('floodLocal'));
  assert.ok(ids.includes('riverLevel'));
@@ -60,10 +61,12 @@ test('key presence never equals a verified provider response',()=>{
  const configured=applySessionConfiguration(empty,session);
  assert.equal(configured.rain.state,'configured');
  assert.equal(configured.map.state,'configured');
+ assert.equal(configured.vworld.state,'configured');
  assert.equal(configured.floodNational.state,'configured');
  assert.equal(configured.riverLevel.state,'pending');
  const missing=applySessionConfiguration(empty,{mapConfig:{},connections:{}});
  assert.equal(missing.route.state,'missing');
+ assert.equal(missing.vworld.state,'missing');
  assert.equal(missing.rain.state,'missing');
  assert.equal(missing.floodLocal.state,'pending');
 });
@@ -85,6 +88,8 @@ test('live forecast/radar/route success never mislabels unverified road risk or 
  assert.equal(values.floodLocal.state,'pending');
  assert.equal(values.riverLevel.state,'pending');
  assert.equal(summarizeConnectionResults(values).counts.ok,6);
+ assert.equal(values.vworld.state,'configured'); // No actual VWorld tile probe
+ assert.match(summarizeConnectionResults(values).text,/키 등록 1/);
  assert.doesNotMatch(JSON.stringify(values),/모든 도로 안전|침수 없음/);
 });
 test('missing credential cannot be changed to success by a provider probe',()=>{
@@ -102,6 +107,7 @@ test('environment settings include readable status panel and correctly wired sou
  'settingConnectionSummary','settingConnectionRefresh','settingConnectionCheckedAt'])
   assert.equal(ui.split('id="'+id+'"').length-1,1,id);
  assert.match(ui,/인증키 등록 ≠ 실제 수신 성공/);
+ assert.match(ui,/자료 종류 12개/);
  assert.match(app,/await import\('\/connection-status\.mjs'\)/);
  assert.match(app,/connectionPanel=initConnectionStatusPanel/);
  assert.match(css,/sunny-source-row\[data-connection-state="ok"\]/);
@@ -131,9 +137,11 @@ test('settings refresh makes real diagnostic requests and maps results to honest
   '/api/radar-latest-diagnostic','/api/route-layer-feasibility'
  ]);
  assert.equal(panel.getStatus().rain.state,'ok');
+ assert.equal(panel.getStatus().vworld.state,'configured');
  assert.equal(panel.getStatus().road.state,'partial');
  assert.equal(panel.getStatus().floodNational.state,'error');
  assert.match(nodes.get('settingConnectionSummary').textContent,/수신 성공 6/);
+ assert.match(nodes.get('settingConnectionSummary').textContent,/키 등록 1/);
  assert.match(nodes.get('settingConnectionCheckedAt').textContent,/2026/);
  assert.equal(nodes.get('settingConnectionRefresh').disabled,false);
  assert.equal(panel.isChecking(),false);
