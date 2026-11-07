@@ -90,7 +90,7 @@ export function initDriveGuidance({onStop,onReroute,formatTime}){
    alerts.replaceChildren();
    const slots=[];
    if(offRoute){
-    slots.push({title:'경로 이탈 감지',subtitle:'안전한 곳에서 경로를 다시 검색하세요',icon:'!',status:true});
+    slots.push({title:'경로 이탈 감지',subtitle:'정차 후 ↻ 재탐색을 눌러 현재 위치에서 다시 검색하세요',icon:'!',status:true});
     slots.push({title:'전방 기상안내 일시중지',subtitle:'경로 복귀 후 다시 확인',icon:'·',status:true});
    }else{
     for(const item of risks)slots.push({
