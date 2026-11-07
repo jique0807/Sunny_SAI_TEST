@@ -91,7 +91,19 @@ document.getElementById('navSettings')?.addEventListener('click',()=>{
  document.getElementById('settingsOpen')?.click();
 });
 document.getElementById('settings')?.addEventListener('close',()=>setNavTab('navHome'));
-document.getElementById('navLayerWeather')?.addEventListener('change',()=>drawWeatherOverlays());
+const routeWeatherEnabled=()=>$('navLayerWeather')?.checked!==false;
+$('navLayerWeather')?.addEventListener('change',()=>{
+ drawWeatherOverlays();renderRouteHazards();drivingUI.render();
+ if(routeWeatherEnabled()){rainLastFetch=0;void checkRain();}
+});
+$('navLayersRefresh')?.addEventListener('click',()=>{
+ if(rainGridOverlay.isEnabled())$('navRainGridRefresh')?.click();
+ $('navKmaRefresh')?.click();
+ if(routeWeatherEnabled()&&route&&!route.demo){
+  if(drivingUI.isActive()){rainLastFetch=0;void checkRain();}
+  void loadWeather();
+ }
+});
 let floodOverlay=null,floodMap=null,floodTimer=null,floodSeq=0;
 const floodControl=document.getElementById('navLayerflood'),floodStatus=document.getElementById('navFloodStatus');
 function floodMessage(message){if(floodStatus)floodStatus.textContent='하천범람 지도: '+message;}
@@ -230,7 +242,7 @@ function clearWeatherOverlays(){
 function drawWeatherOverlays(){
  clearWeatherOverlays();
  if(document.getElementById('navLayerWeather')?.checked===false||!kmap||!route||route.demo||!['kakao','skyview'].includes(activeMap))return;
- const samples=weather?.samples||[];
+ const samples=(routeAheadWeather||weather)?.samples||[];
  const count=Math.min(Number($('weatherMarkerCount').value),samples.length);
  const selected=count===1?[samples[Math.floor(samples.length/2)]]:Array.from({length:count},(_,i)=>samples[Math.round(i*(samples.length-1)/(count-1))]);
  for(const sample of selected){
@@ -242,7 +254,7 @@ function drawWeatherOverlays(){
   const temperature=Number.isFinite(forecast?.temperature)?forecast.temperature+'°C':'기온 미제공';
   const rain=Number.isFinite(forecast?.rain)?forecast.rain+' mm':forecast?.rainText||'강수량 미제공';
   label.textContent=fmt(sample.eta)+' · '+(forecast?temperature+' · '+rain:'예보 미수신');
-  label.title=sample.label+' · '+weather.source+' · 예상 통과시각 예보';
+  label.title=sample.label+' · '+(routeAheadWeather||weather)?.source+' · 예상 통과시각 예보';
   weatherOverlays.push(new kakao.maps.CustomOverlay({
    map:kmap,position:new kakao.maps.LatLng(sample.lat,sample.lng),
    content:label,xAnchor:0,yAnchor:0.5,zIndex:4
@@ -259,7 +271,8 @@ const localInput=d=>new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOStrin
 const drivingUI=initDriveGuidance({
  onStop:()=>stopRain(),
  onReroute:()=>{void refreshRouteFromGps();},
- formatTime:fmt
+ formatTime:fmt,
+ isWeatherEnabled:routeWeatherEnabled
 });
 // Settings are device-local and affect the actual running navigation logic.
 let appPrefs={...DEFAULT_APP_SETTINGS};
@@ -329,6 +342,7 @@ function followDrivingGps(){
 
 // Explicit foreground GPS monitoring: no background tracking or dry-weather speech.
 $('searchForm').insertAdjacentHTML('afterend','<div class="trybox"><button type="button" id="rainStart" class="primary">▶ 안내 시작</button><button type="button" id="rainStop" hidden>■ 안내 종료</button><p id="gpsStatus" role="status">GPS 시작 전 · v0.2.1</p><p id="rainStatus" role="status">실제 경로 조회 후 시작 · 화면을 켜둔 상태에서 GPS 사용</p></div>');
+let routeAheadWeather=null;
 let rainWatch=null,rainTimer=null,rainPosition=null,rainProgress=0,rainBusy=null,rainRun=0,rainGate=new RainGate(),rainLastFetch=0,rainLastPoint=null,gpsMarker=null,gpsLeaflet=null;
 function clearGpsMarker(){gpsMarker?.setMap(null);gpsMarker=null;gpsNavArrow?.setMap(null);gpsNavArrow=null;if(gpsLeaflet&&lmap)lmap.removeLayer(gpsLeaflet);gpsLeaflet=null;}
 function drawGps(){
@@ -356,7 +370,7 @@ function drawGps(){
   }
  if(lmap&&window.L){if(!gpsLeaflet)gpsLeaflet=L.circleMarker([p.lat,p.lng],{radius:9,color:'#fff',weight:3,fillColor:'#1769ff',fillOpacity:1}).bindTooltip('실제 GPS 현재 위치').addTo(lmap);else gpsLeaflet.setLatLng([p.lat,p.lng]);}
 }
-function stopRain(){rerouteBusy=false;drivingUI.stop();resetDrivingMapHeading();lastFollowTime=0;lastFollowPosition=null;rainRun++;if(rainWatch!==null)navigator.geolocation?.clearWatch(rainWatch);rainWatch=null;clearInterval(rainTimer);rainTimer=null;rainPosition=null;rainProgress=0;rainBusy=null;rainLastFetch=0;rainLastPoint=null;rainGate=new RainGate();clearGpsMarker();$('rainStop').hidden=true;$('rainStart').disabled=false;$('rainStatus').textContent='비 예보 음성 안내 종료';}
+function stopRain(){routeAheadWeather=null;rerouteBusy=false;drivingUI.stop();resetDrivingMapHeading();lastFollowTime=0;lastFollowPosition=null;rainRun++;if(rainWatch!==null)navigator.geolocation?.clearWatch(rainWatch);rainWatch=null;clearInterval(rainTimer);rainTimer=null;rainPosition=null;rainProgress=0;rainBusy=null;rainLastFetch=0;rainLastPoint=null;rainGate=new RainGate();clearGpsMarker();$('rainStop').hidden=true;$('rainStart').disabled=false;$('rainStatus').textContent='비 예보 음성 안내 종료';}
 async function checkRain(){
  if(!rainPosition||!route||route.demo||document.hidden)return;
  const now=Date.now();if(now-rainPosition.timestamp>60000){$('gpsStatus').textContent='GPS 수신 지연 · 마지막 위치가 1분 이상 오래됨';return;}
@@ -364,15 +378,17 @@ async function checkRain(){
  if(!found||found.meters>500){$('gpsStatus').textContent='GPS 수신됨 · 경로에서 500m 이상 이탈 · 정차 후 경로 재조회 필요';drivingUI.update(rainProgress,rainPosition,true);followDrivingGps();return;}
  rainProgress=found.seconds;drawGps();drivingUI.update(found.seconds,rainPosition);followDrivingGps();
  $('gpsStatus').textContent='GPS '+fmt(rainPosition.timestamp)+' · 오차 ±'+Math.round(rainPosition.accuracy)+'m · '+rainPosition.lat.toFixed(5)+', '+rainPosition.lng.toFixed(5)+' · 경로와 '+Math.round(found.meters)+'m';
+ if(!routeWeatherEnabled())return;
  if(!connections.kma){$('rainStatus').textContent='GPS 작동 중 · 기상청 키 미설정으로 비 예보 조회 대기';return;}
  const moved=rainLastPoint?Math.hypot((rainPosition.lat-rainLastPoint.lat)*111320,(rainPosition.lng-rainLastPoint.lng)*88000):Infinity;
  if(rainBusy!==null||rainLastFetch&&(now-rainLastFetch<appPrefs.refreshMinutes*60000||now-rainLastFetch<300000&&moved<1000))return;
  const samples=ahead(route.rainPath,rainProgress,now);if(!samples.length)return;
  const currentRoute=route,run=rainRun;rainBusy=run;rainLastFetch=now;rainLastPoint={...rainPosition};
- try{const d=await api('/api/weather',{provider:'kma-ultra',samples});if(run!==rainRun||route!==currentRoute||document.hidden)return;
+ try{const d=await api('/api/weather',{provider:'kma-ultra',samples});if(run!==rainRun||route!==currentRoute||!routeWeatherEnabled()||document.hidden)return;
   // Discard forecasts fetched for a position the vehicle has already left.
   if(!rainPosition||Math.hypot((rainPosition.lat-rainLastPoint.lat)*111320,(rainPosition.lng-rainLastPoint.lng)*88000)>1000)return;
-  drivingUI.setAhead(d.samples.map((p,i)=>({...p,seconds:samples[i]?.seconds??rainProgress})));const text=rainGate.take(d.samples,Date.now());$('rainStatus').textContent='초단기예보 '+fmt(d.fetchedAt)+' · '+d.samples.filter(p=>p.status==='forecast').length+'/'+samples.length+' 구간 · 비가 없거나 변화 없으면 음성 생략';
+  routeAheadWeather={...d,samples:d.samples.map((p,i)=>({...samples[i],...p,seconds:samples[i]?.seconds??rainProgress}))};
+  drivingUI.setAhead(routeAheadWeather.samples);drawWeatherOverlays();const text=rainGate.take(d.samples,Date.now());$('rainStatus').textContent='초단기예보 '+fmt(d.fetchedAt)+' · '+d.samples.filter(p=>p.status==='forecast').length+'/'+samples.length+' 구간 · 비가 없거나 변화 없으면 음성 생략';
   if(text)reply(text,appPrefs.voiceAlerts);
  }catch(e){if(run===rainRun&&route===currentRoute)$('rainStatus').textContent='GPS와 별도: '+e.message;}finally{if(rainBusy===run)rainBusy=null;}
 }
@@ -413,7 +429,7 @@ async function refreshRouteFromGps(){
   // A newer user route or stopped guidance invalidates this in-flight reply.
   if(!drivingUI.isActive()||rainWatch===null||sessionRun!==rainRun||route!==previous||destPlace!==destination)return;
   if(!result.rainPath?.length||!result.vertices?.length)throw Error('새 도로 좌표를 받지 못했습니다.');
-  originPlace=origin;route={...result,demo:false};weather=null;
+  originPlace=origin;route={...result,demo:false};weather=null;routeAheadWeather=null;
   rainProgress=0;rainLastFetch=0;rainLastPoint=null;rainGate=new RainGate();
   const updatedRoute=route;
   drivingUI.start(route,null);renderRoute();
@@ -548,12 +564,13 @@ function renderRoute(){if($('navRouteHazardDetail'))$('navRouteHazardDetail').hi
 function renderRouteHazards(){
  const rail=$('navRouteRiskMarks'),status=$('navRouteRiskStatus'),detail=$('navRouteHazardDetail');
  if(!rail||!status)return;
- const hazards=!route?.demo?buildRouteHazards(weather?.samples):[];
+ const hazards=routeWeatherEnabled()&&!route?.demo?buildRouteHazards(weather?.samples):[];
  const count=renderHazardRail(rail,hazards,route?.rainPath,{
   fractionAt:routeFraction,max:10,
   onSelect:h=>showHazardDetail(detail,h,fmt)
  });
- if(count)status.textContent='기상청 예보 위험지점 '+count+'개 · 아이콘을 눌러 강수·신적설 확인';
+ if(!routeWeatherEnabled())status.textContent='';
+ else if(count)status.textContent='기상청 예보 위험지점 '+count+'개 · 아이콘을 눌러 강수·신적설 확인';
  else if(!weather)status.textContent='경로 기상예보 조회 중 · 실제 위험예보만 표시';
  else if(!weather.samples?.some(p=>p.status==='forecast'&&p.forecast?.provider==='kma'))
   status.textContent='기상청 예보 미수신 · 위험 여부 판단 불가';
