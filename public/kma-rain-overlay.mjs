@@ -282,8 +282,45 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    if(when)when.textContent='자료 확인 전';
   }
  }
+ const imageToggle=get('navForecastImageToggle');
+ const imageView=get('navForecastImageView');
+ const image=get('navForecastImage');
+ const imageStatus=get('navForecastImageStatus');
+ let imageRequest=0;
+ function hideForecastImage(){
+  imageRequest++;
+  if(imageView)imageView.hidden=true;
+  image?.removeAttribute?.('src');
+  imageToggle?.setAttribute('aria-pressed','false');
+ }
+ imageToggle?.addEventListener('click',async()=>{
+  if(!imageView||!image||!imageStatus)return;
+  if(!imageView.hidden){hideForecastImage();return;}
+  const request=++imageRequest;
+  imageView.hidden=false;
+  image.hidden=true;
+  imageToggle.setAttribute('aria-pressed','true');
+  imageStatus.textContent='기상청 레이더 예측영상 수신 중';
+  try{
+   await waitForSession?.();
+   if(request!==imageRequest)return;
+   image.onload=()=>{
+    if(request!==imageRequest)return;
+    image.hidden=false;
+    imageStatus.textContent='기상청 레이더 1시간 강수예측';
+   };
+   image.onerror=()=>{
+    if(request!==imageRequest)return;
+    imageStatus.textContent='레이더 예측영상을 받지 못했습니다. 다시 선택하면 카카오맵으로 돌아갑니다.';
+   };
+   image.src='/api/radar-frame?lead=60';
+  }catch{
+   if(request===imageRequest)imageStatus.textContent='레이더 예측영상 연결 실패';
+  }
+ });
  function setEnabled(next){
   enabled=Boolean(next);expanded=enabled;
+  if(!enabled)hideForecastImage();
   if(!enabled){firstValidTime=null;if(slider)slider.value='0';}
   pausePlayback();
   updateButtons();syncSourceUI();
