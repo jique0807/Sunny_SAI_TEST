@@ -66,11 +66,24 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   hsrCache.clear();
  };
  const hourLabel=new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+ const reception=get('navHsrReception');
+ const received=new Map();
+ const renderReception=()=>{
+  if(!reception)return;
+  reception.innerHTML=Array.from({length:6},(_,i)=>{
+   const frame=6-i;
+   const states=frame===1?[received.get(1),received.get(0)]:[received.get(frame)];
+   const state=states.includes('failed')?'failed':states.includes('loading')?'loading':
+    states.every(v=>v==='received')?'received':'idle';
+   const label={failed:'실패',loading:'수신 중',received:'수신 완료',idle:'미조회'}[state];
+   return '<span data-state="'+state+'" title="'+label+'">'+label+'</span>';
+  }).join('');
+ };
  const syncLead=()=>{
   const value=Number(slider?.value||0);
   if(source==='radar'){
    if(step)step.textContent=value===0?'최근 관측':'-'+(value*10)+'분';
-   if(ticks)ticks.innerHTML='<span>최근</span><span>-20분</span><span>-40분</span><span>-60분</span>';
+   if(ticks)ticks.innerHTML='<span>−60분</span><span>−40분</span><span>−20분</span><span>최근</span>';
    return;
   }
   const labels=Array.from({length:4},(_,i)=>firstValidTime===null?'—':hourLabel.format(firstValidTime+i*3600000));
@@ -79,9 +92,15 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   slider?.setAttribute('aria-valuetext',firstValidTime===null?'예보 시각 확인 전':labels[value]);
  };
  const syncSourceUI=()=>{
+  const radar=source==='radar';
+  for(const control of [slider,ticks,reception,get('navRainGridPlay')?.parentElement]){
+   if(control)control.hidden=!radar;
+  }
+  renderReception();
   if(sourceTitle)sourceTitle.textContent=source==='radar'?'레이더 실황':'초단기 예보';
   if(sourceSub)sourceSub.textContent=source==='radar'?'HSR 관측':'5km';
   if(slider){
+   slider.style.direction=radar?'rtl':'ltr';
    slider.max=source==='radar'?String(HSR_MAX_FRAME):'3';
    slider.setAttribute('aria-label',source==='radar'?
     '레이더 관측 10분 단위 과거시각 선택 (0~60분 전)':'강수예보 유효시각 선택 (0~3시간)');
@@ -166,12 +185,14 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  async function loadRadar({force=false}={}){
   if(!enabled||source!=='radar')return;
   controller?.abort();controller=new AbortController();const run=++requestId;
+  const frame=Number(slider?.value||0);
+  for(const [index,state] of received)if(state==='loading')received.delete(index);
+  received.set(frame,'loading');renderReception();
   clear();forecast=null;radarFrame=null;
   if(refresh)refresh.disabled=true;
   if(when)when.textContent='실제 HSR 레이더 관측자료 수신 중';
   message('기상청 레이더 투명 PNG와 관측시각 및 LCC 좌표정보를 확인 중입니다.');
   try{
-   const frame=Number(slider?.value||0);
    if(!Number.isInteger(frame)||frame<0||frame>HSR_MAX_FRAME)
     throw Error('레이더 프레임 범위 초과');
    const cache=!force?hsrCache.get(frame):null;
@@ -188,6 +209,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
     if(old?.data?.url)URL.revokeObjectURL(old.data.url);
     hsrCache.set(frame,{data,until:Date.now()+HSR_CACHE_MS});
    }
+   received.set(frame,'received');renderReception();
    radarFrame=data;loadedAt=Date.now();
    if(when)when.textContent='실제 관측 '+radarKstLabel(data.timeKst)+
     ' · 영상 시각 간격 10분';
@@ -195,6 +217,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    if(!isKakao())message('레이더 실제 자료 수신 · 카카오 지도 연결 시 중첩됩니다.');
   }catch(e){
    if(run!==requestId||!enabled||source!=='radar'||e?.name==='AbortError')return;
+   received.set(frame,'failed');renderReception();
    radarFrame=null;clear();
    message('해당 시각 레이더 미수신 · '+(e?.message||'자료 제공 상태 확인 필요')+
     ' · 실제 영상이 없을 때 가상 강수영역은 표시하지 않습니다.');
@@ -272,7 +295,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   if(source===next)return;
   pausePlayback();++requestId;controller?.abort();
   forecast=null;radarFrame=null;clear();frameCache.clear();clearHSRCache();
-  source=next;firstValidTime=null;
+  source=next;firstValidTime=null;received.clear();
   if(slider)slider.value='0';
   syncSourceUI();updateButtons();startRefresh();
   if(enabled)void load({force:true});
@@ -365,7 +388,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  });
  function setEnabled(next){
   enabled=Boolean(next);expanded=enabled;
-  if(!enabled)hideForecastImage();
+  if(!enabled){hideForecastImage();received.clear();}
   if(!enabled){firstValidTime=null;if(slider)slider.value='0';}
   pausePlayback();
   updateButtons();syncSourceUI();
@@ -392,13 +415,13 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   if(!enabled||playTimer!==null)return;
   if(play)play.disabled=true;
   if(pause)pause.disabled=false;
-  if(source==='radar'){
-   // Play oldest -> most recent: 10-minute actual observations, not interpolation.
+  if(source==='radar'&&Number(slider.value)===0){
    slider.value=String(HSR_MAX_FRAME);syncLead();void load();
   }
   playTimer=setInterval(()=>{
    if(!enabled||document.hidden){pausePlayback();return;}
    if(source==='radar'){
+    if(refresh?.disabled)return;
     const current=Number(slider?.value||0);
     slider.value=String(current===0?HSR_MAX_FRAME:current-1);
    }else slider.value=String((Number(slider?.value||0)+1)%4);
@@ -414,9 +437,8 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  }
  quick?.addEventListener('click',()=>{
   expanded=true;
-  setSource('forecast');
   if(enabled)updateButtons();
-  else setEnabled(true);
+  else {setSource('forecast');setEnabled(true);}
  });
  minimize?.addEventListener('click',()=>{
   expanded=false;updateButtons();quick?.focus?.();
@@ -424,6 +446,13 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  close?.addEventListener('click',()=>setEnabled(false));
  play?.addEventListener('click',startPlayback);
  pause?.addEventListener('click',pausePlayback);
+ get('navHsrStop')?.addEventListener('click',()=>{
+  pausePlayback();slider.value='0';syncLead();void load();
+ });
+ get('navOpenHsr')?.addEventListener('click',()=>{
+  hideForecastImage();setSource('radar');
+ });
+
  reset?.addEventListener('click',()=>{
   pausePlayback();
   if(slider)slider.value='0';syncLead();

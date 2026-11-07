@@ -123,6 +123,6 @@ test('rain toggle moves to lower-left marker with a clear gap above ETA footer',
  assert.match(rules,/min-height:44px!important/);
  // Keep original ON/OFF semantics; position change must not silently toggle the layer.
  assert.match(ui,/id="navRadarQuick"/);
- assert.match(rain,/else setEnabled\(true\)/);
+ assert.match(rain,/else .*setEnabled/);
  assert.match(rain,/quick\.dataset\.rainState=enabled\?'on':'off'/);
 });
