@@ -288,7 +288,7 @@ function watchPreviewPosition(){
  if(previewPositionWatch!==null||!navigator.geolocation)return;
  let previous=null,bearing=null,bearingAt=0;
  previewPositionWatch=navigator.geolocation.watchPosition(({coords,timestamp})=>{
-  if(drivingUI.isActive()){
+  if($('navRouteResult')?.hidden||drivingUI.isActive()){
    stopPreviewPositionWatch();return;
   }
   if(!Number.isFinite(coords.latitude)||!Number.isFinite(coords.longitude)||!(coords.accuracy<=150))return;
@@ -299,14 +299,7 @@ function watchPreviewPosition(){
   if(direction.source==='gps'||direction.source==='motion')bearingAt=timestamp;
   if(coords.accuracy<=60)previous=fix;
   homePosition={lat:fix.lat,lng:fix.lng,bearing};
-  if(!$('navRouteResult')?.hidden)updateRouteCurrentMarker();
-  applyDrivingMapHeading();
-  if(document.body.dataset.sunnyNav==='home'&&appPrefs.followGps&&appPrefs.headingMode==='course'&&
-     ['kakao','skyview'].includes(activeMap)&&kmap){
-   const position=new kakao.maps.LatLng(fix.lat,fix.lng);
-   kmap.setCenter(position);
-   homeLocationMarker?.setPosition(position);
-  }
+  updateRouteCurrentMarker();
  },error=>{if(error.code===1)stopPreviewPositionWatch();},{enableHighAccuracy:true,maximumAge:5000,timeout:20000});
 }
 window.addEventListener('pagehide',stopPreviewPositionWatch);
@@ -326,7 +319,6 @@ function requestHomeLocation(manual=false){
  navigator.geolocation.getCurrentPosition(p=>{
   homeLocationPending=false;homePosition={lat:p.coords.latitude,lng:p.coords.longitude};
   centerHomeMap();
-  watchPreviewPosition();
   studioSync();if(manual)toast('현재 위치로 지도를 이동했습니다.');
  },e=>{homeLocationPending=false;if(manual)toast(e.code===1?'위치 권한을 허용해주세요.':'현재 위치를 확인할 수 없습니다.');},{enableHighAccuracy:true,timeout:12000,maximumAge:30000});
 }
@@ -383,7 +375,6 @@ const appSettings=initAppSettings({
   const slider=$('navDemoOpacity');
   if(slider){slider.value=String(next.overlayOpacity);updateMapLayerOpacity();}
   if(!next.voiceAlerts)stopVoice();
-  if(old.headingMode!==next.headingMode&&!drivingUI.isActive())applyDrivingMapHeading();
   if(drivingUI.isActive()){
    if(old.headingMode!==next.headingMode){
     applyDrivingMapHeading();
@@ -405,12 +396,9 @@ let gpsNavArrow=null,lastFollowTime=0,lastFollowPosition=null;
 let lastHeadingFix=null,navBearing=null,navBearingAt=0;
 function applyDrivingMapHeading(){
  const body=document.body;
- const mapHost=$('kakaoMapRotation')?.parentElement;
- const guiding=drivingUI.isActive();
- const atHome=body.dataset.sunnyNav==='home'&&!body.classList.contains('nav-route-open');
- const bearing=guiding?navBearing:homePosition?.bearing;
- const rotated=(guiding||atHome)&&appPrefs.headingMode==='course'&&
-  ['kakao','skyview'].includes(activeMap)&&Number.isFinite(bearing)&&mapHost;
+ const mapHost=$('kakaoMap')?.parentElement;
+ const rotated=drivingUI.isActive()&&appPrefs.headingMode==='course'&&
+  activeMap==='kakao'&&Number.isFinite(navBearing)&&mapHost;
  if(!rotated){
   if(body.classList.contains('sunny-heading-up')){
    body.classList.remove('sunny-heading-up');
@@ -423,7 +411,7 @@ function applyDrivingMapHeading(){
  const needsLayout=!body.classList.contains('sunny-heading-up')||
   body.style.getPropertyValue('--sunny-rotated-map-size')!==size;
  body.style.setProperty('--sunny-rotated-map-size',size);
- body.style.setProperty('--sunny-map-rotation',-bearing+'deg');
+ body.style.setProperty('--sunny-map-rotation',-navBearing+'deg');
  body.classList.add('sunny-heading-up');
  if(needsLayout)kmap?.relayout?.();
 }
@@ -843,7 +831,7 @@ async function showMap(type,{preserveCamera=false}={}){const keepKakaoCamera=pre
 ['schematic','kakao','vworld','skyview'].forEach(type=>$(type+'Toggle').onclick=()=>{if(document.body.dataset.sunnyNav!=='home')return;void showMap(type);});
 // Start the real Kakao map first on all devices; request GPS only after map initialization.
 Promise.resolve(sessionPromise).then(async()=>{await showMap('kakao');if(window.matchMedia('(max-width:900px)').matches)requestHomeLocation(false);}).catch(e=>kakaoConnectError('카카오맵 준비 실패: '+(e?.message||'세션 상태를 확인해주세요.')));
-new ResizeObserver(()=>{if(kmap&&(activeMap==='kakao'||activeMap==='skyview')){kmap.relayout();rainGridOverlay.redraw();}if(lmap&&activeMap==='vworld')lmap.invalidateSize();}).observe($('kakaoMapRotation').parentElement);
+new ResizeObserver(()=>{if(kmap&&(activeMap==='kakao'||activeMap==='skyview')){kmap.relayout();rainGridOverlay.redraw();}if(lmap&&activeMap==='vworld')lmap.invalidateSize();}).observe($('kakaoMap').parentElement);
 updatePick();
 const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(Recognition){recognition=new Recognition();recognition.lang='ko-KR';recognition.continuous=false;recognition.interimResults=false;recognition.onstart=()=>{$('mic').setAttribute('aria-pressed','true');$('voiceStatus').textContent='목적지를 말씀해주세요.';};recognition.onend=()=>{$('mic').setAttribute('aria-pressed','false');};recognition.onerror=()=>{$('voiceStatus').textContent='음성을 듣지 못했습니다. 권한을 확인하거나 직접 입력해주세요.';};recognition.onresult=e=>{const t=e.results[0][0].transcript;if(/다시.*듣|다시.*알려/.test(t)){$('repeat').click();return;}if(/멈춰|그만/.test(t)){$('stop').click();return;}$('destination').value=t.replace(/(?:으로|로)?\s*(?:가고\s*싶어(?:요)?|가자|가줘|찾아줘(?:요)?)\s*[.!?]?$/,'').trim();destPlace=null;reply('목적지를 '+$('destination').value+'로 들었어요. 출발지를 확인하고 경로 살펴보기를 눌러주세요.');};$('mic').onclick=()=>{if(playing)return;stopVoice();if($('mic').getAttribute('aria-pressed')==='true'){recognition.abort();return;}try{recognition.start();}catch{toast('잠시 뒤 다시 눌러주세요.');}};}else $('mic').onclick=()=>{toast('이 브라우저는 음성 입력을 지원하지 않습니다. 목적지를 직접 입력해주세요.');$('destination').focus();};
 $('share').onclick=async()=>{const url=location.origin;try{if(navigator.share)await navigator.share({title:'Sunny SAI',text:'가는 길의 날씨를 함께 살펴보세요.',url});else{await navigator.clipboard.writeText(url);toast('앱 링크를 복사했어요.');}}catch(e){if(e.name!=='AbortError')toast('앱 주소: '+url);}};
