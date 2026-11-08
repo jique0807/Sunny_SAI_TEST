@@ -51,8 +51,8 @@ test('main layer menu omits generic temperature/wind and does not fake hazard av
  for(const id of ['navLayerroad','navLayerfog','navLayerflood']){
   assert.ok(menu.includes('id="'+id+'" type="checkbox" disabled'));
  }
- assert.equal(menu.match(/미구현/g)?.length,1);
- assert.match(menu,/<b>기상특보<\/b><small>미구현<\/small>/);
+ assert.doesNotMatch(menu,/미구현/);
+ assert.match(menu,/id="navLayerWarning" type="checkbox"/);
 });
 test('rain panel close and reload trigger the same state machine in simple DOM',async()=>{
  const original={document:globalThis.document,window:globalThis.window,fetch:globalThis.fetch};
