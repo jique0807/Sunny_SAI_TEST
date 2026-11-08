@@ -1926,3 +1926,17 @@ body.sunny-rain-grid-minimized .sunny-radar-quick:not([hidden]){
 #navWeatherTimeBar .sunny-rain-grid-controls{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-start}
 
 .sunny-snow-key{color:#8657c4}.sunny-sleet-key{color:#217480}
+
+#navWeatherTimeBar .nav-layer-actions button,
+#navRainGridTimeBar.sunny-grid-active .sunny-rain-grid-head-actions button{
+ display:inline-grid;place-items:center;width:36px!important;height:36px!important;
+ min-width:36px!important;min-height:36px!important;padding:0!important;
+ border:1px solid #d5e2f0;border-radius:9px;background:#edf5fc;color:#184a74;
+ font-size:17px;line-height:1;
+}
+#navWeatherTimeBar #navWeatherTimeClose,
+#navRainGridTimeBar.sunny-grid-active #navRainGridClose{
+ background:#fff3f2;border-color:#f3d4d1;color:#9f3030;
+}
+#navWeatherTimeBar > .sunny-rain-grid-legend,
+#navRainGridTimeBar.sunny-grid-active > .sunny-rain-grid-legend{display:none!important}
