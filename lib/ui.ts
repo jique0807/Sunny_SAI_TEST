@@ -67,6 +67,16 @@ export const ui = `
  <label class="sunny-setting-option sunny-setting-slider"><span><b>지도 기상영역 투명도</b><small>표출 메뉴와 같은 투명도 설정입니다.</small></span><output id="settingOverlayOpacityValue" for="settingOverlayOpacity">45%</output><input id="settingOverlayOpacity" type="range" min="0" max="100" step="5" value="45"/></label>
 </section>
 
+<section class="sunny-settings-section" aria-label="경로 아이콘 안내">
+ <details class="sunny-source-fold">
+  <summary><strong>경로 아이콘 안내</strong></summary>
+  <dl class="sunny-route-icon-legend">
+   <dt>🌧️ 비</dt><dd>경로의 예상 통과 시각에 비가 예보된 지점</dd>
+   <dt>❄️ 눈</dt><dd>경로의 예상 통과 시각에 눈이 예보된 지점</dd>
+   <dt>🌨️ 진눈깨비</dt><dd>경로의 예상 통과 시각에 비와 눈이 섞여 내릴 것으로 예보된 지점</dd>
+  </dl>
+ </details>
+</section>
 <section id="settingsDataConnections" class="sunny-settings-section sunny-source-settings" aria-labelledby="settingsDataConnectionsHeading">
  <details class="sunny-source-fold">
   <summary id="settingsDataConnectionsHeading"><strong>데이터 연결 상태</strong><small>자료 종류 12개 · 인증키·실제 수신·오류 확인</small></summary>
