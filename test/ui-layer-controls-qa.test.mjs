@@ -47,8 +47,10 @@ test('main layer menu omits generic temperature/wind and does not fake hazard av
  assert.ok(menu.length>1000);
  assert.doesNotMatch(menu,/id="navNowcastRow"|온도|풍속/);
  assert.match(menu,/id="navLayerWeather" type="checkbox" checked/);
- assert.equal(menu.match(/type="checkbox"/g)?.length,3);
- assert.doesNotMatch(menu,/도로 살얼음|안개|기상특보|하천 범람/);
+ assert.equal(menu.match(/type="checkbox"/g)?.length,7);
+ for(const name of ['도로 살얼음','도로 안개·저시정','기상특보','하천 범람예상 구역']){
+  assert.ok(menu.includes('<b>'+name+'</b><small>미구현</small></span><input type="checkbox" disabled/>'));
+ }
 });
 test('rain panel close and reload trigger the same state machine in simple DOM',async()=>{
  const original={document:globalThis.document,window:globalThis.window,fetch:globalThis.fetch};
