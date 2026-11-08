@@ -59,3 +59,13 @@ test('route vertex ETA follows distance rather than irregular vertex density',()
  const route={summary:{distance:10000,duration:1000},sections:[{roads:[{duration:1000,distance:10000,vertexes:[127,37,127.001,37,127.1,37]}]}]};
  const r=routeSamples(route,Date.now());assert.ok(Math.abs(r.rainPath[1].seconds-10)<.1);
 });
+
+test('long routes get weather points at roughly ten-minute intervals even on a single road',()=>{
+ const route={summary:{distance:173400,duration:157*60},sections:[{roads:[
+  {name:'A',distance:173400,duration:157*60,vertexes:[127,37,128,37]}
+ ]}]};
+ const result=routeSamples(route,Date.now());
+ assert.equal(result.samples.length,16);
+ assert.ok(result.samples[1].seconds-result.samples[0].seconds<600);
+ assert.ok(result.samples.every(p=>p.lng>127&&p.lng<128&&p.lat===37));
+});

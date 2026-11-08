@@ -5,7 +5,7 @@ import {toGrid} from '../lib/kma.mjs';
 import {sampleMapPoints,isSnowPty,gridPresentation,rainColor,forecastForHour} from '../public/kma-map-overlay.mjs';
 import {handle} from '../lib/api.mjs';
 const now=Date.parse('2026-11-05T05:10:00Z');
-const validTime=new Date(Math.ceil((now+90*60000)/3600000)*3600000).toISOString();
+const validTime='2026-11-05T05:00:00.000Z';
 const stamp=t=>new Date(Date.parse(t)+9*3600000).toISOString().replace(/[-:T]/g,'').slice(0,12);
 const target=stamp(validTime);
 const values=[['T1H','13'],['WSD','4'],['RN1','1.0mm 미만'],['PTY','2']];
@@ -42,7 +42,7 @@ test('KMA map requests official grid records and deduplicates cells without leak
   assert.match(url.pathname,/getUltraSrtFcst$/);
   return Response.json({response:{header:{resultCode:'00'},body:{items:{item:items}}}});
  },now);
- assert.equal(calls,1);assert.equal(d.cells.length,1);assert.equal(d.cells[0].status,'forecast');assert.equal(d.validTimes.length,4);assert.equal(d.cells[0].forecasts.length,4);
+ assert.equal(calls,1);assert.equal(d.cells.length,1);assert.equal(d.cells[0].status,'forecast');assert.equal(d.validTimes.length,6);assert.equal(d.cells[0].forecasts.length,6);
  assert.equal(d.cells[0].forecast.precipitationType,2);
  assert.equal(d.cells[0].forecast.rainLabel,'1.0mm 미만');
  assert.deepEqual(d.cells[0].grid,{nx:60,ny:127});
@@ -74,7 +74,7 @@ test('time-slider only selects official returned forecast hour, and dry cells st
  assert.equal(rainColor({rain:null,rainLabel:null,precipitationType:null}),null);
 });
 test('KMA series returns distinct valid forecast hours from a single real grid response',async()=>{
- const dates=[0,1,2,3].map(h=>stamp(new Date(Date.parse(validTime)+h*3600000).toISOString()));
+ const dates=[0,1,2,3,4,5].map(h=>stamp(new Date(Date.parse(validTime)+h*3600000).toISOString()));
  const frames=dates.flatMap((date,i)=>[['T1H',String(10+i)],['RN1',String(i)],['PTY',i?'1':'0']].map(([category,fcstValue])=>({
   category,fcstValue,baseDate:'20261105',baseTime:'1330',fcstDate:date.slice(0,8),fcstTime:date.slice(8)
  })));
@@ -83,6 +83,6 @@ test('KMA series returns distinct valid forecast hours from a single real grid r
   calls++;return Response.json({response:{header:{resultCode:'00'},body:{items:{item:frames}}}});
  },now);
  assert.equal(calls,1);
- assert.deepEqual(data.cells[0].forecasts.map(f=>f?.temperature),[10,11,12,13]);
- assert.equal(data.validTimes.length,4);
+ assert.deepEqual(data.cells[0].forecasts.map(f=>f?.temperature),[10,11,12,13,14,15]);
+ assert.equal(data.validTimes.length,6);
 });

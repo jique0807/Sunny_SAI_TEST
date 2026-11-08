@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {extractZipFiles,geolocatedRisks,kmaRoadRisk,ROAD_NAMES} from '../lib/kma-road.mjs';
+import {extractZipFiles,geolocatedRisks,kmaRoadRisk,kmaAllRoadRisks,ROAD_NAMES} from '../lib/kma-road.mjs';
 import {displayableRisks} from '../public/road-risk-overlay.mjs';
 import {handle} from '../lib/api.mjs';
 function makeZip(filename,source){
@@ -76,4 +76,34 @@ test('ZIP bomb and non-zip response are rejected without reporting external bodi
  assert.throws(()=>extractZipFiles(Buffer.from('Private server error')),/ZIP/);
  const huge=Buffer.alloc(6*1024*1024+3);
  assert.throws(()=>extractZipFiles(huge),/ZIP/);
+});
+
+test('official KMA road link files supply risk grades, directed coordinates and UTC production time',()=>{
+ const base='LINK_ID,F_NODE,T_NODE,F_LON,F_LAT,T_LON,T_LAT,';
+ const from='1570001502,1,2,128.438248,35.673519,128.439667,35.671051,';
+ const files=[
+  {name:'R045_LINK_FRG_202512152355.csv',text:base+'B_ICE\n'+from+'3'},
+  {name:'R045_LINK_FOG_202512152355.csv',text:base+'FOG\n'+from+'2\n'+from+'0'},
+  {name:'R045_1KM_FRG_202512152355.csv',text:base+'B_ICE\n'+from+'3'}
+ ];
+ const data=geolocatedRisks(files,'045');
+ assert.equal(data.dataTime,'2025-12-15T23:55:00.000Z');
+ assert.deepEqual(data.locations.map(({kind,risk})=>[kind,risk]),[['ice',3],['visibility',2]]);
+ assert.deepEqual(data.locations[0].geometry.points,[{lat:35.673519,lng:128.438248},{lat:35.671051,lng:128.439667}]);
+ assert.equal(geolocatedRisks(files,'001').locations.length,0);
+});
+
+test('all supported roads share a cached batch and report partial coverage',async()=>{
+ const requested=[];
+ const fetcher=async url=>{
+  const road=new URL(url).searchParams.get('roadNum');
+  requested.push(road);
+  return road==='001'?new Response(makeZip('risk.csv',csv)):new Response(null,{status:404});
+ };
+ const [a,b]=await Promise.all([kmaAllRoadRisks('test',fetcher),kmaAllRoadRisks('test',fetcher)]);
+ assert.deepEqual(requested.sort(),Object.keys(ROAD_NAMES).sort());
+ assert.equal(a,b);
+ assert.equal(a.receivedRoads,1);
+ assert.equal(a.totalRoads,12);
+ assert.equal(a.locations.length,2);
 });

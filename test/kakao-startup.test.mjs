@@ -35,7 +35,7 @@ test('only Home exposes provider picker on route and layer screens',()=>{
  assert.equal(document.body.dataset.sunnyNav,'home');
 });
 test('Kakao initialization does not accidentally enter the VWorld branch',async()=>{
- const start=app.indexOf('async function showMap(type){');
+ const start=app.indexOf('async function showMap(type,');
  const end=app.indexOf("\n['schematic','kakao','vworld','skyview'].forEach",start);
  assert.ok(start>0&&end>start);
  const elements=new Map(),events=[];
@@ -53,7 +53,7 @@ test('Kakao initialization does not accidentally enter the VWorld branch',async(
   providerState,connectionStatus(){},focusRoad(){},drawWeatherOverlays(){},
   drawDemoOverlays(){},moveCar(){},drawGps(){},updateFlood(){},
   drivingUI:{isActive(){return false;}},followDrivingGps(){},
-  kmaMapOverlay:{schedule(){}},rainGridOverlay:{setMap(){},redraw(){}},roadRiskOverlay:{repaint(){}},
+  kmaMapOverlay:{schedule(){}},rainGridOverlay:{setMap(){},redraw(){}},roadRiskOverlay:{repaint(){}},warningOverlay:{repaint(){}},
   notice:t=>calls.push(t),toast:t=>calls.push('toast:'+t),
   kakaoConnectError:t=>calls.push('error:'+t),
   showOpenStreetMap:()=>{throw Error('No alternate map should initialize');},

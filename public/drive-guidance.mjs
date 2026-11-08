@@ -52,7 +52,7 @@ export function upcomingRisks(samples,seconds,limit=2){
  }
  return selected;
 }
-export function initDriveGuidance({onStop,onReroute,formatTime}){
+export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()=>[], isWeatherEnabled=()=>true}){
  const root=document.getElementById('sunnyDriveOverlay');
  const alerts=document.getElementById('sunnyDriveAlerts');
  const fill=document.getElementById('sunnyDriveProgressFill');
@@ -85,25 +85,31 @@ export function initDriveGuidance({onStop,onReroute,formatTime}){
   const mins=Math.round(duration/60);
   const eta=formatTime?formatTime(new Date(Date.now()+duration*1000).toISOString()):'—';
   setText(summary,km+' 남음 · 약 '+mins+'분 · '+eta+' 도착 예상');
-  const risks=offRoute?[]:upcomingRisks(combinedSamples(),seconds,alertCount);
+  const showWeather=isWeatherEnabled();
+  if(!showWeather&&hazardPanel)hazardPanel.hidden=true;
+  const risks=offRoute||!showWeather?[]:upcomingRisks(combinedSamples(),seconds,alertCount);
   if(alerts){
    alerts.replaceChildren();
    const slots=[];
    if(offRoute){
-    slots.push({title:'경로 이탈 감지',subtitle:'정차 후 ↻ 재탐색을 눌러 현재 위치에서 다시 검색하세요',icon:'!',status:true});
-    slots.push({title:'전방 기상안내 일시중지',subtitle:'경로 복귀 후 다시 확인',icon:'·',status:true});
-   }else{
+    slots.push({title:'경로 이탈 감지',subtitle:'이탈이 계속되면 자동 재탐색 · 정차 후 수동 재탐색 가능',icon:'!',status:true});
+    if(showWeather)slots.push({title:'전방 기상안내 일시중지',subtitle:'경로 복귀 후 다시 확인',icon:'·',status:true});
+   }else if(showWeather){
     for(const item of risks)slots.push({
       title:(item.minutes===0?'현재 부근':item.minutes+'분 후')+' · '+item.title,
       subtitle:item.label+' · '+item.source,icon:item.icon,status:false
     });
-    // A single neutral no-event card is enough. Two identical cards looked
-    // like duplicated provider warnings in the actual mobile driving test.
     if(!slots.length){
       const known=combinedSamples().length>0;
       slots.push({title:known?'조회 지점에 추가 비·눈 예보 없음':'전방 기상예보 미확인',
        subtitle:known?'미조회 구간은 판단 불가':'실제 기상자료 미수신 · 위험 여부 판단 불가',
        icon:'·',status:true});
+    }
+    if(slots.length<alertCount){
+     const checked=new Set(combinedSamples().filter(sample=>sample.seconds>=seconds).map(sample=>sample.seconds)).size;
+     slots.push({title:'전방 예보 조회 상태',
+      subtitle:checked?'조회된 전방 지점 '+checked+'곳':'조회된 전방 지점 없음',
+      icon:'·',status:true});
     }
    }
    for(const [index,item] of slots.slice(0,alertCount).entries()){
@@ -118,9 +124,9 @@ export function initDriveGuidance({onStop,onReroute,formatTime}){
    }
   }
   if(marks){
-   const official=buildRouteHazards(combinedSamples());
+   const official=showWeather&&!offRoute?[...buildRouteHazards(combinedSamples()),...getRoadHazards(route)].sort((a,b)=>a.seconds-b.seconds).filter(hazard=>hazard.seconds>=seconds):[];
    renderHazardRail(marks,official,route.rainPath,{
-    fractionAt:routeFraction,max:10,
+    fractionAt:routeFraction,max:alertCount,
     onSelect:hazard=>showHazardDetail(hazardPanel,hazard,formatTime)
    });
   }

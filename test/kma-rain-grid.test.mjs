@@ -42,7 +42,7 @@ test('official nationwide provider request uses KMA host and real date',async()=
  assert.equal(q.url.searchParams.get('authKey'),'server-only');
  assert.equal(q.url.searchParams.get('tmef').length,10);
  assert.equal(q.lead,2);
- await assert.rejects(nationalRainGrid(4,'key',async()=>new Response(example()),now),/시간/);
+ await assert.rejects(nationalRainGrid(6,'key',async()=>new Response(example()),now),/시간/);
  const res=await nationalRainGrid(0,'secret',async url=>{
   assert.equal(new URL(url).searchParams.get('vars'),'RN1');
   return new Response(example(),{headers:{'Content-Type':'text/plain'}});
@@ -51,7 +51,12 @@ test('official nationwide provider request uses KMA host and real date',async()=
  assert.match(res.caution,/레이더 관측/);
  assert.ok(!JSON.stringify(res).includes('secret'));
 });
-test('actual forecast endpoint is preview-only, session bound and rejects invalid time',async()=>{
+test('the first frame stays at or ahead of the current hour across midnight KST',()=>{
+ const now=Date.parse('2026-11-07T14:20:00Z');
+ assert.equal(rainGridRequest(0,'key',now).validTime,'2026-11-07T15:00:00.000Z');
+ assert.equal(rainGridRequest(3,'key',now).url.searchParams.get('tmef'),'2026110803');
+});
+test('actual forecast endpoint is session bound and rejects invalid time',async()=>{
  const origin='https://rain.test',secret='x'.repeat(64),key='server-secret-key';
  const env={APP_ORIGIN:origin,SESSION_SECRET:secret,KMA_API_KEY:key,VERCEL_ENV:'preview'};
  const url=origin+'/api/rain-grid?lead=0';
@@ -59,7 +64,7 @@ test('actual forecast endpoint is preview-only, session bound and rejects invali
  assert.equal(unauthorized.status,401);
  const auth=await handle(new Request(origin+'/api/session'),env),cookie=auth.headers.getSetCookie()[0].split(';')[0];
  const headers={Cookie:cookie};
- const bad=await handle(new Request(origin+'/api/rain-grid?lead=4',{headers}),env);
+ const bad=await handle(new Request(origin+'/api/rain-grid?lead=6',{headers}),env);
  assert.equal(bad.status,400);
  const ok=await handle(new Request(url,{headers}),env,async providerUrl=>{
   const u=new URL(providerUrl);
@@ -72,8 +77,9 @@ test('actual forecast endpoint is preview-only, session bound and rejects invali
  assert.deepEqual(body.cells,[[149,1,2.5],[1,2,1.25],[61,100,7]]);
  assert.equal(body.nx*body.ny,COUNT);
  assert.ok(!JSON.stringify(body).includes(key));
- const prod=await handle(new Request(url,{headers}),{...env,VERCEL_ENV:'production'},async()=>{throw Error('must not fetch');});
- assert.equal(prod.status,404);
+ const prod=await handle(new Request(origin+'/api/rain-grid?lead=invalid',{headers}),
+  {...env,VERCEL_ENV:'production'},async()=>{throw Error('invalid input must not fetch');});
+ assert.equal(prod.status,400);
 });
 test('non-home map switch is suppressed and full-country grid is drawn on Kakao only',()=>{
  const ui=readFileSync(new URL('../lib/ui.ts',import.meta.url),'utf8');
@@ -83,7 +89,7 @@ test('non-home map switch is suppressed and full-country grid is drawn on Kakao 
  assert.match(css,/body:not\(\[data-sunny-nav="home"\]\) \.nav-map-layer-control/);
  assert.match(css,/\.sunny-rain-grid-canvas/);
  assert.match(app,/rainGridOverlay\.setMap\(kmap\)/);
- assert.match(ui,/레이더 실황이 아닌 초단기예보/);
+ assert.match(ui,/초단기 예보/);
  assert.doesNotMatch(ui,/id="navRadarImage"/);
 });
 
@@ -147,5 +153,6 @@ test('preview forecast diagnostics genuinely checks all four leads without simul
  assert.ok(!JSON.stringify(json).includes(key));
  const production=await handle(new Request(origin+'/api/rain-grid-diagnostic'),
   {...env,VERCEL_ENV:'production'},async()=>{throw Error('do not call');});
- assert.equal(production.status,404);
+ assert.equal(production.status,200);
+ assert.ok((await production.json()).results.every(x=>x.status==='received'));
 });

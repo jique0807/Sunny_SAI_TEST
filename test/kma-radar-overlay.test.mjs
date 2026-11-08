@@ -23,6 +23,7 @@ test('only verified provider path, observation time, coverage and basemap-free i
  assert.equal(radarObservationTime('case'),RADAR_TEST_CASE);
  assert.equal(radarObservationTime('case',Date.now(),1),'202407100850');
  assert.equal(radarObservationTime('case',Date.now(),6),'202407100800');
+ assert.equal(radarObservationTime('nearest',Date.parse('2026-11-07T03:13:00Z'),0),'202611071210');
  assert.equal(radarObservationTime('latest',Date.parse('2026-11-07T03:13:00Z'),0),'202611071140');
  assert.equal(radarObservationTime('latest',Date.parse('2026-11-07T03:13:00Z'),1),'202611071130');
  assert.throws(()=>radarObservationTime('case',Date.now(),7),/10-minute frame/);
@@ -67,8 +68,8 @@ test('preview endpoints are session protected and never disclose API keys',async
  assert.equal(parsed.projection,'LCC');
  assert.ok(!JSON.stringify(parsed).includes(key));
  assert.ok(!JSON.stringify(parsed).includes(sourcePath));
- const prod=await handle(new Request(route,{headers:{Cookie:cookie}}),
-  {...env,VERCEL_ENV:'production'},async()=>{throw Error('must not fetch');});
+ const prod=await handle(new Request(root+'/api/radar-overlay-meta?mode=case',{headers:{Cookie:cookie}}),
+  {...env,VERCEL_ENV:'production'},async()=>{throw Error('invalid input must not fetch');});
  assert.equal(prod.status,404);
 });
 test('projected pixel geometry maps true geographic control reference and meshes without invented pixels',()=>{
@@ -132,6 +133,6 @@ test('HSR 10-minute image endpoint returns one synchronized PNG and timestamp',a
   {headers:{Cookie:cookie}}),env,fetcher);
  assert.equal(bad.status,400);
  const prod=await handle(new Request(url,{headers:{Cookie:cookie}}),
-  {...env,VERCEL_ENV:'production'},async()=>{throw Error('No production provider access');});
- assert.equal(prod.status,404);
+  {...env,VERCEL_ENV:'production'},fetcher);
+ assert.equal(prod.status,200);
 });

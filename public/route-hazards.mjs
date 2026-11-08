@@ -21,7 +21,7 @@ export function buildRouteHazards(samples,{limit=12}={}){
   const exactSnow=safeValue(f.snowfall);
   const snowLabel=typeof f.snowfallLabel==='string'&&f.snowfallLabel.trim()?f.snowfallLabel.trim():
     exactSnow!==null?exactSnow+'cm':null;
-  events.push({kind,icon:ICONS[kind],title:TITLE[kind],seconds:s.seconds,label,
+  events.push({kind,icon:ICONS[kind],title:TITLE[kind],seconds:s.seconds,label,lat:safeValue(s.lat),lng:safeValue(s.lng),
    eta:typeof s.eta==='string'?s.eta:null,validTime:f.time||null,
    rainLabel,snowLabel,provider:'기상청 격자예보',grid:s.grid||null});
  }
@@ -29,13 +29,24 @@ export function buildRouteHazards(samples,{limit=12}={}){
  const dedup=[];
  for(const event of events){
   const last=dedup[dedup.length-1];
-  if(last?.kind===event.kind&&event.seconds-last.seconds<600)continue;
+  if(last?.kind===event.kind&&event.seconds-last.seconds<300)continue;
   dedup.push(event);if(dedup.length>=Math.max(1,Math.min(20,limit)))break;
  }
  return dedup;
 }
 export function hazardDetails(hazard,formatTime){
  const format=t=>t&&formatTime?formatTime(t):t||'시간정보 미제공';
+ if(hazard.kind==='warning')return [
+  hazard.title,'특보구역: '+hazard.label,'발효 시각: '+format(hazard.validTime),'자료: '+hazard.provider
+ ];
+ if(hazard.roadRisk)return [
+  hazard.title,
+  '위험 단계: '+({1:'관심',2:'주의',3:'위험'}[hazard.roadRisk]),
+  '예상 통과: '+format(hazard.eta),
+  '위치: '+hazard.label,
+  '자료 시각: '+format(hazard.validTime),
+  '자료: '+hazard.provider+' · 도로 위험 예측'
+ ];
  return [
   hazard.title,
   '예상 통과: '+format(hazard.eta),

@@ -48,7 +48,7 @@ test('Start guidance stays inside Sunny SAI and projects GPS onto Kakao map',()=
  assert.doesNotMatch(app,/if\(link\?\.href&&link\.href\.startsWith\('http'\)\)/);
  assert.match(app,/navigator\.geolocation\.watchPosition\(/);
  assert.match(app,/kmap\.panTo\(position\)/);
- assert.match(app,/drivingUI\.update\(found\.seconds,rainPosition\)/);
+ assert.match(app,/drivingUI\.update\(rainProgress,rainPosition\)/);
  assert.match(app,/drivingUI\.setAhead\(/);
  assert.match(app,/lastFollowTime=0/);
 });
@@ -101,14 +101,14 @@ test('heading-up uses observed GPS travel direction, falling back to reliable mo
  assert.equal(poor.source,'unreliable');assert.equal(poor.bearing,null);
  assert.ok(Math.abs(angleStep(350,10)-1)<.1);
 });
-test('GPS direction rotates the vehicle arrow only and Kakao map labels stay north-up',()=>{
+test('GPS direction rotates the map in course mode',()=>{
  assert.match(app,/resolveDrivingHeading\(lastHeadingFix,fix,navBearing,navBearingAt\)/);
  assert.match(app,/marker\.style\.rotate=/);
- assert.doesNotMatch(app,/classList\.add\('sunny-heading-up'\)/);
+ assert.match(app,/classList\.add\('sunny-heading-up'\)/);
  assert.doesNotMatch(app,/setDraggable\?\.\(false\)/);
  assert.doesNotMatch(app,/\.setRotation\(/);
- assert.doesNotMatch(css,/rotate\(var\(--sunny-map-rotation,0deg\)\)/);
- assert.match(css,/Never apply CSS transforms to the entire map\/tile container/);
+ assert.match(css,/rotate\(var\(--sunny-map-rotation,0deg\)\)/);
+
 });
 test('right-side zoom control is gone and route progress rail is repositioned',()=>{
  assert.doesNotMatch(app,/new kakao\.maps\.ZoomControl\(\)/);
@@ -118,9 +118,9 @@ test('right-side zoom control is gone and route progress rail is repositioned',(
 test('bottom summary is anchored to viewport and two staggered small rectangular alert slots are laid out',()=>{
  assert.match(css,/body\.sunny-guiding \.sunny-drive-footer\{/);
  assert.match(css,/bottom:0!important/);
- assert.match(css,/body\.sunny-guiding \.nav-bottom-bar/);
+ assert.match(css,/\.nav-bottom-bar\{\s*display:grid!important;position:fixed!important/);
  assert.match(css,/body\.sunny-guiding \.sunny-drive-alert:nth-child\(2\)/);
- assert.match(css,/top:34px!important;left:16px!important/);
+ assert.match(css,/top:66px!important;left:9px!important/);
  const source=readFileSync(new URL('../public/drive-guidance.mjs',import.meta.url),'utf8');
  assert.match(source,/if\(!slots\.length\)/);
  assert.doesNotMatch(source,/while\(slots\.length<2\)/);
