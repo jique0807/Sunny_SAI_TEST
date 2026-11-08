@@ -4,7 +4,6 @@ import {fetchWithReception} from './layer-reception.mjs';
 // Never display credentials or infer road safety from key presence or raw data.
 export const DATA_CONNECTION_SOURCES=[
  {id:'map',group:'지도·길찾기',name:'카카오맵 지도',description:'JavaScript SDK · 프리뷰 허용 도메인'},
- {id:'vworld',group:'지도·길찾기',name:'VWorld 위성지도',description:'키·허용 도메인 · 실제 타일 수신은 지도에서 확인'},
  {id:'search',group:'지도·길찾기',name:'카카오 장소검색',description:'장소명·주소 찾기'},
  {id:'route',group:'지도·길찾기',name:'카카오 자동차 길찾기',description:'도로 경로·거리·예상 통과시각'},
  {id:'forecast',group:'강수·눈',name:'경로별 기상예보',description:'예상 통과시각의 기상청 예보'},
@@ -36,13 +35,13 @@ function providerFailure(http){
 export function applySessionConfiguration(current,session){
  const copy={...current},config=session?.connections||{};
  const configured={
-  map:Boolean(session?.mapConfig?.kakao),vworld:Boolean(session?.mapConfig?.vworld),
+  map:Boolean(session?.mapConfig?.kakao),
   search:config.route,route:config.route,
   forecast:config.kma,rain:config.kma,radar:config.kma,
   road:config.roadRisk,warning:config.kma,floodNational:config.safemap,floodLocal:config.safemap
  };
  for(const [id,yes]of Object.entries(configured)){
-  copy[id]={...(yes?state('configured',id==='vworld'?'API 키 등록됨 · 위성 타일 수신은 지도에서 확인할 수 있습니다.':'실제 API 응답 검사 전'):state('missing','서버 인증키 미설정')),keyRegistered:Boolean(yes)};
+  copy[id]={...(yes?state('configured','실제 API 응답 검사 전'):state('missing','서버 인증키 미설정')),keyRegistered:Boolean(yes)};
  }
  return copy;
 }
