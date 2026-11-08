@@ -7,16 +7,13 @@ export const DEMO_SEOUL_BUSAN = Object.freeze({
 });
 
 export const DEMO_SCENES = Object.freeze([
- {id:'rain',fraction:0.16,kind:'rain',icon:'🌧️',title:'강한 비 시연',
-  measure:'가상 1시간 강수량 18mm',description:'갑작스러운 강수 예보를 가정합니다. 감속과 차간거리 확보를 안내하는 기능입니다.'},
- {id:'fog',fraction:0.36,kind:'fog',icon:'🌫️',title:'짙은 안개 시연',
-  measure:'가상 가시거리 150m',description:'가시거리가 낮아진 상황을 가정합니다. 전조등 점등과 감속 안내를 시연합니다.'},
- {id:'ice',fraction:0.55,kind:'ice',icon:'🧊',title:'도로 살얼음 시연',
-  measure:'가상 결빙 위험 단계: 주의',description:'노면 결빙 위험이 감지됐다고 가정합니다. 급제동을 피하도록 안내합니다.'},
- {id:'flood',fraction:0.75,kind:'flood',icon:'🌊',title:'도로 침수 위험 시연',
-  measure:'가상 침수 수심 20cm',description:'도로가 침수된 가상 상황입니다. 진입을 피하고 안전한 우회 경로를 확인하도록 안내합니다.'},
- {id:'rain2',fraction:0.91,kind:'rain',icon:'⛈️',title:'집중호우 시연',
-  measure:'가상 1시간 강수량 32mm',description:'목적지에 가까워지며 강수가 강화되는 가상 상황입니다. 안전한 장소에 정차하도록 안내합니다.'}
+ {id:'rain',fraction:0.16,kind:'rain',icon:'🌧️',title:'강한 비',
+  measure:'1시간 강수량 18mm',description:'전방에 강한 비가 예상됩니다. 속도를 줄이고 차간거리를 충분히 확보하세요.'},
+ {id:'fog',fraction:0.36,kind:'fog',icon:'🌫️',title:'짙은 안개',
+  measure:'가시거리 150m',description:'전방에 짙은 안개가 발생했습니다. 전조등을 켜고 속도를 줄이세요.'},
+ {id:'flood',fraction:0.75,kind:'flood',icon:'🌊',title:'도로 침수 위험',
+  measure:'침수 수심 20cm',description:'전방 도로에 침수 위험이 있습니다. 진입하지 말고 안전한 우회 경로를 확인하세요.'}
+
 ]);
 
 // Locate the event on the actual polyline with the travel-time metadata,
@@ -49,7 +46,7 @@ export function makeDemoScenario(route){
    description:scene.description,measure:scene.measure,
    lat:point.lat,lng:point.lng,seconds,
    label:point.label,eta:new Date(Date.parse(route.departure)+seconds*1000).toISOString(),
-   demo:true,provider:'시연용 가상 데이터 · 실제 위험 정보 아님'};
+   demo:true,provider:'시연 모드 · 실제 관측 및 위험정보 아님'};
  });
  const samples=hazards.map(h=>({
   ...h,status:'demo',demoHazard:h,
@@ -74,12 +71,12 @@ export function makeDemoBreakingWarning(route,issuedAt=new Date().toISOString())
  const point=demoPointAtSeconds(route.rainPath,seconds);
  if(!point)throw new Error('가상 특보 위치를 확인하지 못했습니다.');
  return {
-  id:'breaking-warning',kind:'warning',icon:'🚨',title:'긴급 호우주의보 신규 발효',
-  description:'주행 중 갑자기 호우주의보가 발효된 가상 상황입니다. 해당 구간 전방에서 속도를 줄이고 안전한 위치를 확인하세요.',
-  measure:'가상 호우주의보 발효 · 실제 기상청 특보 아님',
+  id:'breaking-warning',kind:'warning',icon:'🚨',title:'호우주의보 신규 발효',
+  description:'주행 중 호우주의보가 새로 발표됐습니다. 전방 구간에서 속도를 줄이고 안전한 위치를 확인하세요.',
+  measure:'호우주의보 발효',
   lat:point.lat,lng:point.lng,seconds,label:point.label,
   eta:new Date(Date.parse(route.departure)+seconds*1000).toISOString(),
   issuedAt,
-  demo:true,breaking:true,provider:'시연용 가상 신규 기상특보 · 실제 특보 발효 아님'
+  demo:true,breaking:true,provider:'시연 모드 · 실제 기상청 특보 아님'
  };
 }
