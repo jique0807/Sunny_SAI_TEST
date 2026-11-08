@@ -24,7 +24,7 @@ test('three clearly identified demo hazards follow route time and stay separate 
  assert.ok(x.hazards.every((h,i)=>i===0||h.seconds>x.hazards[i-1].seconds));
  assert.ok(x.samples.every(s=>s.status==='demo'&&s.forecast===null));
  assert.deepEqual(buildRouteHazards(x.samples),[]);
- assert.ok(hazardDetails(x.hazards[3]).join(' ').includes('실제 관측·특보 아님'));
+ assert.ok(hazardDetails(x.hazards[2]).join(' ').includes('실제 관측·특보 아님'));
 });
 test('event locations interpolate through Kakao route timestamps',()=>{
  const p=demoPointAtSeconds(route.rainPath,9000);
