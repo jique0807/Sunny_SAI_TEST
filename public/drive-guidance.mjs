@@ -88,8 +88,15 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
   const showWeather=isWeatherEnabled();
   if(!showWeather&&hazardPanel)hazardPanel.hidden=true;
   const risks=offRoute||!showWeather?[]:route.demo
-   ?(route.demoHazards||[]).filter(h=>h.seconds>=seconds-45).slice(0,alertCount)
-      .map(h=>({...h,minutes:Math.max(0,Math.round((h.seconds-seconds)/60))}))
+   ?(()=>{
+      const upcoming=(route.demoHazards||[]).filter(h=>h.seconds>=seconds-45);
+      // A newly issued hypothetical warning takes the FIRST notice slot.
+      // Other existing risks continue to appear beneath it.
+      const breaking=upcoming.find(h=>h.breaking);
+      const ordered=breaking?[breaking,...upcoming.filter(h=>h!==breaking)]:upcoming;
+      return ordered.slice(0,alertCount)
+       .map(h=>({...h,minutes:Math.max(0,Math.round((h.seconds-seconds)/60))}));
+     })()
    :upcomingRisks(combinedSamples(),seconds,alertCount);
   if(alerts){
    alerts.replaceChildren();
@@ -99,8 +106,10 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
     if(showWeather)slots.push({title:'전방 기상안내 일시중지',subtitle:'경로 복귀 후 다시 확인',icon:'·',status:true});
    }else if(showWeather){
     for(const item of risks)slots.push({
-      title:(item.minutes===0?'현재 부근':item.minutes+'분 후')+' · '+item.title,
-      subtitle:item.label+' · '+(route.demo?'[가상 시연 · 실제 위험 아님]':item.source),icon:item.icon,status:false
+      title:item.breaking?'🚨 [가상] 신규 호우특보 발효':
+       (item.minutes===0?'현재 부근':item.minutes+'분 후')+' · '+item.title,
+      subtitle:item.label+' · '+(route.demo?'[가상 시연 · 실제 위험 아님]':item.source),
+      icon:item.icon,status:false,urgent:!!item.breaking
     });
     if(!slots.length){
       const known=route.demo||combinedSamples().length>0;
@@ -117,7 +126,7 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
    }
    for(const [index,item] of slots.slice(0,alertCount).entries()){
     const card=document.createElement('div');
-    card.className='sunny-drive-alert'+(item.status?' sunny-drive-alert-muted':'');
+    card.className='sunny-drive-alert'+(item.status?' sunny-drive-alert-muted':'')+(item.urgent?' sunny-drive-alert-urgent':'');
     card.dataset.order=String(index+1);
     const icon=document.createElement('span');icon.className='sunny-drive-alert-icon';icon.textContent=item.icon;
     const detail=document.createElement('div');detail.className='sunny-drive-alert-text';
