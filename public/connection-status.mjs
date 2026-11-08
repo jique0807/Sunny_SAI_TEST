@@ -7,7 +7,7 @@ export const DATA_CONNECTION_SOURCES=[
  {id:'search',group:'지도·길찾기',name:'카카오 장소검색',description:'장소명·주소 찾기'},
  {id:'route',group:'지도·길찾기',name:'카카오 자동차 길찾기',description:'도로 경로·거리·예상 통과시각'},
  {id:'forecast',group:'강수·눈',name:'경로별 기상예보',description:'예상 통과시각의 기상청 예보'},
- {id:'rain',group:'강수·눈',name:'전국 RN1 강수예보',description:'5km 격자 · 0~3시간 예보'},
+ {id:'rain',group:'강수·눈',name:'전국 강수량 격자 예보',description:'RN1 5km 격자 · 가장 가까운 정시의 1시간 강수량'},
  {id:'radar',group:'강수·눈',name:'HSR 레이더 실황',description:'실제 관측영상 · 10분 간격 표출'},
  {id:'road',group:'도로위험',name:'도로살얼음·안개',description:'도로 링크별 공식 위험기상정보'},
  {id:'warning',group:'기상특보',name:'기상특보 현황',description:'발효지역·특보등급 검증 필요'},

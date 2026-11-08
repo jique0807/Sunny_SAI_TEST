@@ -1885,3 +1885,24 @@ body.sunny-rain-grid-minimized .sunny-radar-quick:not([hidden]){
 .nav-layer-actions{display:flex;align-items:center;gap:5px}
 .nav-layers-head .nav-layer-actions button{min-width:40px;min-height:40px}
 .nav-layer-group{display:block;margin:8px 0 4px;font-size:12px;font-weight:700;color:#475569}
+
+.nav-layers-sheet .nav-layers-head{grid-template-columns:minmax(0,1fr) auto;gap:6px!important}
+.nav-layers-head .nav-layer-actions button,
+.nav-layers-sheet .nav-layer-actions .nav-layers-close{
+ width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;
+ flex:0 0 40px!important;border:1px solid #dbe5ef;border-radius:10px;background:#f1f6fb;color:#183654;
+ display:grid!important;place-items:center;padding:0!important;
+}
+.nav-layer-actions svg,#navLayersRefresh svg{width:18px;height:18px;vertical-align:middle}
+.nav-layers-sheet .nav-layer-actions .nav-layers-close{background:#fff3f2;color:#9f3030;border-color:#f3d4d1}
+#navLayersRefresh{display:flex;align-items:center;justify-content:center;gap:7px}
+@media(max-width:900px){
+ .nav-layers-sheet:not([hidden]){
+  inset-inline: max(8px,env(safe-area-inset-left,0px)) max(8px,env(safe-area-inset-right,0px))!important;
+  width:auto!important;max-width:none!important;margin:0!important;transform:none!important;
+  max-height:min(59dvh,calc(100dvh - var(--sunny-bottom-nav-height,68px) - 16px))!important;
+  padding:8px 12px 10px!important;overflow-x:hidden!important;animation:none!important;
+  border-radius:16px 16px 0 0;
+ }
+ .nav-layers-sheet .nav-layer-row{min-height:40px;padding-block:5px}
+}
