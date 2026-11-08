@@ -43,3 +43,25 @@ test('actual API client renews expired session once and does not repeat key muta
  await vm.runInContext("api('/api/weather',{samples:[]})",ctx);assert.equal(requests,2);assert.equal(renewals,1);
  requests=0;renewals=0;await assert.rejects(vm.runInContext("api('/api/voice/key',{key:'fake'})",ctx),/expired/);assert.equal(requests,1);assert.equal(renewals,0);
 });
+
+test('automatic reroute requires three distinct accurate off-route fixes over six seconds',async()=>{
+ const h=harness(false);
+ h.context.drivingUI.isActive=()=>true;
+ h.context.destPlace={lat:37,lng:127.1};
+ h.context.api=async(path,data)=>{h.calls.push({path,data});throw Error('simulated routing outage');};
+ h.$('rainStart').onclick();
+ h.fix(127.01);
+ const remaining=vm.runInContext('remainingRoutePoints()',h.context);
+ assert.ok(Math.abs(remaining[0].lng-127.01)<1e-8);
+ assert.equal(remaining.at(-1).lng,127.1);
+ h.fix(128);h.geo.tick();h.geo.tick();
+ h.advance(3000);h.fix(128);
+ assert.equal(h.calls.length,0);
+ h.advance(3000);h.fix(128);
+ await settle();
+ assert.equal(h.calls.length,1);
+ assert.equal(h.calls[0].path,'/api/route');
+ assert.equal(h.calls[0].data.origin.lng,128);
+ h.advance(3000);h.fix(128);
+ assert.equal(h.calls.length,1);
+});

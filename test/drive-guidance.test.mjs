@@ -48,7 +48,7 @@ test('Start guidance stays inside Sunny SAI and projects GPS onto Kakao map',()=
  assert.doesNotMatch(app,/if\(link\?\.href&&link\.href\.startsWith\('http'\)\)/);
  assert.match(app,/navigator\.geolocation\.watchPosition\(/);
  assert.match(app,/kmap\.panTo\(position\)/);
- assert.match(app,/drivingUI\.update\(found\.seconds,rainPosition\)/);
+ assert.match(app,/drivingUI\.update\(rainProgress,rainPosition\)/);
  assert.match(app,/drivingUI\.setAhead\(/);
  assert.match(app,/lastFollowTime=0/);
 });

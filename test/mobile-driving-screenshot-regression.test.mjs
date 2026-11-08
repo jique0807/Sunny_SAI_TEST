@@ -105,7 +105,7 @@ test('off-route shows explicit reroute action, invokes callback, hides again on 
  }finally{if(original===undefined)delete globalThis.document;else globalThis.document=original;}
 });
 test('reroute uses live GPS point, does not replace route on stale response, and is request-throttled',()=>{
- assert.match(app,/async function refreshRouteFromGps\(\)/);
+ assert.match(app,/async function refreshRouteFromGps\(automatic=false\)/);
  assert.match(app,/rainPosition\.accuracy>60/);
  assert.match(app,/Date\.now\(\)-rainPosition\.timestamp>30000/);
  assert.match(app,/Date\.now\(\)-lastRerouteAt<30000/);

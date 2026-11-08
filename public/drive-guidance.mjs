@@ -92,7 +92,7 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
    alerts.replaceChildren();
    const slots=[];
    if(offRoute){
-    slots.push({title:'경로 이탈 감지',subtitle:'정차 후 ↻ 재탐색을 눌러 현재 위치에서 다시 검색하세요',icon:'!',status:true});
+    slots.push({title:'경로 이탈 감지',subtitle:'이탈이 계속되면 자동 재탐색 · 정차 후 수동 재탐색 가능',icon:'!',status:true});
     if(showWeather)slots.push({title:'전방 기상안내 일시중지',subtitle:'경로 복귀 후 다시 확인',icon:'·',status:true});
    }else if(showWeather){
     for(const item of risks)slots.push({
