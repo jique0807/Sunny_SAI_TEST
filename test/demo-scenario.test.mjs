@@ -99,7 +99,7 @@ test('demo screen avoids repetitive synthetic labels but keeps a clear presentat
  assert.deepEqual(scenario.hazards.map(h=>h.title),['강한 비','짙은 안개','도로 침수 위험']);
  assert.ok(scenario.hazards.every(h=>!/가상/.test(h.title+h.measure+h.description)));
  assert.match(ui,/id="navDemoDisclaimer"[^>]*>.*시연 모드.*실제 관측/);
- assert.match(ui,/id="sunnyDemoBreaking"[^>]*>🚨 긴급특보 발생/);
+ assert.match(ui,/id="sunnyDemoBreaking"[^>]*aria-label="긴급특보 시연 발생"[^>]*>🚨<\/button>/);
  assert.match(drive,/시연 모드 · 실제 특보·위험정보 아님/);
  assert.match(app,/label\.textContent=\(\{rain:'강수',fog:'안개',flood:'침수',warning:'특보'\}\)/);
  const demo=app.slice(app.indexOf('async function demoRoute(){'),app.indexOf('const scriptLoads=new Map();'));
