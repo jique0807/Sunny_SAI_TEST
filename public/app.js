@@ -84,9 +84,22 @@ document.getElementById('navRoute')?.addEventListener('click',()=>{
  setNavTab('navRoute');
 });
 document.getElementById('navLayers')?.addEventListener('click',()=>showNavLayers(navLayersSheet?.hidden!==false));
-const closeNavLayers=event=>{event?.preventDefault?.();event?.stopPropagation?.();showNavLayers(false);document.getElementById('navLayers')?.focus?.({preventScroll:true});};
+const minimizeNavLayers=event=>{event?.preventDefault?.();event?.stopPropagation?.();showNavLayers(false);document.getElementById('navLayers')?.focus?.({preventScroll:true});};
+const disableMapLayers=()=>{
+ const rain=document.getElementById('navNationalRain');
+ if(rain?.checked){rain.checked=false;rain.dispatchEvent(new Event('change'));}
+};
+const closeNavLayers=event=>{disableMapLayers();minimizeNavLayers(event);};
+document.getElementById('navLayersMinimize')?.addEventListener('click',minimizeNavLayers);
+document.getElementById('navLayersReset')?.addEventListener('click',()=>{
+ disableMapLayers();
+ const weather=document.getElementById('navLayerWeather');
+ if(weather&&!weather.checked){weather.checked=true;weather.dispatchEvent(new Event('change'));}
+ const opacity=document.getElementById('navDemoOpacity');
+ if(opacity){opacity.value='45';opacity.dispatchEvent(new Event('input'));}
+});
 document.getElementById('navLayersClose')?.addEventListener('click',closeNavLayers);
-document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!navLayersSheet?.hidden)closeNavLayers(event);});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!navLayersSheet?.hidden)minimizeNavLayers(event);});
 document.getElementById('navMyLocation')?.addEventListener('click',()=>requestHomeLocation(true));
 document.getElementById('navSettings')?.addEventListener('click',()=>{
  showNavLayers(false);showNavSearch(false);setNavTab('navSettings');

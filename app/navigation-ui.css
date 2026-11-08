@@ -1881,3 +1881,7 @@ body.sunny-rain-grid-minimized .sunny-radar-quick:not([hidden]){
 #navRainGridTimeBar :is(#navRainGridLead,#navForecastImageLead){width:100%;margin:0}
 #navRainGridTimeBar :is(#navHsrReception,#navForecastReception) span{min-height:8px;padding:0}
 #navRainGridTimeBar .sunny-rain-mode-buttons button{min-height:36px}
+
+.nav-layer-actions{display:flex;align-items:center;gap:5px}
+.nav-layers-head .nav-layer-actions button{min-width:40px;min-height:40px}
+.nav-layer-group{display:block;margin:8px 0 4px;font-size:12px;font-weight:700;color:#475569}
