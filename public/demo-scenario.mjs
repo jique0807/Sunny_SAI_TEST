@@ -58,3 +58,28 @@ export function makeDemoScenario(route){
  }));
  return {hazards,samples};
 }
+
+// Synthetic breaking weather warning that appears ONLY after driving has begun.
+// It is never sent to any weather provider and is not a real KMA warning.
+export const DEMO_BREAKING_TRIGGER=0.42;
+export const DEMO_BREAKING_POSITION=0.68;
+export function shouldTriggerDemoBreakingWarning(previousPercent,nextPercent,alreadyIssued){
+ return !alreadyIssued&&Number.isFinite(previousPercent)&&Number.isFinite(nextPercent)&&
+  previousPercent<DEMO_BREAKING_TRIGGER*100&&nextPercent>=DEMO_BREAKING_TRIGGER*100;
+}
+export function makeDemoBreakingWarning(route,issuedAt=new Date().toISOString()){
+ if(!route||!Array.isArray(route.rainPath)||!Number.isFinite(route.duration)||
+   !Number.isFinite(Date.parse(route.departure)))throw new Error('가상 특보를 표시할 차량 경로가 없습니다.');
+ const seconds=Math.round(route.duration*DEMO_BREAKING_POSITION);
+ const point=demoPointAtSeconds(route.rainPath,seconds);
+ if(!point)throw new Error('가상 특보 위치를 확인하지 못했습니다.');
+ return {
+  id:'breaking-warning',kind:'warning',icon:'🚨',title:'긴급 호우주의보 신규 발효',
+  description:'주행 중 갑자기 호우주의보가 발효된 가상 상황입니다. 해당 구간 전방에서 속도를 줄이고 안전한 위치를 확인하세요.',
+  measure:'가상 호우주의보 발효 · 실제 기상청 특보 아님',
+  lat:point.lat,lng:point.lng,seconds,label:point.label,
+  eta:new Date(Date.parse(route.departure)+seconds*1000).toISOString(),
+  issuedAt,
+  demo:true,breaking:true,provider:'시연용 가상 신규 기상특보 · 실제 특보 발효 아님'
+ };
+}
