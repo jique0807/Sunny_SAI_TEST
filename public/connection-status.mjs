@@ -1,6 +1,6 @@
 import {fetchWithReception} from './layer-reception.mjs';
 // Connection status displayed INSIDE Sunny SAI environment settings.
-// Uses the existing preview-only, rate-limited real-provider diagnostics.
+// Uses the existing rate-limited real-provider diagnostics.
 // Never display credentials or infer road safety from key presence or raw data.
 export const DATA_CONNECTION_SOURCES=[
  {id:'map',group:'지도·길찾기',name:'카카오맵 지도',description:'JavaScript SDK · 프리뷰 허용 도메인'},
@@ -51,9 +51,9 @@ export function mapConnectionProbe(kind,data,previous){
   if(result[id]?.state!=='missing')result[id]={...result[id],...state(status,description)};
  };
  if(kind==='journey'){
-  const mapSdk=data?.mapSdk?.fixedPreviewAlias||data?.mapSdk||{};
+  const mapSdk=data?.mapSdk?.currentDomain||data?.mapSdk?.fixedPreviewAlias||data?.mapSdk||{};
   put('map',mapSdk.status==='received'?'ok':mapSdk.http===401?'error':'error',
-   mapSdk.status==='received'?'고정 프리뷰 도메인 SDK 응답 · 브라우저 화면 별도 확인':
+   mapSdk.status==='received'?'현재 앱 도메인 SDK 응답 · 브라우저 화면 별도 확인':
     mapSdk.http===401?'SDK 접근 거절(401) · 카카오 허용 도메인 확인':'지도 SDK 실수신 미확인');
   for(const [id,key,label]of [
    ['search','search','장소검색'],['route','route','차량 경로']

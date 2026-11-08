@@ -153,5 +153,6 @@ test('preview forecast diagnostics genuinely checks all four leads without simul
  assert.ok(!JSON.stringify(json).includes(key));
  const production=await handle(new Request(origin+'/api/rain-grid-diagnostic'),
   {...env,VERCEL_ENV:'production'},async()=>{throw Error('do not call');});
- assert.equal(production.status,404);
+ assert.equal(production.status,200);
+ assert.ok((await production.json()).results.every(x=>x.status==='received'));
 });
