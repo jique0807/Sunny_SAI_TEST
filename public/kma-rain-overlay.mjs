@@ -68,6 +68,12 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  const hourLabel=new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
  const reception=get('navHsrReception');
  const received=new Map();
+ const gridStates=new Map();
+ const gridReception=get('navGridReception');
+ const gridState=(lead,state)=>{
+  gridStates.set(lead,state);
+  if(gridReception)gridReception.innerHTML=Array.from({length:Number(slider?.max||5)+1},(_,i)=>'<span data-state="'+(gridStates.get(i)||'idle')+'"></span>').join('');
+ };
  const renderReception=()=>{
   if(!reception)return;
   reception.innerHTML=Array.from({length:6},(_,i)=>{
@@ -86,23 +92,24 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    if(ticks)ticks.innerHTML='<span>−60분</span><span>−40분</span><span>−20분</span><span>최근</span>';
    return;
   }
-  const labels=Array.from({length:4},(_,i)=>firstValidTime===null?'—':hourLabel.format(firstValidTime+i*3600000));
+  const labels=Array.from({length:6},(_,i)=>firstValidTime===null?'—':hourLabel.format(firstValidTime+i*3600000));
   if(step)step.textContent=labels[value]??'—';
   if(ticks)ticks.innerHTML=labels.map(label=>'<span>'+label+'</span>').join('');
   slider?.setAttribute('aria-valuetext',firstValidTime===null?'예보 시각 확인 전':labels[value]);
  };
  const syncSourceUI=()=>{
-  const radar=source==='radar';
+  const radar=source==='radar',grid=source==='grid';
+  panel?.classList?.toggle('sunny-grid-active',grid);
   for(const control of [slider,ticks,reception,get('navRainGridPlay')?.parentElement]){
-   if(control)control.hidden=!radar;
+   if(control)control.hidden=!(radar||grid);
   }
   renderReception();
   panel?.classList?.toggle('sunny-hsr-active',radar);
-  if(sourceTitle)sourceTitle.textContent=source==='radar'?'HSR 레이더 실황':'초단기 예보';
+  if(sourceTitle)sourceTitle.textContent=source==='radar'?'HSR 레이더 실황':grid?'전국 강수량 격자 예보':'초단기 예보';
   if(sourceSub)sourceSub.textContent=source==='radar'?'HSR 관측':'5km';
   if(slider){
    slider.style.direction=radar?'rtl':'ltr';
-   slider.max=source==='radar'?String(HSR_MAX_FRAME):'3';
+   slider.max=source==='radar'?String(HSR_MAX_FRAME):grid?'5':'3';
    slider.setAttribute('aria-label',source==='radar'?
     '레이더 관측 10분 단위 과거시각 선택 (0~60분 전)':'강수예보 유효시각 선택 (0~3시간)');
   }
@@ -124,7 +131,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  };
  const isKakao=()=>Boolean(map&&window.kakao?.maps);
  const updateButtons=()=>{
-  if(nationalRain)nationalRain.checked=enabled&&source==='forecast';
+  if(nationalRain)nationalRain.checked=enabled&&source==='grid';
   if(nationalRadar)nationalRadar.checked=enabled&&source==='radar';
   quick?.setAttribute('aria-pressed',String(enabled));
   if(quick){
@@ -231,8 +238,9 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   if(refresh)refresh.disabled=true;
   if(when)when.textContent='실제 강수격자 확인 중';
   message('수신 중','loading');
+  const lead=source==='grid'?Number(slider?.value||0):0;
+  if(source==='grid')gridState(lead,'loading');
   try{
-   const lead=0;
    if(typeof waitForSession==='function')await waitForSession();
    if(run!==requestId||!enabled)return;
    const cached=!force?frameCache.get(lead):null;
@@ -258,9 +266,11 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
      throw Error('강수예보 격자값 검증 실패');
    const validTime=Date.parse(data.validTime);
    if(!Number.isFinite(validTime))throw Error('예보 시각 검증 실패');
+   if(source==='grid'&&slider)slider.max=String(data.maxLead??5);
    firstValidTime=validTime-lead*3600000;
    syncLead();
    frameCache.set(lead,{data,until:Date.now()+FRAME_CACHE_MS});
+   if(source==='grid')gridState(lead,'received');
    forecast=data;loadedAt=Date.now();
    if(when)when.textContent='예보 발표 '+fmtTime(data.issuedAt)+' · 유효 '+fmtTime(data.validTime);
    const coverage=data.valid===0?' · 유효 격자 없음':data.cells.length===0?' · 유효 격자에 강수 없음':'';
@@ -268,6 +278,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    paint();
   }catch(e){
    if(run!==requestId||!enabled||e?.name==='AbortError')return;
+   if(source==='grid')gridState(lead,'failed');
    forecast=null;clear();message('수신 실패 · '+(e?.message||'자료 제공 상태 확인 필요'),'failed');
    if(when)when.textContent='실제 강수격자 수신 실패';
   }finally{if(run===requestId&&refresh)refresh.disabled=false;}
@@ -290,11 +301,11 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   },600000);
  }
  function setSource(next){
-  if(next!=='radar'&&next!=='forecast')return;
+  if(next!=='radar'&&next!=='forecast'&&next!=='grid')return;
   if(source===next)return;
   pausePlayback();++requestId;controller?.abort();
   forecast=null;radarFrame=null;clear();frameCache.clear();clearHSRCache();
-  source=next;firstValidTime=null;received.clear();
+  source=next;firstValidTime=null;received.clear();gridStates.clear();
   if(slider)slider.value='0';
   syncSourceUI();updateButtons();startRefresh();
   if(enabled)void load({force:true});
@@ -416,7 +427,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  });
  function setEnabled(next){
   enabled=Boolean(next);expanded=enabled;
-  if(!enabled){hideForecastImage();received.clear();}
+  if(!enabled){hideForecastImage();received.clear();gridStates.clear();}
   if(!enabled){firstValidTime=null;if(slider)slider.value='0';}
   pausePlayback();
   updateButtons();syncSourceUI();
@@ -448,15 +459,15 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   }
   playTimer=setInterval(()=>{
    if(!enabled||document.hidden){pausePlayback();return;}
+   if(refresh?.disabled)return;
    if(source==='radar'){
-    if(refresh?.disabled)return;
     const current=Number(slider?.value||0);
     slider.value=String(current===0?HSR_MAX_FRAME:current-1);
-   }else slider.value=String((Number(slider?.value||0)+1)%4);
+   }else slider.value=String((Number(slider?.value||0)+1)%(Number(slider.max)+1));
    syncLead();void load();
   },1000);
  }
- for(const [control,mode] of [[nationalRain,'forecast'],[nationalRadar,'radar']]){
+ for(const [control,mode] of [[nationalRain,'grid'],[nationalRadar,'radar']]){
   control?.addEventListener('change',()=>{
    if(!control.checked){setEnabled(false);return;}
    if(enabled){expanded=true;setSource(mode);updateButtons();onEnable?.();return;}

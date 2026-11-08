@@ -90,6 +90,9 @@ const disableMapLayers=()=>{
  if(rain?.checked){rain.checked=false;rain.dispatchEvent(new Event('change'));}
 };
 const closeNavLayers=event=>{disableMapLayers();minimizeNavLayers(event);};
+document.getElementById('navLayersnow')?.addEventListener('change',event=>{
+ if(event.currentTarget.checked)showNavLayers(false);
+});
 document.getElementById('navLayersMinimize')?.addEventListener('click',minimizeNavLayers);
 document.getElementById('navLayersReset')?.addEventListener('click',()=>{
  disableMapLayers();

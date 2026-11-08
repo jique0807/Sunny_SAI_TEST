@@ -42,7 +42,7 @@ test('official nationwide provider request uses KMA host and real date',async()=
  assert.equal(q.url.searchParams.get('authKey'),'server-only');
  assert.equal(q.url.searchParams.get('tmef').length,10);
  assert.equal(q.lead,2);
- await assert.rejects(nationalRainGrid(4,'key',async()=>new Response(example()),now),/시간/);
+ await assert.rejects(nationalRainGrid(6,'key',async()=>new Response(example()),now),/시간/);
  const res=await nationalRainGrid(0,'secret',async url=>{
   assert.equal(new URL(url).searchParams.get('vars'),'RN1');
   return new Response(example(),{headers:{'Content-Type':'text/plain'}});
@@ -64,7 +64,7 @@ test('actual forecast endpoint is preview-only, session bound and rejects invali
  assert.equal(unauthorized.status,401);
  const auth=await handle(new Request(origin+'/api/session'),env),cookie=auth.headers.getSetCookie()[0].split(';')[0];
  const headers={Cookie:cookie};
- const bad=await handle(new Request(origin+'/api/rain-grid?lead=4',{headers}),env);
+ const bad=await handle(new Request(origin+'/api/rain-grid?lead=6',{headers}),env);
  assert.equal(bad.status,400);
  const ok=await handle(new Request(url,{headers}),env,async providerUrl=>{
   const u=new URL(providerUrl);

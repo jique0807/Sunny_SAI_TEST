@@ -29,7 +29,7 @@ export function rainColor(f){
 export function gridPresentation(f,nowcast,rain,snow){
  if(!f)return null;
  if(snow&&isSnowPty(f.precipitationType))
-  return {color:'#8657c4',label:[3,7].includes(f.precipitationType)?'눈':'비·눈',kind:'snow'};
+  return {color:[3,7].includes(f.precipitationType)?'#8657c4':'#278899',label:[3,7].includes(f.precipitationType)?'눈':'비·눈',kind:'snow'};
  if(rain){
   const color=rainColor(f);
   if(color)return {color,label:f.rainLabel||'강수형태 예보',kind:'rain'};
@@ -52,6 +52,10 @@ export function initKmaMapOverlay({query,getContext,fallback,getActiveMap,format
  const slider=document.getElementById('navWeatherTimeRange');
  const timeLabel=document.getElementById('navWeatherTimeLabel');
  const close=document.getElementById('navWeatherTimeClose');
+ const snow=document.getElementById('navLayersnow');
+ const reception=document.getElementById('navSnowReception');
+ let minimized=false,playback=null;
+ function stopPlayback(){clearInterval(playback);playback=null;}
  let configured=false,cache=null,painted=[],timer=null,seq=0,lead=0;
  const enabled=()=>controls.some(c=>c?.checked);
  const message=s=>{if(status)status.textContent='기상청 지도예보: '+s;};
@@ -60,10 +64,14 @@ export function initKmaMapOverlay({query,getContext,fallback,getActiveMap,format
   painted=[];
  }
  function timePanel(){
-  if(panel)panel.hidden=!enabled()||!configured;
+  if(panel)panel.hidden=!enabled()||!configured||minimized;
   if(refresh)refresh.disabled=!enabled()||!configured;
  }
  function timing(data){
+  if(reception)reception.innerHTML=Array.from({length:4},(_,i)=>{
+   const received=data?.cells?.some(cell=>Number.isInteger((i===0?cell.forecast:cell.forecasts?.[i])?.precipitationType));
+   return '<span data-state="'+(received?'received':'idle')+'"></span>';
+  }).join('');
   const iso=data?.validTimes?.[lead];
   if(timeLabel)timeLabel.textContent=iso?
    new Date(iso).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' 예보':
@@ -146,7 +154,24 @@ export function initKmaMapOverlay({query,getContext,fallback,getActiveMap,format
   finally{if(requestId===seq)timePanel();}
  }
  function schedule(){if(!enabled())return;clearTimeout(timer);timer=setTimeout(()=>update(),650);}
+ document.getElementById('navSnowRefresh')?.addEventListener('click',()=>update(true));
+ document.getElementById('navSnowMinimize')?.addEventListener('click',()=>{minimized=true;timePanel();});
+ document.getElementById('navSnowPlay')?.addEventListener('click',()=>{
+  if(playback!==null)return;
+  playback=setInterval(()=>{
+   if(!enabled()||document.hidden){stopPlayback();return;}
+   slider.value=String((lead+1)%4);slider.dispatchEvent(new Event('input'));
+  },1000);
+ });
+ document.getElementById('navSnowPause')?.addEventListener('click',stopPlayback);
+ document.getElementById('navSnowStop')?.addEventListener('click',()=>{
+  stopPlayback();slider.value='0';slider.dispatchEvent(new Event('input'));
+ });
+ document.getElementById('navLayers')?.addEventListener('click',()=>{
+  if(snow?.checked&&minimized){minimized=false;timePanel();}
+ });
  for(const c of controls)c?.addEventListener('change',()=>{
+  minimized=false;stopPlayback();
   if(!enabled()){update();return;}
   if(!getContext()&&getActiveMap()==='schematic'){fallback();return;}
   update();
@@ -156,6 +181,7 @@ export function initKmaMapOverlay({query,getContext,fallback,getActiveMap,format
   if(cache)draw(cache.data);else timing();
  });
  close?.addEventListener('click',()=>{
+  stopPlayback();
   for(const c of controls)if(c)c.checked=false;
   update();
  });

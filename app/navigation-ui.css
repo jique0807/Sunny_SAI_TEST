@@ -1906,3 +1906,23 @@ body.sunny-rain-grid-minimized .sunny-radar-quick:not([hidden]){
  }
  .nav-layers-sheet .nav-layer-row{min-height:40px;padding-block:5px}
 }
+
+#navGridReception{display:none}
+#navRainGridTimeBar.sunny-grid-active .sunny-rain-mode-buttons{display:none}
+#navRainGridTimeBar.sunny-grid-active .sunny-rain-grid-head strong,
+#navRainGridTimeBar.sunny-grid-active #navRainGridStep,
+#navRainGridTimeBar.sunny-grid-active > .sunny-rain-grid-legend{display:flex!important}
+#navRainGridTimeBar.sunny-grid-active #navRainGridRefresh{display:grid!important}
+#navRainGridTimeBar.sunny-grid-active #navGridReception,#navSnowReception{
+ display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;
+}
+:is(#navGridReception,#navSnowReception) span{height:8px;border-radius:3px;background:#e8edf2}
+:is(#navGridReception,#navSnowReception) [data-state="received"]{background:#70c998}
+#navGridReception [data-state="loading"]{background:#92c5ff}
+#navGridReception [data-state="failed"]{background:#ef909a}
+#navWeatherTimeBar{box-sizing:border-box;max-width:calc(100vw - 16px);overflow:auto}
+#navWeatherTimeBar .nav-weather-timehead{display:flex;justify-content:space-between;align-items:center;gap:6px}
+#navWeatherTimeBar button{min-height:36px}
+#navWeatherTimeBar .sunny-rain-grid-controls{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-start}
+
+.sunny-snow-key{color:#8657c4}.sunny-sleet-key{color:#217480}
