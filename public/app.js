@@ -71,7 +71,11 @@ function showNavLayers(open){
 const mobileViewport=window.visualViewport;
 function syncMobileViewport(){
  if(!mobileViewport)return;
- const style=document.documentElement.style;
+ const root=document.documentElement;
+ const style=root.style;
+ // Ignore the height lost to pinch zoom when detecting the software keyboard.
+ const coveredHeight=root.clientHeight-mobileViewport.height*mobileViewport.scale;
+ root.classList.toggle('sunny-keyboard-open',coveredHeight>120);
  style.setProperty('--sunny-visible-left',mobileViewport.offsetLeft+'px');
  style.setProperty('--sunny-visible-top',mobileViewport.offsetTop+'px');
  style.setProperty('--sunny-visible-width',mobileViewport.width+'px');
