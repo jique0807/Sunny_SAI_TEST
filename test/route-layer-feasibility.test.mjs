@@ -59,7 +59,7 @@ test('combined preliminary provider feasibility reveals genuine gaps and omitted
  assert.ok(!JSON.stringify(r).includes(key));
  assert.ok(!JSON.stringify(r).includes(safemapKey));
 });
-test('GET feasibility endpoint available in preview and production, no query inputs or credentials',async()=>{
+test('GET feasibility endpoint available in preview and production, ignores query inputs and exposes no credentials',async()=>{
  const base='https://sai.test',env={VERCEL_ENV:'preview',
   APP_ORIGIN:base,SESSION_SECRET:'x'.repeat(48),
   KMA_API_KEY:key,SAFEMAP_API_KEY:safemapKey};
@@ -69,7 +69,8 @@ test('GET feasibility endpoint available in preview and production, no query inp
  const d=await r.json();assert.equal(d.warning.state,'text_received');
  assert.ok(!JSON.stringify(d).includes(key));
  const other=await handle(new Request(route+'?url=https://example.com'),env,mockedProvider);
- assert.equal(other.status,400);
+ assert.equal(other.status,200);
+ assert.deepEqual((await other.json()).floodLocal,d.floodLocal);
  const prod=await handle(new Request(route),{...env,VERCEL_ENV:'production'},mockedProvider);
  assert.equal(prod.status,200);
  assert.equal((await prod.json()).previewOnly,false);
