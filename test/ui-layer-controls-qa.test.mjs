@@ -130,6 +130,17 @@ test('rain panel close and reload trigger the same state machine in simple DOM',
   assert.equal(calls.at(-1),'/api/radar-overlay-frame?mode=nearest&frame=0');
   assert.equal(calls.length,3);
   assert.equal(node('navRouteRadar').attributes['aria-pressed'],'false');
+  node('navRouteRadar').dispatch('click');
+  overlay.disableRouteRadar();
+  assert.equal(node('sunnyDriveRadar').attributes['aria-pressed'],'false');
+  await flush();
+  node('sunnyDriveRadar').dispatch('click');
+  assert.equal(node('sunnyDriveRadar').attributes['aria-pressed'],'true');
+  assert.equal(node('navRainGridTimeBar').hidden,true);
+  await flush();
+  assert.equal(calls.at(-1),'/api/radar-overlay-frame?mode=nearest&frame=0');
+  assert.equal(calls.length,4);
+  assert.equal(node('sunnyDriveRadar').attributes['aria-pressed'],'false');
  }finally{
   overlay?.disable();
   for(const [k,v] of Object.entries(original)){

@@ -56,7 +56,8 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   play=get('navRainGridPlay'),pause=get('navRainGridPause'),reset=get('navRainGridReset'),
   step=get('navRainGridStep'),badge=get('navRainSwitchBadge'),
   quickLabel=get('navRainToggleLabel');
- const routeToggle=get("navRouteRadar");
+ const routeToggles=[get("navRouteRadar"),get("sunnyDriveRadar")].filter(Boolean);
+ const updateRouteToggles=fn=>routeToggles.forEach(fn);
  let routeRadar=false;
  let enabled=false,expanded=false,firstValidTime=null,map=null,canvas=null,forecast=null,radarFrame=null,
   source='forecast',requestId=0,controller=null,drawing=false,
@@ -135,9 +136,11 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  };
  const isKakao=()=>Boolean(map&&window.kakao?.maps);
  const updateButtons=()=>{
-  routeToggle?.setAttribute('aria-pressed',String(routeRadar));
-  const routeBadge=routeToggle?.querySelector?.('span');
-  if(routeBadge)routeBadge.textContent=routeRadar?'ON':'OFF';
+  updateRouteToggles(button=>{
+   button.setAttribute('aria-pressed',String(routeRadar));
+   const badge=button.querySelector?.('span');
+   if(badge)badge.textContent=routeRadar?'ON':'OFF';
+  });
   if(nationalRain)nationalRain.checked=enabled&&source==='grid';
   if(nationalRadar)nationalRadar.checked=enabled&&source==='radar';
   quick?.setAttribute('aria-pressed',String(enabled));
@@ -225,13 +228,13 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    }
    received.set(frame,'received');renderReception();
    radarFrame=data;loadedAt=Date.now();
-   if(routeRadar&&routeToggle)routeToggle.title='HSR 관측 '+data.timeKst.slice(8,10)+':'+data.timeKst.slice(10,12)+' KST';
+   if(routeRadar)updateRouteToggles(button=>{button.title='HSR 관측 '+data.timeKst.slice(8,10)+':'+data.timeKst.slice(10,12)+' KST';});
    if(when)when.textContent='';
    paint();
    if(!isKakao())message('레이더 실제 자료 수신 · 카카오 지도 연결 시 중첩됩니다.');
   }catch(e){
    if(run!==requestId||!enabled||source!=='radar'||e?.name==='AbortError')return;
-   if(routeRadar){setEnabled(false);if(routeToggle){routeToggle.title='현재 레이더 수신 실패';routeToggle.setAttribute('aria-label',routeToggle.title);}return;}
+   if(routeRadar){setEnabled(false);updateRouteToggles(button=>{button.title='현재 레이더 수신 실패';button.setAttribute('aria-label',button.title);});return;}
    received.set(frame,'failed');renderReception();
    radarFrame=null;clear();
    message('해당 시각 레이더 미수신 · '+(e?.message||'자료 제공 상태 확인 필요')+
@@ -435,7 +438,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   void loadForecastImage();
  });
  function setEnabled(next){
-  if(!next){routeRadar=false;if(routeToggle){routeToggle.title='';routeToggle.setAttribute('aria-label','현재 레이더 중첩');}}
+  if(!next){routeRadar=false;updateRouteToggles(button=>{button.title='';button.setAttribute('aria-label','현재 레이더 중첩');});}
   enabled=Boolean(next);expanded=enabled&&!routeRadar;
   if(!enabled){hideForecastImage();received.clear();gridStates.clear();}
   if(!enabled){firstValidTime=null;if(slider)slider.value='0';}
@@ -477,7 +480,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    syncLead();void load();
   },1000);
  }
- routeToggle?.addEventListener('click',()=>{
+ for(const button of routeToggles)button.addEventListener('click',()=>{
   if(routeRadar){setEnabled(false);return;}
   setEnabled(false);
   setSource('radar');
@@ -537,5 +540,5 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   pausePlayback();++requestId;controller?.abort();stopRefresh();clearHSRCache();clear();
  });
  syncSourceUI();updateButtons();pausePlayback();
- return {setMap,redraw:schedule,disable:()=>setEnabled(false),isEnabled:()=>enabled};
+ return {setMap,redraw:schedule,disableRouteRadar:()=>{if(routeRadar)setEnabled(false);},disable:()=>setEnabled(false),isEnabled:()=>enabled};
 }

@@ -69,6 +69,7 @@ function showNavLayers(open){
 // retaining the previous route, navigation progress or weather overlays.
 function goToInitialHome(){
  if(drivingUI.isActive())stopRain();
+ stopVoice();
  // A fresh session view also clears in-flight route searches and recovers
  // the original Kakao first-load behavior. Local saved favorites remain intact.
  window.location.reload();
@@ -307,7 +308,7 @@ const gate=new AlertGate();
 const fmt=iso=>new Date(iso).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Seoul'});
 const localInput=d=>new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
 const drivingUI=initDriveGuidance({
- onStop:()=>stopRain(),
+ onStop:goToInitialHome,
  onReroute:()=>{void refreshRouteFromGps();},
  formatTime:fmt,
  isWeatherEnabled:routeWeatherEnabled,
@@ -436,7 +437,7 @@ function startRainGuidance(){
  if(!route||route.demo||!route.rainPath?.length){toast('먼저 실제 차량 경로를 조회해주세요.');return;}
  if(!window.isSecureContext){toast('GPS는 HTTPS 주소에서 사용해주세요.');return;}
  if(!navigator.geolocation){toast('이 기기는 GPS 위치를 지원하지 않는 환경입니다.');return;}
- stopRain();drivingUI.start(route,weather);setNavTab('navRoute');$('navRouteResult').hidden=true;document.body.classList.remove('nav-route-open');void showMap('kakao');const run=rainRun;$('rainStart').disabled=true;$('rainStop').hidden=false;$('gpsStatus').textContent='GPS 권한·위치 수신 대기';$('rainStatus').textContent='비 예보 대기';
+ stopRain();rainGridOverlay.disableRouteRadar();drivingUI.start(route,weather);setNavTab('navRoute');$('navRouteResult').hidden=true;document.body.classList.remove('nav-route-open');void showMap('kakao');const run=rainRun;$('rainStart').disabled=true;$('rainStop').hidden=false;$('gpsStatus').textContent='GPS 권한·위치 수신 대기';$('rainStatus').textContent='비 예보 대기';
  rainWatch=navigator.geolocation.watchPosition(p=>{
   if(run!==rainRun)return;
   if(!Number.isFinite(p.coords.latitude)||!Number.isFinite(p.coords.longitude)||!Number.isFinite(p.coords.accuracy)||p.coords.accuracy>200){$('gpsStatus').textContent='GPS 정확도 부족 · 실외에서 200m 이내 위치 수신 대기';return;}
@@ -485,7 +486,7 @@ async function refreshRouteFromGps(){
  }finally{rerouteBusy=false;if(button)button.disabled=false;}
 }
 $('rainStart').onclick=startRainGuidance;
-$('rainStop').onclick=()=>{stopRain();stopVoice();};
+$('rainStop').onclick=()=>goToInitialHome();
 document.addEventListener('visibilitychange',()=>{if(rainWatch===null)return;if(document.hidden){stopVoice();$('gpsStatus').textContent='화면 숨김 · 안내 일시정지 (백그라운드 작동 보장 안 됨)';}else{rainLastFetch=0;checkRain();}});
 
 $('departure').value=localInput(new Date(Date.now()+120000));$('departure').min=localInput(new Date());$('departure').max=localInput(new Date(Date.now()+86400000));

@@ -29,7 +29,7 @@ export function buildRouteHazards(samples,{limit=12}={}){
  const dedup=[];
  for(const event of events){
   const last=dedup[dedup.length-1];
-  if(last?.kind===event.kind&&event.seconds-last.seconds<600)continue;
+  if(last?.kind===event.kind&&event.seconds-last.seconds<300)continue;
   dedup.push(event);if(dedup.length>=Math.max(1,Math.min(20,limit)))break;
  }
  return dedup;

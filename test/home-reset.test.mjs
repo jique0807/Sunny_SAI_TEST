@@ -17,12 +17,12 @@ test('Home clears active GPS navigation and reloads fresh rather than showing pr
  assert.ok(from>0&&end>from);
  const events=[];
  const environment={drivingUI:{isActive:()=>true},stopRain(){events.push('stopRain');},
-  window:{location:{reload(){events.push('reload');}}}};
+  stopVoice(){events.push('stopVoice');},window:{location:{reload(){events.push('reload');}}}};
  const ctx=vm.createContext(environment);
  vm.runInContext(code.slice(from,end),ctx);
  vm.runInContext('goToInitialHome()',ctx);
- assert.deepEqual(events,['stopRain','reload']);
+ assert.deepEqual(events,['stopRain','stopVoice','reload']);
  events.length=0;environment.drivingUI.isActive=()=>false;
  vm.runInContext('goToInitialHome()',ctx);
- assert.deepEqual(events,['reload']);
+ assert.deepEqual(events,['stopVoice','reload']);
 });

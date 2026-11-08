@@ -1963,3 +1963,13 @@ body.sunny-rain-grid-minimized .sunny-radar-quick:not([hidden]){
 .nav-route-result-head #navRouteRadar[aria-pressed="true"] {
  background:#e5f1ff;color:#1458ab;border-color:#96bce9;
 }
+
+body.sunny-guiding .sunny-drive-footer #sunnyDriveRadar {
+ position:absolute;left:0;bottom:calc(100% + 6px);
+ padding:5px 10px;min-height:44px!important;white-space:nowrap;
+ background:#fff;color:#223b56;border:1px solid #b8cde1;border-radius:10px;
+}
+body.sunny-guiding .sunny-drive-footer #sunnyDriveRadar[aria-pressed="true"] {
+ background:#e5f1ff;color:#1458ab;border-color:#96bce9;
+}
+#sunnyDriveRadar span {font-weight:700}

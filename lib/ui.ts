@@ -44,6 +44,7 @@ export const ui = `
   </div>
   <div id="sunnyDriveHazardDetail" class="sunny-hazard-detail sunny-drive-hazard-detail" hidden aria-live="polite"></div>
   <div class="sunny-drive-footer">
+    <button id="sunnyDriveRadar" type="button" aria-pressed="false" aria-label="현재 레이더 중첩">현재 레이더 <span>OFF</span></button>
     <button id="sunnyDriveHome" type="button" class="sunny-drive-home" aria-label="초기화면으로 돌아가기">⌂ 홈</button>
     <div><strong id="sunnyDriveSummary">경로 위치 확인 중</strong><small id="sunnyDriveGpsText">GPS 권한 확인 중 · 화면 켜짐 필요</small></div>
     <button id="sunnyDriveReroute" type="button" hidden title="정차 후 현재 GPS 위치에서 경로 재탐색" aria-label="현재 GPS 위치 기준 차량 경로 다시 조회">↻ 재탐색</button>
