@@ -23,7 +23,8 @@ const layers={
  road:{state:'provider_zip_parsed',recordCount:8000},
  roadSchema:{schemas:[{hasCoordinateColumns:true,georeferencedRows:2295}]},
  warning:{state:'text_received',http:200},
- flood:{state:'http_error',http:400}
+ flood:{state:'http_error',http:400},
+ floodLocal:{state:'http_error',http:403}
 };
 function el(name='div'){
  return {
@@ -57,7 +58,7 @@ test('source inventory covers all agreed menu sources but excludes CCTV and ordi
 test('key presence never equals a verified provider response',()=>{
  const empty=initialConnectionResults();
  assert.equal(empty.map.state,'unknown');
- assert.equal(empty.floodLocal.state,'pending');
+ assert.equal(empty.floodLocal.state,'unknown');
  const configured=applySessionConfiguration(empty,session);
  assert.equal(configured.rain.state,'configured');
  assert.equal(configured.map.state,'configured');
@@ -68,7 +69,7 @@ test('key presence never equals a verified provider response',()=>{
  assert.equal(missing.route.state,'missing');
  assert.equal(missing.vworld.state,'missing');
  assert.equal(missing.rain.state,'missing');
- assert.equal(missing.floodLocal.state,'pending');
+ assert.equal(missing.floodLocal.state,'missing');
 });
 test('live forecast/radar/route success never mislabels unverified road risk or flood risk as safe',()=>{
  let values=applySessionConfiguration(initialConnectionResults(),session);
@@ -85,7 +86,7 @@ test('live forecast/radar/route success never mislabels unverified road risk or 
  assert.match(values.warning.detail,/구역경계 미검증/);
  assert.equal(values.floodNational.state,'error');
  assert.match(values.floodNational.detail,/HTTP 400/);
- assert.equal(values.floodLocal.state,'pending');
+ assert.equal(values.floodLocal.state,'error');
  assert.equal(values.floodNational.keyRegistered,true);
  assert.equal(summarizeConnectionResults(values).counts.ok,6);
  assert.equal(values.vworld.state,'configured'); // No actual VWorld tile probe
@@ -157,5 +158,5 @@ test('rate-limit response is not treated as successful data and unmapped sources
  await panel.refresh();
  assert.equal(panel.getStatus().rain.state,'unverified');
  assert.match(panel.getStatus().rain.detail,/검사 횟수 제한/);
- assert.equal(panel.getStatus().floodLocal.state,'pending');
+ assert.equal(panel.getStatus().floodLocal.state,'error');
 });

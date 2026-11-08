@@ -13,7 +13,7 @@ export const DATA_CONNECTION_SOURCES=[
  {id:'road',group:'도로위험',name:'도로살얼음·안개',description:'도로 링크별 공식 위험기상정보'},
  {id:'warning',group:'기상특보',name:'기상특보 현황',description:'발효지역·특보등급 검증 필요'},
  {id:'floodNational',group:'침수',name:'국가하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 아님'},
- {id:'floodLocal',group:'침수',name:'지방하천 범람예상지도',description:'지방하천 WMS 호출 미연동'}
+ {id:'floodLocal',group:'침수',name:'지방하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 아님'}
 ];
 export const CONNECTION_STATE_TEXT={
  unknown:'검사 전',unverified:'검사 보류',checking:'조회 중',configured:'검사 전',
@@ -21,9 +21,8 @@ export const CONNECTION_STATE_TEXT={
 };
 export function initialConnectionResults(){
  return Object.fromEntries(DATA_CONNECTION_SOURCES.map(x=>[x.id,{
-  state:x.id==='floodLocal'?'pending':'unknown',
-  detail:x.id==='floodLocal'?
-   '지방하천 전용 API 호출 경로가 등록되지 않았습니다.':'연결 상태를 새로고침해 실제 API를 확인하세요.'
+  state:'unknown',
+  detail:'연결 상태를 새로고침해 실제 API를 확인하세요.'
  }]));
 }
 function state(state,detail){return{state,detail};}
@@ -40,7 +39,7 @@ export function applySessionConfiguration(current,session){
   map:Boolean(session?.mapConfig?.kakao),vworld:Boolean(session?.mapConfig?.vworld),
   search:config.route,route:config.route,
   forecast:config.kma,rain:config.kma,radar:config.kma,
-  road:config.roadRisk,warning:config.kma,floodNational:config.safemap
+  road:config.roadRisk,warning:config.kma,floodNational:config.safemap,floodLocal:config.safemap
  };
  for(const [id,yes]of Object.entries(configured)){
   copy[id]={...(yes?state('configured',id==='vworld'?'API 키 등록됨 · 위성 타일 수신은 지도에서 확인할 수 있습니다.':'실제 API 응답 검사 전'):state('missing','서버 인증키 미설정')),keyRegistered:Boolean(yes)};
@@ -96,12 +95,12 @@ export function mapConnectionProbe(kind,data,previous){
    'partial':'error',wrn?.state==='text_received'||wrn?.state==='header_or_empty_received'?
     '공식 텍스트 응답 · 특보내용·구역경계 미검증':
     wrn?.http===403?'기상특보 접근 거절(403)':'기상특보 API 실수신 미확인');
-  const flood=data?.flood;
-  put('floodNational',['png_received','png_content_type_received'].includes(flood?.state)?
-   'partial':'error',['png_received','png_content_type_received'].includes(flood?.state)?
-    'WMS 이미지 응답형식 확인 · 실제 범람정보 미검증':
-    flood?.http?'하천범람 WMS HTTP '+flood.http+' · 제공 상태 확인':
+  for(const [id,flood]of [['floodNational',data?.flood],['floodLocal',data?.floodLocal]]){
+   const png=flood?.state==='png_received';
+   put(id,png?'partial':'error',png?'WMS PNG 헤더 확인 · 실제 범람정보 미검증':
+    flood?.state==='http_error'?'하천범람 WMS HTTP '+flood.http+' · 제공 상태 확인':
      '하천범람 WMS 이미지 수신 미확인');
+  }
  }
  return result;
 }
@@ -183,7 +182,7 @@ export function initConnectionStatusPanel({
    values=applySessionConfiguration(initialConnectionResults(),session);
    for(const [ids]of [
     [['map','search','route','forecast']],[['rain']],[['radar']],
-    [['road','warning','floodNational']]
+    [['road','warning','floodNational','floodLocal']]
    ])for(const id of ids)if(values[id]?.state==='configured')
     values[id]={...values[id],...state('checking','실제 공급기관 API 응답 확인 중')};
    render();
@@ -191,7 +190,7 @@ export function initConnectionStatusPanel({
     ['journey','/api/preview-journey-smoke',['map','search','route','forecast']],
     ['rain','/api/rain-grid-diagnostic',['rain']],
     ['radar','/api/radar-latest-diagnostic',['radar']],
-    ['layers','/api/route-layer-feasibility',['road','warning','floodNational']]
+    ['layers','/api/route-layer-feasibility',['road','warning','floodNational','floodLocal']]
    ];
    await Promise.all(checks.map(async([kind,path,ids])=>{
     if(!ids.some(id=>values[id]?.state==='checking'))return;

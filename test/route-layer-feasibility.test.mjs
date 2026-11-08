@@ -4,7 +4,7 @@ import {probeKmaWarning,probeKmaRoadRisk,probeFloodWms,checkRouteLayerFeasibilit
  from '../lib/route-layer-feasibility.mjs';
 import {handle} from '../lib/api.mjs';
 const key='test-key+never-print',safemapKey='safemap-key-secret';
-const png=new Uint8Array([137,80,78,71,13,10,26,10]);
+const png=new Uint8Array([137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82,0,0,1,0,0,0,1,0]);
 function mockedProvider(url){
  const u=new URL(url);
  if(u.pathname.endsWith('/wrn_now_data.php')){
@@ -19,6 +19,11 @@ function mockedProvider(url){
  if(u.pathname.endsWith('/IF_0089_WMS')){
   assert.equal(u.searchParams.get('serviceKey'),safemapKey);
   return new Response(png,{headers:{'content-type':'image/png'}});
+ }
+ if(u.pathname.endsWith('/IF_0100_WMS')){
+  assert.equal(u.searchParams.get('serviceKey'),safemapKey);
+  assert.equal(u.searchParams.get('srs'),'EPSG:4326');
+  return new Response('provider rejected request',{status:400});
  }
  throw Error('Unexpected provider');
 }
@@ -37,7 +42,7 @@ test('road-risk ZIP not verified means unavailable; never invent map coordinates
 });
 test('WMS transparent PNG is not proof of live road flooding',async()=>{
  const r=await probeFloodWms(safemapKey,mockedProvider);
- assert.equal(r.state,'png_content_type_received');
+ assert.equal(r.state,'png_received');
  assert.equal(r.spatialIntersectionVerified,false);
  assert.ok(!JSON.stringify(r).includes(safemapKey));
 });
@@ -45,7 +50,8 @@ test('combined preliminary provider feasibility reveals genuine gaps and omitted
  const r=await checkRouteLayerFeasibility({kmaKey:key,safemapKey,fetcher:mockedProvider});
  assert.equal(r.warning.state,'text_received');
  assert.equal(r.road.state,'request_or_format_failed');
- assert.equal(r.flood.state,'png_content_type_received');
+ assert.equal(r.flood.state,'png_received');
+ assert.equal(r.floodLocal.http,400);
  for(const item of ['humidity','wind_direction','general_temperature','cctv'])
   assert.ok(r.constraints.excludes.includes(item));
  assert.ok(!JSON.stringify(r).includes(key));
