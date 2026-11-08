@@ -2,7 +2,7 @@
 'use strict';
 if(window.sunnyInitialized)return;window.sunnyInitialized=true;
 const {assess,AlertGate}=await import('/rules.mjs');
-const {makeDemoScenario,DEMO_SEOUL_BUSAN,demoPointAtSeconds}=await import('/demo-scenario.mjs');
+const {makeDemoScenario,makeDemoBreakingWarning,shouldTriggerDemoBreakingWarning,DEMO_BREAKING_TRIGGER,DEMO_SEOUL_BUSAN,demoPointAtSeconds}=await import('/demo-scenario.mjs');
 const {projectRoute,roadSection,kakaoRouteLink}=await import('/map-geometry.mjs');
 const {coordinatePlace,nearestSample,tileHealth}=await import('/map-state.mjs');
 const {voiceCatalog}=await import('/voice-catalog.mjs');
@@ -792,7 +792,7 @@ function drawDemoOverlays(){
  }
  for(const h of route.demoHazards||[]){
   const marker=document.createElement('button');marker.type='button';
-  marker.className='hazard-pin sunny-demo-pin';marker.title='[가상 시연] '+h.title+' · 상세보기';
+  marker.className='hazard-pin sunny-demo-pin'+(h.breaking?' sunny-demo-breaking-pin':'');marker.title='[가상 시연] '+h.title+' · 상세보기';
   marker.setAttribute('aria-label','[가상 시연] '+h.title+' 상세보기');
   const icon=document.createElement('span');icon.textContent=h.icon;
   const label=document.createElement('small');label.textContent='가상';
@@ -808,6 +808,36 @@ function drawDemoOverlays(){
  carOverlay=add(route.rainPath?.[0]||route.vertices[0],'<div class="car-pin" aria-label="가상 시연 자동차">🚙</div>');
 }
 function moveCar(){if(route?.vertices?.length){const p=route.demo?demoPointAtSeconds(route.rainPath,route.duration*progress/100):pointAlong(route.vertices,progress/100);if(carOverlay?.setPosition)carOverlay.setPosition(new kakao.maps.LatLng(p.lat,p.lng));else if(carOverlay?.setLatLng)carOverlay.setLatLng([p.lat,p.lng]);if(activeMap==='schematic'){let car=$('vectorCar');if(!car){car=document.createElementNS('http://www.w3.org/2000/svg','text');car.id='vectorCar';car.textContent='🚙';car.setAttribute('font-size','30');$('actualRoute').append(car);}const points=projectRoute(route.vertices),nearest=route.vertices.reduce((best,v,i)=>Math.hypot(v.lat-p.lat,v.lng-p.lng)<Math.hypot(route.vertices[best].lat-p.lat,route.vertices[best].lng-p.lng)?i:best,0);car.setAttribute('x',points[nearest].x-15);car.setAttribute('y',points[nearest].y+10);}return;}const path=$('routeLine'),point=path.getPointAtLength(path.getTotalLength()*progress/100);$('carMarker').setAttribute('transform',`translate(${point.x},${point.y})`);}
+// Inject an entirely new event into an already running fictional journey.
+// No remote weather-warning request or actual public alert is generated.
+function injectDemoBreakingWarning(){
+ if(!route?.demo||route.demoBreakingWarning||!drivingUI.isActive())return false;
+ const hazard=makeDemoBreakingWarning(route);
+ route.demoBreakingWarning=hazard;
+ route.demoHazards=[...route.demoHazards,hazard].sort((a,b)=>a.seconds-b.seconds);
+ const sample={...hazard,status:'demo',demoHazard:hazard,forecast:null};
+ route.samples=[...(route.samples||[]),sample].sort((a,b)=>a.seconds-b.seconds);
+ weather={...weather,samples:route.samples};
+ const button=$('sunnyDemoBreaking');
+ if(button)button.hidden=true;
+ renderCards();
+ drawDemoOverlays();moveCar();
+ drivingUI.render();
+ reply('[가상 긴급상황] 지금 새로운 호우주의보가 발효됐습니다. 전방 '+hazard.label+
+  '에 위험지점이 새로 추가됐습니다. 실제 기상특보가 아닌 시연입니다.',appPrefs.voiceAlerts);
+ return true;
+}
+function resetDemoBreakingWarning(){
+ if(!route?.demo)return;
+ route.demoBreakingWarning=null;
+ route.demoHazards=(route.demoHazards||[]).filter(h=>!h.breaking);
+ route.samples=(route.samples||[]).filter(s=>!s.breaking);
+ weather={...weather,samples:route.samples};
+ const button=$('sunnyDemoBreaking');
+ if(button){button.hidden=false;button.disabled=false;}
+ renderCards();drawDemoOverlays();moveCar();
+ drivingUI.render();
+}
 function advance(value){
  const previous=progress;
  progress=Math.max(0,Math.min(100,Number(value)||0));
@@ -816,8 +846,12 @@ function advance(value){
  if(!route?.demo)return;
  const elapsed=route.duration*progress/100;
  if(drivingUI.isActive())drivingUI.update(elapsed,null,false);
+ // Place new warning on the ahead-of-driver route only when it is issued mid-trip.
+ const justIssued=shouldTriggerDemoBreakingWarning(previous,progress,!!route.demoBreakingWarning)
+  &&injectDemoBreakingWarning();
  for(const h of route.demoHazards||[]){
-  if(previous*route.duration/100<h.seconds&&elapsed>=h.seconds&&gate.take('demo:'+h.id))
+  if(previous*route.duration/100<h.seconds&&elapsed>=h.seconds&&gate.take('demo:'+h.id) &&
+    !justIssued)
    reply('[시연용 가상 데이터 · 실제 위험 아님] '+h.title+'. '+h.measure+'. '+h.description,appPrefs.voiceAlerts);
  }
  if(progress>=100){
@@ -832,7 +866,7 @@ function pauseDrive(){
 }
 function startDemoPlayback(){
  if(!route?.demo||playing)return;
- if(progress>=100){progress=0;gate.reset();advance(0);}
+ if(progress>=100){progress=0;gate.reset();resetDemoBreakingWarning();advance(0);}
  playing=true;document.body.classList.add('driving');
  $('driveControls').hidden=false;$('drive').textContent='Ⅱ 일시정지';
  if($('sunnyDemoPause'))$('sunnyDemoPause').textContent='Ⅱ 일시정지';
@@ -841,10 +875,13 @@ function startDemoPlayback(){
 function startDemoGuidance(){
  if(!route?.demo)return;
  pauseDrive();rainGridOverlay.disableRouteRadar();
+ // Clear previously issued synthetic warning when restarting a demo.
+ resetDemoBreakingWarning();
  drivingUI.start(route,weather);
  $('navRouteResult').hidden=true;document.body.classList.remove('nav-route-open');
  setNavTab('navRoute');showNavSearch(false);
  $('sunnyDemoNext').hidden=false;$('sunnyDemoPause').hidden=false;
+ $('sunnyDemoBreaking').hidden=false;
  $('driveControls').hidden=false;
  progress=0;gate.reset();advance(0);
  void showMap('kakao');
@@ -856,9 +893,14 @@ $('sunnyDemoNext')?.addEventListener('click',()=>{
  pauseDrive();
  const elapsed=route.duration*progress/100;
  const next=(route.demoHazards||[]).find(h=>h.seconds>elapsed+1);
- if(next)advance(Math.min(100,(next.seconds/route.duration)*100+0.01));
+ const triggerAt=route.duration*DEMO_BREAKING_TRIGGER;
+ // Presenter can advance scene-by-scene: a NEW warning arrives between fog and ice.
+ if(!route.demoBreakingWarning&&triggerAt>elapsed+1&&(!next||triggerAt<next.seconds))
+  advance(DEMO_BREAKING_TRIGGER*100+0.01);
+ else if(next)advance(Math.min(100,(next.seconds/route.duration)*100+0.01));
  else{advance(100);toast('모든 가상 위험 이벤트를 확인했습니다.');}
 });
+$('sunnyDemoBreaking')?.addEventListener('click',()=>{if(route?.demo)injectDemoBreakingWarning();});
 $('sunnyDemoPause')?.addEventListener('click',()=>{
  if(route?.demo)playing?pauseDrive():startDemoPlayback();
 });
@@ -872,6 +914,7 @@ $('endDrive').onclick=()=>{
  $('progress').value='0';moveCar();$('driveControls').hidden=true;
  if(drivingUI.isActive())drivingUI.stop();
  $('sunnyDemoNext').hidden=true;$('sunnyDemoPause').hidden=true;
+ $('sunnyDemoBreaking').hidden=true;
  showNavRouteResult();
  reply('가상 시연을 종료했어요.');
 };
