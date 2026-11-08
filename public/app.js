@@ -266,28 +266,26 @@ function clearWeatherOverlays(){
 function drawWeatherOverlays(){
  clearWeatherOverlays();
  if(document.getElementById('navLayerWeather')?.checked===false||!kmap||!route||route.demo||!['kakao','skyview'].includes(activeMap))return;
- const samples=(routeAheadWeather||weather)?.samples||[];
- const count=Math.min(Number($('weatherMarkerCount').value),samples.length);
- const selected=count===1?[samples[Math.floor(samples.length/2)]]:Array.from({length:count},(_,i)=>samples[Math.round(i*(samples.length-1)/(count-1))]);
- for(const sample of selected){
-  if(!Number.isFinite(sample.lat)||!Number.isFinite(sample.lng))continue;
-  const forecast=sample.forecast;
-  const label=document.createElement('div');
-  label.classList.add('nav-forecast-map-label');
-  label.style.cssText='background:white;color:#183c30;border:2px solid #426351;border-radius:10px;padding:7px 10px;font-size:12px;white-space:nowrap;box-shadow:0 2px 6px #0003;transform:translateX(24px)';
-  const temperature=Number.isFinite(forecast?.temperature)?forecast.temperature+'°C':'기온 미제공';
-  const rain=Number.isFinite(forecast?.rain)?forecast.rain+' mm':forecast?.rainText||'강수량 미제공';
-  label.textContent=fmt(sample.eta)+' · '+(forecast?temperature+' · '+rain:'예보 미수신');
-  label.title=sample.label+' · '+(routeAheadWeather||weather)?.source+' · 예상 통과시각 예보';
+ const hazards=buildRouteHazards((routeAheadWeather||weather)?.samples);
+ for(const hazard of hazards){
+  if(!Number.isFinite(hazard.lat)||!Number.isFinite(hazard.lng))continue;
+  const marker=document.createElement('button');
+  marker.type='button';
+  marker.className='sunny-route-map-hazard';
+  marker.textContent=hazard.icon;
+  marker.setAttribute('aria-label',hazard.title+' 상세정보');
+  marker.addEventListener('click',event=>{
+   event.stopPropagation();
+   const panel=drivingUI.isActive()?$('sunnyDriveHazardDetail'):$('navRouteHazardDetail');
+   showHazardDetail(panel,hazard,fmt);
+  });
   weatherOverlays.push(new kakao.maps.CustomOverlay({
-   map:kmap,position:new kakao.maps.LatLng(sample.lat,sample.lng),
-   content:label,xAnchor:0,yAnchor:0.5,zIndex:4
+   map:kmap,position:new kakao.maps.LatLng(hazard.lat,hazard.lng),
+   content:marker,xAnchor:0.5,yAnchor:0.5,zIndex:24,clickable:true
   }));
  }
 }
 
-$('weatherProvider').parentElement.insertAdjacentHTML('afterend','<label class="weather-provider-label" for="weatherMarkerCount">지도 날씨 표시 수 <select id="weatherMarkerCount"><option value="1">1개</option><option value="2">2개</option><option value="3">3개</option><option value="4">4개</option><option value="5" selected>5개</option></select></label>');
-$('weatherMarkerCount').onchange=drawWeatherOverlays;
 const providerState={kakao:'미확인',vworld:'미확인'};
 const gate=new AlertGate();
 const fmt=iso=>new Date(iso).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Seoul'});
@@ -609,7 +607,7 @@ function showNavRouteResult(){
  $('navRouteArrival').textContent='도착 '+fmt(new Date(Date.parse(route.departure)+route.duration*1000));
  renderRouteHazards();sheet.hidden=false;document.body.classList.add('nav-route-open');setNavTab('navRoute');ensureNavigationKakao();
 }
-$('navRouteResultClose')?.addEventListener('click',()=>{$('navRouteResult').hidden=true;document.body.classList.remove('nav-route-open');setNavTab('navHome');});
+$('navRouteResultClose')?.addEventListener('click',goToInitialHome);
 $('navStartGuidance')?.addEventListener('click',startRainGuidance);
 async function loadWeather(){if(!route||route.demo)return;const current=route;const run=routeSeq;const weatherRun=++weatherSeq;$('refresh').disabled=true;$('weatherDetail').textContent='예보 확인 중';try{const d=await api('/api/weather',{samples:route.samples,provider:$('weatherProvider').value});if(route!==current||run!==routeSeq||weatherRun!==weatherSeq)return;weather=d;renderCards();drivingUI.setWeather(weather);reply(d.samples.some(p=>p.forecast)?d.source+'를 확인했어요. 공사·통제는 별도 확인이 필요합니다.':'기상 예보를 확인하지 못했어요. '+(d.samples.find(p=>p.error)?.error||'자료 제공 범위를 확인해주세요.'));}catch(e){if(route!==current||run!==routeSeq||weatherRun!==weatherSeq)return;weather={provider:$('weatherProvider').value==='kma'?'kma':'open-meteo',samples:route.samples.map(p=>({...p,forecast:null,error:e.message})),source:'조회 실패',fetchedAt:new Date().toISOString()};renderCards();drivingUI.setWeather(weather);reply(e.message);}finally{if(route===current&&run===routeSeq&&weatherRun===weatherSeq)$('refresh').disabled=false;}}
 $('refresh').onclick=loadWeather;$('weatherProvider').onchange=()=>{if(route&&!route.demo)loadWeather();};

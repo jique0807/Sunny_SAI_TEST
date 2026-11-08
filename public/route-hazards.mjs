@@ -21,7 +21,7 @@ export function buildRouteHazards(samples,{limit=12}={}){
   const exactSnow=safeValue(f.snowfall);
   const snowLabel=typeof f.snowfallLabel==='string'&&f.snowfallLabel.trim()?f.snowfallLabel.trim():
     exactSnow!==null?exactSnow+'cm':null;
-  events.push({kind,icon:ICONS[kind],title:TITLE[kind],seconds:s.seconds,label,
+  events.push({kind,icon:ICONS[kind],title:TITLE[kind],seconds:s.seconds,label,lat:safeValue(s.lat),lng:safeValue(s.lng),
    eta:typeof s.eta==='string'?s.eta:null,validTime:f.time||null,
    rainLabel,snowLabel,provider:'기상청 격자예보',grid:s.grid||null});
  }
