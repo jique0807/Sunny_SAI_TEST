@@ -12,19 +12,18 @@ export const DATA_CONNECTION_SOURCES=[
  {id:'radar',group:'강수·눈',name:'HSR 레이더 실황',description:'실제 관측영상 · 10분 간격 표출'},
  {id:'road',group:'도로위험',name:'도로살얼음·안개',description:'도로 링크별 공식 위험기상정보'},
  {id:'warning',group:'기상특보',name:'기상특보 현황',description:'발효지역·특보등급 검증 필요'},
- {id:'floodNational',group:'침수·수위',name:'국가하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 아님'},
- {id:'floodLocal',group:'침수·수위',name:'지방하천 범람예상지도',description:'신청 목록 확인 · 별도 WMS 수신 미검증'},
- {id:'riverLevel',group:'침수·수위',name:'하천수위 측정정보',description:'XML 신청 목록 확인 · 프로그램 연동 전'}
+ {id:'floodNational',group:'침수',name:'국가하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 아님'},
+ {id:'floodLocal',group:'침수',name:'지방하천 범람예상지도',description:'지방하천 WMS 호출 미연동'}
 ];
 export const CONNECTION_STATE_TEXT={
- unknown:'검사 전',unverified:'검사 보류',checking:'조회 중',configured:'키 등록',
- ok:'수신 성공',partial:'부분 확인',error:'수신오류',empty:'자료없음',disconnected:'미연결',missing:'키 없음',pending:'미연동'
+ unknown:'검사 전',unverified:'검사 보류',checking:'조회 중',configured:'검사 전',
+ ok:'연결',partial:'연결',error:'연결실패',empty:'연결',disconnected:'연결실패',missing:'연결실패',pending:'연결실패'
 };
 export function initialConnectionResults(){
  return Object.fromEntries(DATA_CONNECTION_SOURCES.map(x=>[x.id,{
-  state:['floodLocal','riverLevel'].includes(x.id)?'pending':'unknown',
-  detail:['floodLocal','riverLevel'].includes(x.id)?
-   '연동·개별 데이터 수신 검증 전':'연결 상태를 새로고침해 실제 API를 확인하세요.'
+  state:x.id==='floodLocal'?'pending':'unknown',
+  detail:x.id==='floodLocal'?
+   '지방하천 전용 API 호출 경로가 등록되지 않았습니다.':'연결 상태를 새로고침해 실제 API를 확인하세요.'
  }]));
 }
 function state(state,detail){return{state,detail};}
@@ -44,15 +43,14 @@ export function applySessionConfiguration(current,session){
   road:config.roadRisk,warning:config.kma,floodNational:config.safemap
  };
  for(const [id,yes]of Object.entries(configured)){
-  copy[id]=yes?state('configured','서버에 인증키 등록됨 · 실수신 검사 필요'):
-   state('missing','서버 인증키 미설정');
+  copy[id]={...(yes?state('configured','실제 API 응답 검사 전'):state('missing','서버 인증키 미설정')),keyRegistered:Boolean(yes)};
  }
  return copy;
 }
 export function mapConnectionProbe(kind,data,previous){
  const result={...previous};
  const put=(id,status,description)=>{
-  if(result[id]?.state!=='missing')result[id]=state(status,description);
+  if(result[id]?.state!=='missing')result[id]={...result[id],...state(status,description)};
  };
  if(kind==='journey'){
   const mapSdk=data?.mapSdk?.fixedPreviewAlias||data?.mapSdk||{};
@@ -111,9 +109,9 @@ export function summarizeConnectionResults(results){
  const counts={ok:0,partial:0,error:0,empty:0,disconnected:0,missing:0,pending:0,unknown:0,unverified:0,checking:0,configured:0};
  for(const v of Object.values(results))counts[v.state]=(counts[v.state]||0)+1;
  return {counts,text:[
-  counts.ok?'수신 성공 '+counts.ok:'',counts.partial?'부분 확인 '+counts.partial:'',
-  counts.error?'수신오류 '+counts.error:'',counts.empty?'자료없음 '+counts.empty:'',counts.disconnected?'미연결 '+counts.disconnected:'',counts.missing?'키 없음 '+counts.missing:'',
-  counts.configured?'키 등록 '+counts.configured:'',counts.pending?'연동 대기 '+counts.pending:'',
+  counts.ok+counts.partial+counts.empty?'연결 '+(counts.ok+counts.partial+counts.empty):'',
+  counts.error+counts.disconnected+counts.missing+counts.pending?'연결실패 '+(counts.error+counts.disconnected+counts.missing+counts.pending):'',
+  counts.configured?'검사 전(키 등록) '+counts.configured:'',
   counts.unverified?'검사 보류 '+counts.unverified:'',counts.checking?'검사 중 '+counts.checking:'',
   counts.unknown?'검사 전 '+counts.unknown:''
  ].filter(Boolean).join(' · ')||'검사 전'};
@@ -144,17 +142,19 @@ export function initConnectionStatusPanel({
     const title=document.createElement('strong');title.textContent=definition.name;
     const description=document.createElement('small');description.textContent=definition.description;
     copy.append(title,description);
+    const keyStatus=document.createElement('small');copy.appendChild(keyStatus);
     const badge=document.createElement('span');badge.className='sunny-source-state';
     const explanation=document.createElement('small');explanation.className='sunny-source-detail';
     row.append(copy,badge,explanation);items.appendChild(row);
-    nodes.set(definition.id,{row,badge,explanation});
+    nodes.set(definition.id,{row,badge,explanation,keyStatus});
    }
   }
   for(const [id,refs] of nodes){
    const entry=values[id]||state('unknown','검사 전');
    refs.row.dataset.connectionState=entry.state;
    refs.badge.textContent=CONNECTION_STATE_TEXT[entry.state]||'확인 불가';
-   refs.explanation.textContent=entry.detail||'';
+   refs.keyStatus.textContent='API 키 · '+(entry.keyRegistered===true?'등록됨':entry.keyRegistered===false?'미등록':'확인 불가');
+   refs.explanation.textContent=entry.state==='empty'?'자료없음 · '+entry.detail:entry.detail||'';
   }
   if(summary)summary.textContent=summarizeConnectionResults(values).text;
   if(stamp)stamp.textContent=lastChecked?
@@ -185,7 +185,7 @@ export function initConnectionStatusPanel({
     [['map','search','route','forecast']],[['rain']],[['radar']],
     [['road','warning','floodNational']]
    ])for(const id of ids)if(values[id]?.state==='configured')
-    values[id]=state('checking','실제 공급기관 API 응답 확인 중');
+    values[id]={...values[id],...state('checking','실제 공급기관 API 응답 확인 중')};
    render();
    const checks=[
     ['journey','/api/preview-journey-smoke',['map','search','route','forecast']],
@@ -202,7 +202,7 @@ export function initConnectionStatusPanel({
      if(run!==request)return;
      const message=providerFailure(e?.http);
      for(const id of ids)if(values[id]?.state==='checking')
-      values[id]=state(e.reception==='disconnected'?'disconnected':[401,404,429].includes(e?.http)?'unverified':'error',message);
+      values[id]={...values[id],...state(e.reception==='disconnected'?'disconnected':[401,404,429].includes(e?.http)?'unverified':'error',message)};
      render();
     }
    }));
@@ -219,5 +219,5 @@ export function initConnectionStatusPanel({
  }
  button?.addEventListener('click',()=>{void refresh();});
  render();
- return {refresh,getStatus:()=>({...values}),isChecking:()=>busy};
+ return {refresh,setSession(session){if(session&&!busy&&!lastChecked){values=applySessionConfiguration(values,session);render();}},getStatus:()=>({...values}),isChecking:()=>busy};
 }

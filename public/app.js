@@ -603,6 +603,7 @@ sessionPromise=session().catch(e=>{$('keyStatus').textContent=e.message;connecti
 // The environment settings now contain a real, read-only source health dashboard.
 // Tests only run when the user presses refresh, avoiding extra provider/API usage.
 const connectionPanel=initConnectionStatusPanel({document,waitForSession:async()=>{await sessionPromise;}});
+void sessionPromise.then(session=>connectionPanel.setSession(session));
 $('checkDataSources').onclick=async()=>{
  const button=$('checkDataSources'),target=$('dataHealth');button.disabled=true;target.textContent='기상청·생활안전지도 서버에 실제 조회 중입니다.';
  try{const result=await api('/api/data-health',{});target.replaceChildren();
