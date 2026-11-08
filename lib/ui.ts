@@ -33,6 +33,7 @@ export const ui = `
 
 <div id="sunnyDriveOverlay" class="sunny-drive-overlay" aria-label="Sunny SAI 실시간 주행" hidden>
   <div id="sunnyDriveAlerts" class="sunny-drive-alerts" aria-live="polite"></div>
+  <button id="sunnyDemoBreaking" class="sunny-demo-breaking-trigger" type="button" hidden>🚨 가상 긴급특보 발생</button>
   <div class="sunny-drive-progress" aria-label="전체 경로 진행률">
    <span class="sunny-drive-destination">도착</span>
    <div id="sunnyDriveProgressTrack" class="sunny-drive-progress-track" role="progressbar" aria-label="주행 진행률" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
