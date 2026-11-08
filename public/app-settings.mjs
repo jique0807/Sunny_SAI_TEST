@@ -45,6 +45,8 @@ export function initAppSettings({document,storage,onChange=()=>{}}){
   }
   const label=$('settingOverlayOpacityValue');
   if(label)label.textContent=settings.overlayOpacity+'%';
+  const speedLabel=$('settingVoiceSpeedValue');
+  if(speedLabel)speedLabel.textContent=settings.voiceSpeed.toFixed(1)+'×';
  }
  function set(next){
   settings=sanitizeAppSettings({...settings,...next});show();

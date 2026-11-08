@@ -104,11 +104,16 @@ document.getElementById('navLayersReset')?.addEventListener('click',()=>{
 document.getElementById('navLayersClose')?.addEventListener('click',closeNavLayers);
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!navLayersSheet?.hidden)minimizeNavLayers(event);});
 document.getElementById('navMyLocation')?.addEventListener('click',()=>requestHomeLocation(true));
+let tabBeforeSettings='navHome';
 document.getElementById('navSettings')?.addEventListener('click',()=>{
+ tabBeforeSettings=document.querySelector('.nav-bottom-bar [aria-current=page]')?.id||'navHome';
  showNavLayers(false);showNavSearch(false);setNavTab('navSettings');
  document.getElementById('settingsOpen')?.click();
 });
-document.getElementById('settings')?.addEventListener('close',()=>setNavTab('navHome'));
+document.getElementById('settings')?.addEventListener('close',()=>{
+ if(tabBeforeSettings==='navLayers')showNavLayers(true);
+ else setNavTab(drivingUI.isActive()?'navRoute':tabBeforeSettings);
+});
 const routeWeatherEnabled=()=>$('navLayerWeather')?.checked!==false;
 $('navLayerWeather')?.addEventListener('change',()=>{
  drawWeatherOverlays();renderRouteHazards();drivingUI.render();
@@ -199,6 +204,7 @@ function updateMapLayerOpacity(){
  document.documentElement.style.setProperty('--sunny-weather-layer-opacity',String(1-value/100));
  if(floodOverlay)floodOverlay.setOpacity(1-value/100);
  kmaMapOverlay.updateOpacity();
+ rainGridOverlay.redraw();
  const demo=document.getElementById('navDemoRainOverlay');
  if(demo)demo.remove(); // Old non-georeferenced demonstration is no longer presented as a weather layer.
 }

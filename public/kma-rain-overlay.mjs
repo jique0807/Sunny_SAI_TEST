@@ -100,9 +100,11 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  const syncSourceUI=()=>{
   const radar=source==='radar',grid=source==='grid';
   panel?.classList?.toggle('sunny-grid-active',grid);
-  for(const control of [slider,ticks,reception,get('navRainGridPlay')?.parentElement]){
+  for(const control of [slider,ticks,get('navRainGridPlay')?.parentElement]){
    if(control)control.hidden=!(radar||grid);
   }
+  if(reception)reception.hidden=!radar;
+  if(gridReception)gridReception.hidden=!grid;
   renderReception();
   panel?.classList?.toggle('sunny-hsr-active',radar);
   if(sourceTitle)sourceTitle.textContent=source==='radar'?'HSR 레이더 실황':grid?'전국 강수량 격자 예보':'초단기 예보';

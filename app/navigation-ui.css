@@ -1940,3 +1940,7 @@ body.sunny-rain-grid-minimized .sunny-radar-quick:not([hidden]){
 }
 #navWeatherTimeBar > .sunny-rain-grid-legend,
 #navRainGridTimeBar.sunny-grid-active > .sunny-rain-grid-legend{display:none!important}
+
+#settings > .dialog-head{position:sticky;top:0;z-index:2;background:#fff}
+#settings > .dialog-head button{min-width:40px;min-height:40px;flex-shrink:0}
+#settingVoiceSpeedValue{font-weight:700;color:#1668c8;margin-inline-start:6px}
