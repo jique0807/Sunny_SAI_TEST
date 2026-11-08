@@ -811,8 +811,6 @@ function injectDemoBreakingWarning(){
  const sample={...hazard,status:'demo',demoHazard:hazard,forecast:null};
  route.samples=[...(route.samples||[]),sample].sort((a,b)=>a.seconds-b.seconds);
  weather={...weather,samples:route.samples};
- const button=$('sunnyDemoBreaking');
- if(button)button.hidden=true;
  renderCards();
  drawDemoOverlays();moveCar();
  drivingUI.render();
@@ -826,8 +824,6 @@ function resetDemoBreakingWarning(){
  route.demoHazards=(route.demoHazards||[]).filter(h=>!h.breaking);
  route.samples=(route.samples||[]).filter(s=>!s.breaking);
  weather={...weather,samples:route.samples};
- const button=$('sunnyDemoBreaking');
- if(button){button.hidden=false;button.disabled=false;}
  renderCards();drawDemoOverlays();moveCar();
  drivingUI.render();
 }
@@ -874,7 +870,6 @@ function startDemoGuidance(){
  $('navRouteResult').hidden=true;document.body.classList.remove('nav-route-open');
  setNavTab('navRoute');showNavSearch(false);
  $('sunnyDemoNext').hidden=false;$('sunnyDemoPause').hidden=false;
- $('sunnyDemoBreaking').hidden=false;
  $('driveControls').hidden=false;
  progress=0;gate.reset();advance(0);
  void showMap('kakao');
@@ -887,13 +882,12 @@ $('sunnyDemoNext')?.addEventListener('click',()=>{
  const elapsed=route.duration*progress/100;
  const next=(route.demoHazards||[]).find(h=>h.seconds>elapsed+1);
  const triggerAt=route.duration*DEMO_BREAKING_TRIGGER;
- // Presenter can advance scene-by-scene: a NEW warning arrives between fog and ice.
+ // Step-by-step playback also automatically injects a new warning after fog.
  if(!route.demoBreakingWarning&&triggerAt>elapsed+1&&(!next||triggerAt<next.seconds))
   advance(DEMO_BREAKING_TRIGGER*100+0.01);
  else if(next)advance(Math.min(100,(next.seconds/route.duration)*100+0.01));
  else{advance(100);toast('모든 위험 이벤트를 확인했습니다.');}
 });
-$('sunnyDemoBreaking')?.addEventListener('click',()=>{if(route?.demo)injectDemoBreakingWarning();});
 $('sunnyDemoPause')?.addEventListener('click',()=>{
  if(route?.demo)playing?pauseDrive():startDemoPlayback();
 });
@@ -907,7 +901,6 @@ $('endDrive').onclick=()=>{
  $('progress').value='0';moveCar();$('driveControls').hidden=true;
  if(drivingUI.isActive())drivingUI.stop();
  $('sunnyDemoNext').hidden=true;$('sunnyDemoPause').hidden=true;
- $('sunnyDemoBreaking').hidden=true;
  showNavRouteResult();
  reply('주행 시연을 종료했어요.');
 };
