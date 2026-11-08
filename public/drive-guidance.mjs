@@ -1,7 +1,7 @@
 // Sunny SAI in-app foreground driving panel.
 import {buildRouteHazards,renderHazardRail,showHazardDetail} from './route-hazards.mjs';
 // All progress comes from GPS projected onto the real Kakao Mobility route.
-// All risk items come from actual fetched forecast records; never mock data.
+// Live mode only uses real provider records. Separate demo mode is explicitly fictional.
 const EARTH=111320;
 export function segmentMeters(a,b){
  return Math.hypot((b.lat-a.lat)*EARTH,(b.lng-a.lng)*EARTH*Math.cos((a.lat+b.lat)*Math.PI/360));
@@ -87,7 +87,10 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
   setText(summary,km+' 남음 · 약 '+mins+'분 · '+eta+' 도착 예상');
   const showWeather=isWeatherEnabled();
   if(!showWeather&&hazardPanel)hazardPanel.hidden=true;
-  const risks=offRoute||!showWeather?[]:upcomingRisks(combinedSamples(),seconds,alertCount);
+  const risks=offRoute||!showWeather?[]:route.demo
+   ?(route.demoHazards||[]).filter(h=>h.seconds>=seconds-45).slice(0,alertCount)
+      .map(h=>({...h,minutes:Math.max(0,Math.round((h.seconds-seconds)/60))}))
+   :upcomingRisks(combinedSamples(),seconds,alertCount);
   if(alerts){
    alerts.replaceChildren();
    const slots=[];
@@ -97,18 +100,18 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
    }else if(showWeather){
     for(const item of risks)slots.push({
       title:(item.minutes===0?'현재 부근':item.minutes+'분 후')+' · '+item.title,
-      subtitle:item.label+' · '+item.source,icon:item.icon,status:false
+      subtitle:item.label+' · '+(route.demo?'[가상 시연 · 실제 위험 아님]':item.source),icon:item.icon,status:false
     });
     if(!slots.length){
-      const known=combinedSamples().length>0;
-      slots.push({title:known?'조회 지점에 추가 비·눈 예보 없음':'전방 기상예보 미확인',
-       subtitle:known?'미조회 구간은 판단 불가':'실제 기상자료 미수신 · 위험 여부 판단 불가',
+      const known=route.demo||combinedSamples().length>0;
+      slots.push({title:route.demo?'이후 가상 위험 이벤트 없음':known?'조회 지점에 추가 비·눈 예보 없음':'전방 기상예보 미확인',
+       subtitle:route.demo?'시연 데이터이며 실제 날씨는 확인하지 않았습니다':known?'미조회 구간은 판단 불가':'실제 기상자료 미수신 · 위험 여부 판단 불가',
        icon:'·',status:true});
     }
     if(slots.length<alertCount){
-     const checked=new Set(combinedSamples().filter(sample=>sample.seconds>=seconds).map(sample=>sample.seconds)).size;
-     slots.push({title:'전방 예보 조회 상태',
-      subtitle:checked?'조회된 전방 지점 '+checked+'곳':'조회된 전방 지점 없음',
+     const checked=route.demo?(route.demoHazards||[]).filter(h=>h.seconds>=seconds).length:new Set(combinedSamples().filter(sample=>sample.seconds>=seconds).map(sample=>sample.seconds)).size;
+     slots.push({title:route.demo?'시연 데이터 안내':'전방 예보 조회 상태',
+      subtitle:route.demo?'모든 위험값은 가상 · 남은 이벤트 '+checked+'개':checked?'조회된 전방 지점 '+checked+'곳':'조회된 전방 지점 없음',
       icon:'·',status:true});
     }
    }
@@ -126,7 +129,7 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
   if(marks){
    const official=showWeather&&!offRoute?[...buildRouteHazards(combinedSamples()),...getRoadHazards(route)].sort((a,b)=>a.seconds-b.seconds).filter(hazard=>hazard.seconds>=seconds):[];
    renderHazardRail(marks,official,route.rainPath,{
-    fractionAt:routeFraction,max:alertCount,
+    fractionAt:routeFraction,max:route.demo?route.demoHazards.length:alertCount,
     onSelect:hazard=>showHazardDetail(hazardPanel,hazard,formatTime)
    });
   }
@@ -135,7 +138,7 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
   route=newRoute;weather=forecast||null;aheadSamples=null;seconds=0;offRoute=false;active=true;
   if(root)root.hidden=false;
   if(reroute)reroute.hidden=true;
-  document.body.classList.add('sunny-guiding');setText(gps,'GPS 위치 확인 중');render();
+  document.body.classList.add('sunny-guiding');setText(gps,route.demo?'가상 주행 재생 · 실제 GPS 사용 안 함':'GPS 위치 확인 중');render();
  }
  function stop(){
   active=false;route=null;weather=null;aheadSamples=null;seconds=0;offRoute=false;
@@ -148,6 +151,7 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
   if(!active)return;
   offRoute=Boolean(off);
   if(Number.isFinite(routeSeconds)&&!offRoute)seconds=Math.max(0,routeSeconds);
+  if(route?.demo){setText(gps,'가상 이동 중 · 실제 GPS 사용 안 함');render();return;}
   if(position){
    const error=Number.isFinite(position.accuracy)?' · 오차 ±'+Math.round(position.accuracy)+'m':'';
    setText(gps,(offRoute?'경로 이탈':'GPS 추적 중')+error+(position.directionStatus?' · '+position.directionStatus:''));
