@@ -37,11 +37,11 @@ export function buildRouteHazards(samples,{limit=12}={}){
 export function hazardDetails(hazard,formatTime){
  const format=t=>t&&formatTime?formatTime(t):t||'시간정보 미제공';
  if(hazard.demo)return [
-  hazard.title+' [시연용]',
-  '⚠️ 모두 가상으로 만든 상황 · 실제 관측·특보 아님',
-  '시연 경로 구간: '+hazard.label,
-  '가상 통과 시각: '+format(hazard.eta),
-  '시연 수치: '+hazard.measure,
+  hazard.title,
+  '⚠️ 시연 데이터 · 실제 관측·특보 아님',
+  '경로 구간: '+hazard.label,
+  '예상 통과 시각: '+format(hazard.eta),
+  '위험정보: '+hazard.measure,
   hazard.description,
   '출처: '+hazard.provider
  ];
@@ -93,7 +93,7 @@ export function renderHazardRail(container,hazards,routePath,{fractionAt,onSelec
   if(hazard.demo)btn.dataset.demo='true';
   btn.style.bottom=(fraction*100).toFixed(2)+'%';
   btn.textContent=hazard.icon;
-  btn.title=(hazard.demo?'[가상 시연] ':'')+hazard.title+' · '+hazard.label+' · 세부정보 보기';
+  btn.title=hazard.title+' · '+hazard.label+' · 세부정보 보기';
   btn.setAttribute('aria-label',hazard.title+' · '+hazard.label+' 상세정보 열기');
   btn.addEventListener('click',e=>{e.stopPropagation();onSelect?.(hazard);});
   container.append(btn);count++;
