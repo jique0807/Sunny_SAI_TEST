@@ -1,10 +1,9 @@
 const labels = {
  loading:'수신 중',
- received:'수신 완료',
- failed:'수신오류',
+ received:'연결',
+ failed:'연결실패',
  empty:'자료없음',
- disconnected:'미연결',
- waiting:'조회 대기',
+ disconnected:'연결실패',
 };
 
 export function setLayerReception(id,state){

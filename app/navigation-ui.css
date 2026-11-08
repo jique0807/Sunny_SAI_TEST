@@ -2033,8 +2033,7 @@ body.sunny-guiding.sunny-heading-up .dashboard .map-canvas > #kakaoMap:not([hidd
 .nav-layer-row:has(input:checked) .nav-layer-reception:not(:empty){display:inline-block}
 .nav-layer-reception[data-state="loading"]{background:#fff1d5;color:#854d0e}
 .nav-layer-reception[data-state="received"]{background:#dcf7e8;color:#166534}
-.nav-layer-reception[data-state="failed"]{background:#ffe4e5;color:#9f3030}
-.nav-layer-reception[data-state="waiting"]{background:#edf2f7;color:#475569}
+.nav-layer-reception:is([data-state="failed"],[data-state="disconnected"]){background:#ffe4e5;color:#9f3030}
 
 @media(max-width:900px){
  body #navWeatherTimeBar{
@@ -2045,4 +2044,4 @@ body.sunny-guiding.sunny-heading-up .dashboard .map-canvas > #kakaoMap:not([hidd
  }
 }
 
-.nav-layer-reception:is([data-state="empty"],[data-state="disconnected"]){background:#edf2f7;color:#475569}
+.nav-layer-reception[data-state="empty"]{background:#edf2f7;color:#475569}
