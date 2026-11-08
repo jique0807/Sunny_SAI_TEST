@@ -77,3 +77,18 @@ test('ZIP bomb and non-zip response are rejected without reporting external bodi
  const huge=Buffer.alloc(6*1024*1024+3);
  assert.throws(()=>extractZipFiles(huge),/ZIP/);
 });
+
+test('official KMA road link files supply risk grades, directed coordinates and UTC production time',()=>{
+ const base='LINK_ID,F_NODE,T_NODE,F_LON,F_LAT,T_LON,T_LAT,';
+ const from='1570001502,1,2,128.438248,35.673519,128.439667,35.671051,';
+ const files=[
+  {name:'R045_LINK_FRG_202512152355.csv',text:base+'B_ICE\n'+from+'3'},
+  {name:'R045_LINK_FOG_202512152355.csv',text:base+'FOG\n'+from+'2\n'+from+'0'},
+  {name:'R045_1KM_FRG_202512152355.csv',text:base+'B_ICE\n'+from+'3'}
+ ];
+ const data=geolocatedRisks(files,'045');
+ assert.equal(data.dataTime,'2025-12-15T23:55:00.000Z');
+ assert.deepEqual(data.locations.map(({kind,risk})=>[kind,risk]),[['ice',3],['visibility',2]]);
+ assert.deepEqual(data.locations[0].geometry.points,[{lat:35.673519,lng:128.438248},{lat:35.671051,lng:128.439667}]);
+ assert.equal(geolocatedRisks(files,'001').locations.length,0);
+});

@@ -23,6 +23,7 @@ test('only verified provider path, observation time, coverage and basemap-free i
  assert.equal(radarObservationTime('case'),RADAR_TEST_CASE);
  assert.equal(radarObservationTime('case',Date.now(),1),'202407100850');
  assert.equal(radarObservationTime('case',Date.now(),6),'202407100800');
+ assert.equal(radarObservationTime('nearest',Date.parse('2026-11-07T03:13:00Z'),0),'202611071210');
  assert.equal(radarObservationTime('latest',Date.parse('2026-11-07T03:13:00Z'),0),'202611071140');
  assert.equal(radarObservationTime('latest',Date.parse('2026-11-07T03:13:00Z'),1),'202611071130');
  assert.throws(()=>radarObservationTime('case',Date.now(),7),/10-minute frame/);

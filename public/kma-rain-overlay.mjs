@@ -56,6 +56,8 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   play=get('navRainGridPlay'),pause=get('navRainGridPause'),reset=get('navRainGridReset'),
   step=get('navRainGridStep'),badge=get('navRainSwitchBadge'),
   quickLabel=get('navRainToggleLabel');
+ const routeToggle=get("navRouteRadar");
+ let routeRadar=false;
  let enabled=false,expanded=false,firstValidTime=null,map=null,canvas=null,forecast=null,radarFrame=null,
   source='forecast',requestId=0,controller=null,drawing=false,
   refreshTimer=null,playTimer=null,loadedAt=0;
@@ -133,6 +135,9 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  };
  const isKakao=()=>Boolean(map&&window.kakao?.maps);
  const updateButtons=()=>{
+  routeToggle?.setAttribute('aria-pressed',String(routeRadar));
+  const routeBadge=routeToggle?.querySelector?.('span');
+  if(routeBadge)routeBadge.textContent=routeRadar?'ON':'OFF';
   if(nationalRain)nationalRain.checked=enabled&&source==='grid';
   if(nationalRadar)nationalRadar.checked=enabled&&source==='radar';
   quick?.setAttribute('aria-pressed',String(enabled));
@@ -143,7 +148,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   }
   if(badge)badge.textContent=enabled?'ON':'OFF';
   if(quickLabel)quickLabel.textContent=source==='radar'?'레이더':'강수예보';
-  if(panel)panel.hidden=!(enabled&&expanded);
+  if(panel)panel.hidden=routeRadar||!(enabled&&expanded);
   document.body.classList.toggle('sunny-rain-grid-active',enabled);
   document.body.classList.toggle('sunny-rain-grid-minimized',enabled&&!expanded);
  };
@@ -194,7 +199,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  async function loadRadar({force=false}={}){
   if(!enabled||source!=='radar')return;
   controller?.abort();controller=new AbortController();const run=++requestId;
-  const frame=Number(slider?.value||0);
+  const frame=routeRadar?0:Number(slider?.value||0);
   for(const [index,state] of received)if(state==='loading')received.delete(index);
   received.set(frame,'loading');renderReception();
   clear();forecast=null;radarFrame=null;
@@ -207,7 +212,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    const cache=!force?hsrCache.get(frame):null;
    let data=cache&&cache.until>Date.now()?cache.data:null;
    if(!data){
-    data=await loadHSRFrame(frame,{signal:controller.signal,waitForSession});
+    data=await loadHSRFrame(frame,{signal:controller.signal,waitForSession,mode:routeRadar?'nearest':'latest'});
    }
    if(run!==requestId||!enabled||source!=='radar'){
     if(data&&data!==cache?.data&&data.url)URL.revokeObjectURL(data.url);
@@ -220,11 +225,13 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    }
    received.set(frame,'received');renderReception();
    radarFrame=data;loadedAt=Date.now();
+   if(routeRadar&&routeToggle)routeToggle.title='HSR 관측 '+data.timeKst.slice(8,10)+':'+data.timeKst.slice(10,12)+' KST';
    if(when)when.textContent='';
    paint();
    if(!isKakao())message('레이더 실제 자료 수신 · 카카오 지도 연결 시 중첩됩니다.');
   }catch(e){
    if(run!==requestId||!enabled||source!=='radar'||e?.name==='AbortError')return;
+   if(routeRadar){setEnabled(false);if(routeToggle){routeToggle.title='현재 레이더 수신 실패';routeToggle.setAttribute('aria-label',routeToggle.title);}return;}
    received.set(frame,'failed');renderReception();
    radarFrame=null;clear();
    message('해당 시각 레이더 미수신 · '+(e?.message||'자료 제공 상태 확인 필요')+
@@ -290,7 +297,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  }
  function startRefresh(){
   stopRefresh();
-  if(!enabled)return;
+  if(!enabled||routeRadar)return;
   refreshTimer=setInterval(()=>{
    if(!enabled||document.hidden||playTimer!==null)return;
    if(source==='radar'){
@@ -428,7 +435,8 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   void loadForecastImage();
  });
  function setEnabled(next){
-  enabled=Boolean(next);expanded=enabled;
+  if(!next){routeRadar=false;if(routeToggle){routeToggle.title='';routeToggle.setAttribute('aria-label','현재 레이더 중첩');}}
+  enabled=Boolean(next);expanded=enabled&&!routeRadar;
   if(!enabled){hideForecastImage();received.clear();gridStates.clear();}
   if(!enabled){firstValidTime=null;if(slider)slider.value='0';}
   pausePlayback();
@@ -469,14 +477,24 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    syncLead();void load();
   },1000);
  }
+ routeToggle?.addEventListener('click',()=>{
+  if(routeRadar){setEnabled(false);return;}
+  setEnabled(false);
+  setSource('radar');
+  routeRadar=true;
+  setEnabled(true);
+ });
  for(const [control,mode] of [[nationalRain,'grid'],[nationalRadar,'radar']]){
   control?.addEventListener('change',()=>{
-   if(!control.checked){setEnabled(false);return;}
+   const checked=control.checked;
+   if(routeRadar||!checked)setEnabled(false);
+   if(!checked)return;
    if(enabled){expanded=true;setSource(mode);updateButtons();onEnable?.();return;}
    setSource(mode);setEnabled(true);
   });
  }
  quick?.addEventListener('click',()=>{
+  if(routeRadar)setEnabled(false);
   expanded=true;
   if(enabled)updateButtons();
   else {setSource('forecast');setEnabled(true);}
@@ -509,7 +527,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  get('navDemoOpacity')?.addEventListener('input',schedule);
  document.addEventListener('visibilitychange',()=>{
   if(document.hidden)pausePlayback();
-  else if(enabled&&Date.now()-loadedAt>(source==='radar'?600000:180000)){
+  else if(enabled&&!routeRadar&&Date.now()-loadedAt>(source==='radar'?600000:180000)){
    if(source==='radar')clearHSRCache();
    void load({force:true});
   }

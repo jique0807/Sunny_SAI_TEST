@@ -52,7 +52,7 @@ export function upcomingRisks(samples,seconds,limit=2){
  }
  return selected;
 }
-export function initDriveGuidance({onStop,onReroute,formatTime,isWeatherEnabled=()=>true}){
+export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()=>[], isWeatherEnabled=()=>true}){
  const root=document.getElementById('sunnyDriveOverlay');
  const alerts=document.getElementById('sunnyDriveAlerts');
  const fill=document.getElementById('sunnyDriveProgressFill');
@@ -120,7 +120,7 @@ export function initDriveGuidance({onStop,onReroute,formatTime,isWeatherEnabled=
    }
   }
   if(marks){
-   const official=showWeather&&!offRoute?buildRouteHazards(combinedSamples()).filter(hazard=>hazard.seconds>=seconds):[];
+   const official=showWeather&&!offRoute?[...buildRouteHazards(combinedSamples()),...getRoadHazards(route)].sort((a,b)=>a.seconds-b.seconds).filter(hazard=>hazard.seconds>=seconds):[];
    renderHazardRail(marks,official,route.rainPath,{
     fractionAt:routeFraction,max:alertCount,
     onSelect:hazard=>showHazardDetail(hazardPanel,hazard,formatTime)

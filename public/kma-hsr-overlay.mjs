@@ -29,7 +29,7 @@ export const radarKstLabel=timestamp=>
   timestamp.slice(8,10)+':'+timestamp.slice(10,12)+' KST'
  :'관측시각 확인 불가';
 export async function loadHSRFrame(frame,{
- signal,waitForSession,fetcher=fetch,ImageCtor=globalThis.Image,
+ signal,waitForSession,mode='latest',fetcher=fetch,ImageCtor=globalThis.Image,
  makeObjectURL=blob=>URL.createObjectURL(blob),
  revokeObjectURL=url=>URL.revokeObjectURL(url)
 }={}){
@@ -37,7 +37,7 @@ export async function loadHSRFrame(frame,{
   throw Error('레이더 10분 프레임 범위 초과');
  if(typeof waitForSession==='function')await waitForSession();
  if(signal?.aborted)throw Object.assign(Error('Aborted'),{name:'AbortError'});
- const response=await fetcher('/api/radar-overlay-frame?mode=latest&frame='+frame,{
+ const response=await fetcher('/api/radar-overlay-frame?mode='+mode+'&frame='+frame,{
   credentials:'same-origin',cache:'no-store',signal
  });
  if(!response.ok){

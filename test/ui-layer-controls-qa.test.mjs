@@ -28,7 +28,7 @@ test('rain canvas controls are wired to existing real API logic',()=>{
  assert.match(src,/refresh\?\.addEventListener\('click'/);
  assert.match(src,/frameCache\.clear\(\);clearHSRCache\(\);void load\(\{force:true\}\)/);
  assert.match(src,/\/api\/rain-grid\?lead=/);
- assert.match(src,/loadHSRFrame\(frame,\{signal:controller.signal,waitForSession\}\)/);
+ assert.match(src,/loadHSRFrame\(frame,\{signal:controller.signal,waitForSession,mode:routeRadar\?'nearest':'latest'\}\)/);
  assert.match(src,/\},600000\)/);
 });
 test('compact touch targets and icon alignment survive narrow displays',()=>{
@@ -48,9 +48,11 @@ test('main layer menu omits generic temperature/wind and does not fake hazard av
  assert.doesNotMatch(menu,/id="navNowcastRow"|온도|풍속/);
  assert.match(menu,/id="navLayerWeather" type="checkbox" checked/);
  assert.equal(menu.match(/type="checkbox"/g)?.length,7);
- for(const name of ['도로 살얼음','도로 안개·저시정','기상특보','하천 범람예상 구역']){
-  assert.ok(menu.includes('<b>'+name+'</b><small>미구현</small></span><input type="checkbox" disabled/>'));
+ for(const id of ['navLayerroad','navLayerfog','navLayerflood']){
+  assert.ok(menu.includes('id="'+id+'" type="checkbox" disabled'));
  }
+ assert.equal(menu.match(/미구현/g)?.length,1);
+ assert.match(menu,/<b>기상특보<\/b><small>미구현<\/small>/);
 });
 test('rain panel close and reload trigger the same state machine in simple DOM',async()=>{
  const original={document:globalThis.document,window:globalThis.window,fetch:globalThis.fetch};
@@ -117,6 +119,17 @@ test('rain panel close and reload trigger the same state machine in simple DOM',
   assert.equal(classSet.has('sunny-rain-grid-active'),false);
   assert.equal(node('navRainGridTimeBar').hidden,true);
   assert.equal(node('navRainSwitchBadge').textContent,'OFF');
+  globalThis.fetch=async url=>{
+   calls.push(url);
+   return Response.json({error:'미수신'},{status:502});
+  };
+  node('navRouteRadar').dispatch('click');
+  assert.equal(node('navRouteRadar').attributes['aria-pressed'],'true');
+  assert.equal(node('navRainGridTimeBar').hidden,true);
+  await flush();
+  assert.equal(calls.at(-1),'/api/radar-overlay-frame?mode=nearest&frame=0');
+  assert.equal(calls.length,3);
+  assert.equal(node('navRouteRadar').attributes['aria-pressed'],'false');
  }finally{
   overlay?.disable();
   for(const [k,v] of Object.entries(original)){

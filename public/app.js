@@ -86,6 +86,10 @@ document.getElementById('navRoute')?.addEventListener('click',()=>{
 document.getElementById('navLayers')?.addEventListener('click',()=>showNavLayers(navLayersSheet?.hidden!==false));
 const minimizeNavLayers=event=>{event?.preventDefault?.();event?.stopPropagation?.();showNavLayers(false);document.getElementById('navLayers')?.focus?.({preventScroll:true});};
 const disableMapLayers=()=>{
+ for(const id of ['navLayerroad','navLayerfog','navLayerflood']){
+  const control=document.getElementById(id);
+  if(control?.checked){control.checked=false;control.dispatchEvent(new Event('change'));}
+ }
  const rain=document.getElementById('navNationalRain');
  if(rain?.checked){rain.checked=false;rain.dispatchEvent(new Event('change'));}
 };
@@ -122,6 +126,8 @@ $('navLayerWeather')?.addEventListener('change',()=>{
 $('navLayersRefresh')?.addEventListener('click',()=>{
  if(rainGridOverlay.isEnabled())$('navRainGridRefresh')?.click();
  $('navKmaRefresh')?.click();
+ if($('navLayerroad')?.checked||$('navLayerfog')?.checked)void roadRiskOverlay.load();
+ if(floodControl?.checked)updateFlood();
  if(routeWeatherEnabled()&&route&&!route.demo){
   if(drivingUI.isActive()){rainLastFetch=0;void checkRain();}
   void loadWeather();
@@ -164,6 +170,7 @@ floodControl?.addEventListener('change',()=>{
 });
 const roadRiskOverlay=initRoadRiskOverlay({
  query:roadNum=>api('/api/road-risk',{roadNum}),
+ onChange:()=>{drawWeatherOverlays();renderRouteHazards();drivingUI.render();},
  getContext:()=>{
   if((activeMap==='kakao'||activeMap==='skyview')&&kmap)return{type:'kakao',map:kmap};
   if(activeMap==='osm'&&osmMap)return{type:'leaflet',map:osmMap};
@@ -266,7 +273,7 @@ function clearWeatherOverlays(){
 function drawWeatherOverlays(){
  clearWeatherOverlays();
  if(document.getElementById('navLayerWeather')?.checked===false||!kmap||!route||route.demo||!['kakao','skyview'].includes(activeMap))return;
- const hazards=buildRouteHazards((routeAheadWeather||weather)?.samples);
+ const hazards=[...buildRouteHazards((routeAheadWeather||weather)?.samples),...roadRiskOverlay.routeHazards(route)];
  for(const hazard of hazards){
   if(!Number.isFinite(hazard.lat)||!Number.isFinite(hazard.lng))continue;
   const marker=document.createElement('button');
@@ -294,7 +301,8 @@ const drivingUI=initDriveGuidance({
  onStop:()=>stopRain(),
  onReroute:()=>{void refreshRouteFromGps();},
  formatTime:fmt,
- isWeatherEnabled:routeWeatherEnabled
+ isWeatherEnabled:routeWeatherEnabled,
+ getRoadHazards:route=>roadRiskOverlay.routeHazards(route)
 });
 // Settings are device-local and affect the actual running navigation logic.
 let appPrefs={...DEFAULT_APP_SETTINGS};
@@ -587,13 +595,13 @@ function renderRoute(){if($('navRouteHazardDetail'))$('navRouteHazardDetail').hi
 function renderRouteHazards(){
  const rail=$('navRouteRiskMarks'),status=$('navRouteRiskStatus'),detail=$('navRouteHazardDetail');
  if(!rail||!status)return;
- const hazards=routeWeatherEnabled()&&!route?.demo?buildRouteHazards(weather?.samples):[];
+ const hazards=routeWeatherEnabled()&&!route?.demo?[...buildRouteHazards(weather?.samples),...roadRiskOverlay.routeHazards(route)].sort((a,b)=>a.seconds-b.seconds):[];
  const count=renderHazardRail(rail,hazards,route?.rainPath,{
   fractionAt:routeFraction,max:appPrefs.alertCount,
   onSelect:h=>showHazardDetail(detail,h,fmt)
  });
  if(!routeWeatherEnabled())status.textContent='';
- else if(count)status.textContent='기상청 예보 위험지점 '+count+'개 · 아이콘을 눌러 강수·신적설 확인';
+ else if(count)status.textContent='기상청 위험지점 '+count+'개 · 아이콘을 눌러 상세정보 확인';
  else if(!weather)status.textContent='경로 기상예보 조회 중 · 실제 위험예보만 표시';
  else if(!weather.samples?.some(p=>p.status==='forecast'&&p.forecast?.provider==='kma'))
   status.textContent='기상청 예보 미수신 · 위험 여부 판단 불가';

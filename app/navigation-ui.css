@@ -1954,3 +1954,12 @@ body.sunny-rain-grid-minimized .sunny-radar-quick:not([hidden]){
 .sunny-route-icon-legend{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;margin:8px 0}
 .sunny-route-icon-legend dt{font-weight:700}
 .sunny-route-icon-legend dd{margin:0;color:#475569;overflow-wrap:anywhere}
+
+.nav-route-result-head #navRouteRadar {
+ width:auto;height:32px;margin-left:8px;margin-right:auto;padding:0 9px;
+ border:1px solid #d4e0ee;border-radius:8px;color:#223b56;font-size:12px;
+}
+#navRouteRadar span {font-weight:700}
+.nav-route-result-head #navRouteRadar[aria-pressed="true"] {
+ background:#e5f1ff;color:#1458ab;border-color:#96bce9;
+}

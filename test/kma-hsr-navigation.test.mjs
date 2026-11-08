@@ -85,7 +85,7 @@ test('forecast popup exposes forecast only',()=>{
  assert.match(overlay,/source='forecast'/);
  assert.match(overlay,/setSource\('forecast'\)/);
  assert.match(overlay,/\[nationalRadar,'radar'\]/);
- assert.match(overlay,/loadHSRFrame\(frame,\{signal:controller.signal,waitForSession\}\)/);
+ assert.match(overlay,/loadHSRFrame\(frame,\{signal:controller.signal,waitForSession,mode:routeRadar\?'nearest':'latest'\}\)/);
  assert.match(overlay,/drawHSROverKakao\(ctx,radarFrame,projection,density\)/);
  assert.match(overlay,/실제 레이더 관측/);
  assert.match(overlay,/\},600000\)/);

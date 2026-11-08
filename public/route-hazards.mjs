@@ -36,6 +36,14 @@ export function buildRouteHazards(samples,{limit=12}={}){
 }
 export function hazardDetails(hazard,formatTime){
  const format=t=>t&&formatTime?formatTime(t):t||'시간정보 미제공';
+ if(hazard.roadRisk)return [
+  hazard.title,
+  '위험 단계: '+({1:'관심',2:'주의',3:'위험'}[hazard.roadRisk]),
+  '예상 통과: '+format(hazard.eta),
+  '위치: '+hazard.label,
+  '자료 시각: '+format(hazard.validTime),
+  '자료: '+hazard.provider+' · 도로 위험 예측'
+ ];
  return [
   hazard.title,
   '예상 통과: '+format(hazard.eta),
