@@ -13,7 +13,7 @@ export function sanitizeAppSettings(value){
   followGps:typeof x.followGps==='boolean'?x.followGps:true,
   headingMode:isValue(x.headingMode,['course','north'])?x.headingMode:'course',
   alertCount:isValue(count,[1,2])?count:2,
-  refreshMinutes:isValue(refresh,[1,3,5])?refresh:1,
+  refreshMinutes:isValue(refresh,[1,3,5,10])?refresh:1,
   overlayOpacity:Number.isFinite(opacity)?Math.round(Math.min(100,Math.max(0,opacity))):45,
   voiceAlerts:typeof x.voiceAlerts==='boolean'?x.voiceAlerts:true,
   voiceSpeed:isValue(speed,[.7,.8,.9,1,1.1,1.2,1.3])?speed:1

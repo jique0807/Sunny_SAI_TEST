@@ -305,6 +305,7 @@ const appSettings=initAppSettings({
  onChange:next=>{
   const old=appPrefs;appPrefs=next;
   drivingUI.setPreferences(next);
+  if(old.alertCount!==next.alertCount)renderRouteHazards();
   const slider=$('navDemoOpacity');
   if(slider){slider.value=String(next.overlayOpacity);updateMapLayerOpacity();}
   if(!next.voiceAlerts)stopVoice();
@@ -507,7 +508,7 @@ $('disconnect').onclick=async()=>{try{await api('/api/voice/key',null,'DELETE');
 function loadVoices(){const provider=$('voiceProvider').value,voices=voiceCatalog(provider);$('voiceChoice').replaceChildren();for(const v of voices){const o=document.createElement('option');o.value=v.name;o.textContent=v.label;$('voiceChoice').append(o);}let saved;try{saved=localStorage.getItem('sunnyVoice:'+provider);}catch{}if(voices.some(v=>v.name===saved))$('voiceChoice').value=saved;$('voiceChoice').disabled=false;}
 $('voiceProvider').onchange=()=>{stopVoice();loadVoices();$('keyStatus').textContent=advanced?'API 종류를 변경했어요. 연결한 키가 이 서비스를 지원하는지 미리듣기로 확인하세요.':'발급받은 서비스에 맞는 키를 연결해주세요.';};
 $('voiceChoice').onchange=()=>{stopVoice();try{localStorage.setItem('sunnyVoice:'+$('voiceProvider').value,$('voiceChoice').value);}catch{}$('keyStatus').textContent=$('voiceChoice').selectedOptions[0].textContent+' 선택 · 미리듣기로 확인하세요.';};
-$('previewVoice').onclick=async()=>{if(!advanced){$('keyStatus').textContent='목소리를 선택했어요. 개인 Google 키를 연결한 후 미리듣기를 눌러주세요.';$('googleKey').focus();return;}$('previewVoice').disabled=true;try{await speak('안녕하세요, 써니예요. 가는 길의 날씨를 함께 살펴볼게요. 잠시 뒤 비가 예상돼요. 여유 있게 이동하세요.');}finally{$('previewVoice').disabled=false;}};
+$('previewVoice').onclick=async()=>{$('previewVoice').disabled=true;try{await speak('안녕하세요, 써니예요. 가는 길의 날씨를 함께 살펴볼게요. 잠시 뒤 비가 예상돼요. 여유 있게 이동하세요.');}finally{$('previewVoice').disabled=false;}};
 loadVoices();
 let suggestionTimer=null,suggestionField=null,suggestionQuery='',suggestionPlaces=[],suggestionRun=0;
 const searchList=$('places');
@@ -590,7 +591,7 @@ function renderRouteHazards(){
  if(!rail||!status)return;
  const hazards=routeWeatherEnabled()&&!route?.demo?buildRouteHazards(weather?.samples):[];
  const count=renderHazardRail(rail,hazards,route?.rainPath,{
-  fractionAt:routeFraction,max:10,
+  fractionAt:routeFraction,max:appPrefs.alertCount,
   onSelect:h=>showHazardDetail(detail,h,fmt)
  });
  if(!routeWeatherEnabled())status.textContent='';

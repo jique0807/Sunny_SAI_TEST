@@ -122,7 +122,7 @@ export function initDriveGuidance({onStop,onReroute,formatTime,isWeatherEnabled=
   if(marks){
    const official=showWeather&&!offRoute?buildRouteHazards(combinedSamples()).filter(hazard=>hazard.seconds>=seconds):[];
    renderHazardRail(marks,official,route.rainPath,{
-    fractionAt:routeFraction,max:10,
+    fractionAt:routeFraction,max:alertCount,
     onSelect:hazard=>showHazardDetail(hazardPanel,hazard,formatTime)
    });
   }
