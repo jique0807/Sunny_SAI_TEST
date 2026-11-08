@@ -2015,3 +2015,8 @@ body.sunny-guiding.sunny-heading-up .dashboard .map-canvas > #kakaoMap:not([hidd
  max-width:none!important;max-height:none!important;
  transform:translate(-50%,-50%) rotate(var(--sunny-map-rotation,0deg));
 }
+.sunny-drive-gps-pointer.sunny-bearing-unknown svg{grid-area:1/1;visibility:hidden}
+.sunny-drive-gps-pointer.sunny-bearing-unknown::after{
+ content:"";grid-area:1/1;width:15px;height:15px;border:2px solid white;
+ border-radius:50%;background:#1769ed;
+}

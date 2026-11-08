@@ -16,7 +16,7 @@ test('Home clears active GPS navigation and reloads fresh rather than showing pr
  const end=code.indexOf("\ndocument.getElementById('navHome')",from);
  assert.ok(from>0&&end>from);
  const events=[];
- const environment={drivingUI:{isActive:()=>true},stopRain(){events.push('stopRain');},
+ const environment={stopPreviewPositionWatch(){},drivingUI:{isActive:()=>true},stopRain(){events.push('stopRain');},
   stopVoice(){events.push('stopVoice');},window:{location:{reload(){events.push('reload');}}}};
  const ctx=vm.createContext(environment);
  vm.runInContext(code.slice(from,end),ctx);

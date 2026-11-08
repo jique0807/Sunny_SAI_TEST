@@ -86,6 +86,7 @@ mobileViewport?.addEventListener('scroll',syncMobileViewport);
 window.addEventListener('pageshow',syncMobileViewport);
 syncMobileViewport();
 function goToInitialHome(){
+ stopPreviewPositionWatch();
  if(drivingUI.isActive())stopRain();
  stopVoice();
  // A fresh session view also clears in-flight route searches and recovers
@@ -270,7 +271,38 @@ function updateRouteCurrentMarker(){
   routeCurrentMarker.setPosition(position);
   routeCurrentMarker.getContent?.()?.classList?.toggle('sunny-route-pin-colocated',Boolean(besideStart));
  }
+ const face=routeCurrentMarker.getContent?.()?.querySelector?.('.sunny-route-pin-face');
+ if(face){
+  const hasBearing=Number.isFinite(p.bearing);
+  face.textContent=hasBearing?'▲':'●';
+  face.style.rotate=hasBearing?p.bearing+'deg':'';
+ }
 }
+let previewPositionWatch=null;
+function stopPreviewPositionWatch(){
+ if(previewPositionWatch===null)return;
+ navigator.geolocation?.clearWatch(previewPositionWatch);
+ previewPositionWatch=null;
+}
+function watchPreviewPosition(){
+ if(previewPositionWatch!==null||!navigator.geolocation)return;
+ let previous=null,bearing=null,bearingAt=0;
+ previewPositionWatch=navigator.geolocation.watchPosition(({coords,timestamp})=>{
+  if($('navRouteResult')?.hidden||drivingUI.isActive()){
+   stopPreviewPositionWatch();return;
+  }
+  if(!Number.isFinite(coords.latitude)||!Number.isFinite(coords.longitude)||!(coords.accuracy<=150))return;
+  const fix={lat:coords.latitude,lng:coords.longitude,accuracy:coords.accuracy,
+   speed:coords.speed,heading:coords.heading,timestamp};
+  const direction=resolveDrivingHeading(previous,fix,bearing,bearingAt);
+  bearing=Number.isFinite(direction.bearing)?angleStep(bearing,direction.bearing):null;
+  if(direction.source==='gps'||direction.source==='motion')bearingAt=timestamp;
+  if(coords.accuracy<=60)previous=fix;
+  homePosition={lat:fix.lat,lng:fix.lng,bearing};
+  updateRouteCurrentMarker();
+ },error=>{if(error.code===1)stopPreviewPositionWatch();},{enableHighAccuracy:true,maximumAge:5000,timeout:20000});
+}
+window.addEventListener('pagehide',stopPreviewPositionWatch);
 function centerHomeMap(){
  if(!homePosition)return;
  if(route?.vertices?.length){updateRouteCurrentMarker();return;}
@@ -440,7 +472,10 @@ function drawGps(){
      gpsNavArrow=new kakao.maps.CustomOverlay({map:kmap,position:pos,content:marker,xAnchor:.5,yAnchor:.5,zIndex:12});
     }else gpsNavArrow.setPosition(pos);
     const marker=gpsNavArrow.getContent?.();
-    if(marker?.style)marker.style.rotate=(navBearing??0)+'deg';
+    if(marker?.style){
+     marker.style.rotate=(navBearing??0)+'deg';
+     marker.classList.toggle('sunny-bearing-unknown',!Number.isFinite(navBearing));
+    }
    }else{
     gpsNavArrow?.setMap(null);gpsNavArrow=null;
     if(route?.vertices?.length&&!route.demo){
@@ -503,6 +538,7 @@ function startRainGuidance(){
  if(!navigator.geolocation){toast('이 기기는 GPS 위치를 지원하지 않는 환경입니다.');return;}
  stopRain();
  const rerouteButton=$('sunnyDriveReroute');if(rerouteButton)rerouteButton.disabled=false;
+ stopPreviewPositionWatch();
  rainGridOverlay.disableRouteRadar();drivingUI.start(route,weather);setNavTab('navRoute');$('navRouteResult').hidden=true;document.body.classList.remove('nav-route-open');void showMap('kakao');const run=rainRun;$('rainStart').disabled=true;$('rainStop').hidden=false;$('gpsStatus').textContent='GPS 권한·위치 수신 대기';$('rainStatus').textContent='비 예보 대기';
  rainWatch=navigator.geolocation.watchPosition(p=>{
   if(run!==rainRun)return;
@@ -690,7 +726,7 @@ function showNavRouteResult(){
  $('navRouteDuration').textContent=Math.round(route.duration/60)+'분';
  $('navRouteDistance').textContent=(route.distance/1000).toFixed(1)+'km';
  $('navRouteArrival').textContent='도착 '+fmt(new Date(Date.parse(route.departure)+route.duration*1000));
- renderRouteHazards();sheet.hidden=false;document.body.classList.add('nav-route-open');setNavTab('navRoute');ensureNavigationKakao();
+ renderRouteHazards();sheet.hidden=false;document.body.classList.add('nav-route-open');setNavTab('navRoute');ensureNavigationKakao();watchPreviewPosition();
 }
 $('navRouteResultClose')?.addEventListener('click',goToInitialHome);
 $('navStartGuidance')?.addEventListener('click',startRainGuidance);
