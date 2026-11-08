@@ -345,10 +345,11 @@ const appSettings=initAppSettings({
   if(!next.voiceAlerts)stopVoice();
   if(drivingUI.isActive()){
    if(old.headingMode!==next.headingMode){
-    resetDrivingMapHeading();
-    if(next.headingMode==='course'&&rainPosition){
+    applyDrivingMapHeading();
+    if(rainPosition){
      rainPosition.directionStatus=updateDrivingMapHeading(rainPosition);
      drawGps();
+     drivingUI.update(rainProgress,rainPosition,Boolean(offRouteFix));
     }
    }
    if(!old.followGps&&next.followGps){lastFollowTime=0;lastFollowPosition=null;followDrivingGps();}
@@ -361,9 +362,27 @@ if($('navDemoOpacity')){$('navDemoOpacity').value=String(appPrefs.overlayOpacity
 $('navDemoOpacity')?.addEventListener('input',()=>appSettings.set({overlayOpacity:Number($('navDemoOpacity').value)}));
 let gpsNavArrow=null,lastFollowTime=0,lastFollowPosition=null;
 let lastHeadingFix=null,navBearing=null,navBearingAt=0;
-// Keep the provider-rendered Kakao map NORTH-UP. Rotating its tile container
-// also rotates/warps the place-name labels and breaks route touch geometry.
-// Only the GPS vehicle arrow indicates observed direction of travel.
+function applyDrivingMapHeading(){
+ const body=document.body;
+ const mapHost=$('kakaoMap')?.parentElement;
+ const rotated=drivingUI.isActive()&&appPrefs.headingMode==='course'&&
+  activeMap==='kakao'&&Number.isFinite(navBearing)&&mapHost;
+ if(!rotated){
+  if(body.classList.contains('sunny-heading-up')){
+   body.classList.remove('sunny-heading-up');
+   kmap?.relayout?.();
+  }
+  return;
+ }
+ // Render enough tiles to cover the visible rectangle at any bearing.
+ const size=Math.ceil(Math.hypot(mapHost.clientWidth,mapHost.clientHeight))+'px';
+ const needsLayout=!body.classList.contains('sunny-heading-up')||
+  body.style.getPropertyValue('--sunny-rotated-map-size')!==size;
+ body.style.setProperty('--sunny-rotated-map-size',size);
+ body.style.setProperty('--sunny-map-rotation',-navBearing+'deg');
+ body.classList.add('sunny-heading-up');
+ if(needsLayout)kmap?.relayout?.();
+}
 function resetDrivingMapHeading(){
  document.body.classList.remove('sunny-heading-up');
  document.body.style.removeProperty('--sunny-map-rotation');
@@ -373,18 +392,20 @@ function resetDrivingMapHeading(){
 }
 function updateDrivingMapHeading(fix){
  if(!drivingUI.isActive()||!fix)return '지도 북쪽 고정';
- if(appPrefs.headingMode==='north')return '지도 북쪽 고정';
  const candidate=resolveDrivingHeading(lastHeadingFix,fix,navBearing,navBearingAt);
  if(Number.isFinite(fix.accuracy)&&fix.accuracy<=60)lastHeadingFix={...fix};
  if(Number.isFinite(candidate.bearing)){
   navBearing=angleStep(navBearing,candidate.bearing);
   if(candidate.source==='gps'||candidate.source==='motion')navBearingAt=fix.timestamp;
-  return candidate.source==='held'?'진행방향 유지 · 지도 북쪽 고정':
-   '차량 방향 화살표 · 지도 북쪽 고정';
+ }else{
+  navBearing=null;
  }
- return candidate.source==='unreliable'?'GPS 방향 정확도 낮음 · 지도 북쪽 고정':
-  '차량 방향 확인 중 · 지도 북쪽 고정';
+ applyDrivingMapHeading();
+ if(appPrefs.headingMode==='north')return '지도 북쪽 고정';
+ return Number.isFinite(navBearing)?'지도 진행방향 고정':'GPS 진행방향 확인 중';
 }
+window.addEventListener('resize',applyDrivingMapHeading);
+mobileViewport?.addEventListener('resize',applyDrivingMapHeading);
 function followDrivingGps(){
  if(!drivingUI.isActive()||!appPrefs.followGps||!rainPosition||!kmap||activeMap!=='kakao'||document.hidden)return;
  const now=Date.now();
@@ -419,7 +440,7 @@ function drawGps(){
      gpsNavArrow=new kakao.maps.CustomOverlay({map:kmap,position:pos,content:marker,xAnchor:.5,yAnchor:.5,zIndex:12});
     }else gpsNavArrow.setPosition(pos);
     const marker=gpsNavArrow.getContent?.();
-    if(marker?.style)marker.style.rotate=(Number.isFinite(navBearing)?navBearing:Number.isFinite(p.heading)?p.heading:0)+'deg';
+    if(marker?.style)marker.style.rotate=(navBearing??0)+'deg';
    }else{
     gpsNavArrow?.setMap(null);gpsNavArrow=null;
     if(route?.vertices?.length&&!route.demo){

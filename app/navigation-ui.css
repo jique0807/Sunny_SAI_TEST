@@ -920,8 +920,6 @@ body.sunny-guiding .sunny-drive-footer{
 body.sunny-guiding .sunny-drive-footer strong{font-size:14px!important}
 body.sunny-guiding .sunny-drive-footer small{font-size:10px!important}
 body.sunny-guiding .sunny-drive-footer button{min-height:40px!important;min-width:54px!important}
-/* Native Kakao SDK renders labels north-up. Only the GPS arrow rotates.
-   Never apply CSS transforms to the entire map/tile container. */
 @media(max-width:360px){
  body.sunny-guiding .sunny-drive-alerts{width:calc(100vw - 80px)!important;left:10px!important}
  body.sunny-guiding .sunny-drive-footer strong{font-size:12px!important}
@@ -2009,4 +2007,11 @@ body.sunny-guiding #navRadarQuick.sunny-radar-quick {
  html.sunny-keyboard-open body .nav-bottom-bar{
   display:none!important;
  }
+}
+
+body.sunny-guiding.sunny-heading-up .dashboard .map-canvas > #kakaoMap:not([hidden]){
+ inset:auto!important;left:50%!important;top:50%!important;
+ width:var(--sunny-rotated-map-size)!important;height:var(--sunny-rotated-map-size)!important;
+ max-width:none!important;max-height:none!important;
+ transform:translate(-50%,-50%) rotate(var(--sunny-map-rotation,0deg));
 }

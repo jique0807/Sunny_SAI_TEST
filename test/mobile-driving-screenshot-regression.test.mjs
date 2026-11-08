@@ -33,12 +33,12 @@ function fakeDocument(){
   }
  };
 }
-test('screenshot: north-up readable place labels are never rotated as a whole Kakao map',()=>{
- assert.doesNotMatch(css,/rotate\(var\(--sunny-map-rotation,0deg\)\)/);
- assert.doesNotMatch(app,/classList\.add\('sunny-heading-up'\)/);
+test('both map orientation modes are available during guidance',()=>{
+ assert.match(css,/rotate\(var\(--sunny-map-rotation,0deg\)\)/);
+ assert.match(app,/classList\.add\('sunny-heading-up'\)/);
  assert.match(app,/marker\.style\.rotate=/);
  assert.match(app,/resetDrivingMapHeading\(\)/);
- assert.match(ui,/차량 화살표만 GPS 진행방향/);
+ assert.match(ui,/진행방향 위로/);
 });
 test('screenshot: four bottom tabs are fixed and accessible even during active guidance',()=>{
  for(const id of ['navHome','navRoute','navLayers','navSettings'])
