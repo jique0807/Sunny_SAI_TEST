@@ -1,3 +1,4 @@
+import {setLayerReception} from './layer-reception.mjs';
 // Display only officially-supplied, geo-located KMA road-risk records.
 // No guessed node-link geometry or precipitation-derived icing risk.
 export const RISK_COLOR=Object.freeze({1:'#eab432',2:'#ee851b',3:'#d52d36'});
@@ -101,16 +102,21 @@ export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
   clear();data=null;onChange?.();const request=++pending;loading=true;
   if(!enabled()){loading=false;return;}
   if(!available){loading=false;message('KMA_API_KEY 미설정');return;}
+  for(const id of ['navLayerroad','navLayerfog'])setLayerReception(id,'loading');
   message('기상청 도로위험 노선별 ZIP 수신·위치 확인 중');
   if(button)button.disabled=true;
   try{
    const d=await query('all');
    if(request!==pending)return;
    data=d;
+   for(const id of ['navLayerroad','navLayerfog'])setLayerReception(id,d.receivedRoads>0?'received':'failed');
    await ensureMap();
    if(request===pending)repaint();
   }catch(e){
-   if(request===pending)message('위험정보 조회 불가 · '+String(e?.message||'API 활용신청·자료 제공기간 확인').slice(0,155));
+   if(request===pending){
+    for(const id of ['navLayerroad','navLayerfog'])setLayerReception(id,'failed');
+    message('위험정보 조회 불가 · '+String(e?.message||'API 활용신청·자료 제공기간 확인').slice(0,155));
+   }
   }finally{if(request===pending){loading=false;if(button)button.disabled=!available;}}
  }
  function setAvailable(value){

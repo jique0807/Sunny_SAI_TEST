@@ -2022,3 +2022,25 @@ body.sunny-guiding.sunny-heading-up .dashboard .map-canvas > #kakaoMap:not([hidd
 
 #navWeatherTimeBar #navWeatherTimeRange{width:100%;margin:0}
 #navWeatherTimeBar #navWeatherTimeLabel{margin-left:auto;font-weight:650;font-size:11px;color:#184a74}
+
+.nav-layers-sheet .nav-layer-row > span{
+ flex-direction:row;align-items:center;flex-wrap:wrap;gap:4px 8px;
+}
+.nav-layer-row .nav-layer-reception{
+ display:none;width:max-content;padding:2px 6px;border-radius:8px;
+ font-size:10px;font-weight:700;white-space:nowrap;
+}
+.nav-layer-row:has(input:checked) .nav-layer-reception:not(:empty){display:inline-block}
+.nav-layer-reception[data-state="loading"]{background:#fff1d5;color:#854d0e}
+.nav-layer-reception[data-state="received"]{background:#dcf7e8;color:#166534}
+.nav-layer-reception[data-state="failed"]{background:#ffe4e5;color:#9f3030}
+.nav-layer-reception[data-state="waiting"]{background:#edf2f7;color:#475569}
+
+@media(max-width:900px){
+ body #navWeatherTimeBar{
+  left:env(safe-area-inset-left,0px)!important;
+  right:env(safe-area-inset-right,0px)!important;
+  width:auto!important;max-width:none!important;transform:none!important;
+  overflow-x:hidden;
+ }
+}

@@ -1,3 +1,4 @@
+import {setLayerReception} from './layer-reception.mjs';
 import {loadHSRFrame,drawHSROverKakao,HSR_MAX_FRAME} from './kma-hsr-overlay.mjs';
 // Georegistered nationwide KMA 5-km 1-hour rainfall forecast drawn *over* Kakao.
 // No second basemap, invented rain cells or spatial interpolation.
@@ -133,6 +134,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  };
  const message=(text,state='idle')=>{
   if(status){status.textContent=text;status.dataset.receiveState=state;}
+  if(source==='grid')setLayerReception('navNationalRain',state==='idle'?'waiting':state);
  };
  const isKakao=()=>Boolean(map&&window.kakao?.maps);
  const updateButtons=()=>{

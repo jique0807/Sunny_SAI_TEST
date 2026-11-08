@@ -1,3 +1,4 @@
+import {setLayerReception} from './layer-reception.mjs';
 // KMA genuine 5 km grid forecast mosaic on Kakao / Leaflet maps.
 // Only individually fetched grid cells may be coloured. No weather extrapolation.
 export function isSnowPty(code){return [2,3,6,7].includes(code);}
@@ -58,6 +59,8 @@ export function initKmaMapOverlay({query,getContext,fallback,getActiveMap,format
  function stopPlayback(){clearInterval(playback);playback=null;}
  let configured=false,cache=null,painted=[],timer=null,seq=0,lead=0;
  const enabled=()=>controls.some(c=>c?.checked);
+ const snowReception=data=>setLayerReception('navLayersnow',data?.cells?.some(c=>
+  Number.isInteger(c.forecast?.precipitationType)||c.forecasts?.some(f=>Number.isInteger(f?.precipitationType)))?'received':'failed');
  const message=s=>{if(status)status.textContent='기상청 지도예보: '+s;};
  function clear(){
   for(const o of painted)try{if(o.kakao)o.item.setMap(null);else o.map.removeLayer(o.item);}catch{}
@@ -128,29 +131,32 @@ export function initKmaMapOverlay({query,getContext,fallback,getActiveMap,format
  }
  async function update(force=false){
   clearTimeout(timer);
-  if(!enabled()){++seq;clear();timePanel();return;}
+  if(!enabled()){++seq;clear();timePanel();setLayerReception('navLayersnow','waiting');return;}
   timePanel();
   if(!configured){clear();message('기상청 키가 필요합니다');return;}
   const ctx=getContext();
+  setLayerReception('navLayersnow','waiting');
   if(!ctx){clear();message('카카오 또는 일반지도를 선택하세요');return;}
   if(!ctx.ready){clear();message('지도를 확대하세요 (카카오 7레벨 이하 · 일반지도 9 이상)');return;}
   const center={lat:(ctx.south+ctx.north)/2,lng:(ctx.west+ctx.east)/2};
   const age=cache?Date.now()-cache.at:Infinity;
   const distance=cache?Math.hypot((center.lat-cache.center.lat)*111,(center.lng-cache.center.lng)*89):Infinity;
-  if(!force&&cache&&age<300000&&distance<12){draw(cache.data);return;}
+  if(!force&&cache&&age<300000&&distance<12){snowReception(cache.data);draw(cache.data);return;}
   if(!force&&cache&&age<120000){clear();message('지도를 이동했습니다. 「현재 지도 범위 다시 조회」를 눌러주세요');return;}
   const points=sampleMapPoints(ctx);
   if(!points.length){clear();message('대한민국 영역으로 지도를 이동하세요');return;}
   const requestId=++seq;clear();message('기상청 실제 격자 예보 수신 중 · 최대 16개, 시각별 6장');
+  setLayerReception('navLayersnow','loading');
   if(refresh)refresh.disabled=true;
   try{
    const data=await query(points);
    if(requestId!==seq||!enabled())return;
+   snowReception(data);
    if(!data?.cells?.some(c=>c.status==='forecast')){
     cache=null;message('조회된 기상청 예보 없음 · 키 권한/발표시각 확인 필요');return;
    }
    cache={data,center,at:Date.now()};draw(data);
-  }catch(e){if(requestId===seq){clear();message('강수영역 조회 실패 · '+(e.message||'API 상태를 확인하세요'));}}
+  }catch(e){if(requestId===seq){setLayerReception('navLayersnow','failed');clear();message('강수영역 조회 실패 · '+(e.message||'API 상태를 확인하세요'));}}
   finally{if(requestId===seq)timePanel();}
  }
  function schedule(){if(!enabled())return;clearTimeout(timer);timer=setTimeout(()=>update(),650);}
@@ -173,7 +179,7 @@ export function initKmaMapOverlay({query,getContext,fallback,getActiveMap,format
  for(const c of controls)c?.addEventListener('change',()=>{
   minimized=false;stopPlayback();
   if(!enabled()){update();return;}
-  if(!getContext()&&getActiveMap()==='schematic'){fallback();return;}
+  if(!getContext()&&getActiveMap()==='schematic'){setLayerReception('navLayersnow','waiting');fallback();return;}
   update();
  });
  slider?.addEventListener('input',()=>{
