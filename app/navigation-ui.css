@@ -2069,3 +2069,22 @@ body.sunny-guiding.sunny-heading-up .dashboard .map-canvas > #kakaoMap:not([hidd
  .sunny-demo-launch{font-size:13px;flex-wrap:wrap;justify-content:center;text-align:center;}
  .sunny-demo-launch small{width:100%;}
 }
+
+/* Non-modal demonstration only: manually inject a fictional emergency while driving. */
+body.sunny-guiding .sunny-demo-breaking-trigger:not([hidden]){
+ display:block!important;position:absolute!important;top:145px;left:10px;
+ z-index:120;max-width:calc(100% - 90px);border:1px solid #c47c20;
+ border-radius:10px;background:#fff1d7;color:#783b0e;
+ padding:7px 9px;font-size:11px;font-weight:800;line-height:1.2;
+ box-shadow:0 2px 8px #0001;cursor:pointer;
+}
+body.sunny-guiding .sunny-drive-alert-urgent{
+ border-left:4px solid #e24435!important;
+ background:#fff1e9!important;
+}
+.sunny-rail-hazard[data-demo="true"][data-risk="warning"]{
+ outline:3px solid #eb4938;outline-offset:2px;
+}
+.hazard-pin.sunny-demo-pin.sunny-demo-breaking-pin{
+ border-color:#e23e35;background:#fff0e9;
+}
