@@ -59,7 +59,7 @@ export const ui = `
 <section class="sunny-settings-section" aria-labelledby="drivePreferencesHeading">
  <h3 id="drivePreferencesHeading">주행 지도</h3>
  <label class="sunny-setting-option"><span><b>주행 중 지도 자동 따라가기</b><small>안내 중 차량을 따라 지도가 자동으로 이동합니다.</small></span><input id="settingFollowGps" type="checkbox" checked/></label>
- <label class="sunny-setting-option"><span><b>지도 방향</b><small>주행 중 화면 위에 표시할 방향을 선택합니다.</small></span><select id="settingHeadingMode"><option value="course">진행방향 위로</option><option value="north">북쪽 고정</option></select></label>
+ <label class="sunny-setting-option"><span><b>지도 방향</b><small>도로명·건물명은 바르게 유지하며, 차량 화살표로 실제 진행방향을 표시합니다.</small></span><select id="settingHeadingMode"><option value="course">차량 방향 표시 · 글자 고정</option><option value="north">북쪽 고정 · 글자 고정</option></select></label>
 </section>
 <section class="sunny-settings-section" aria-labelledby="weatherPreferencesHeading">
  <h3 id="weatherPreferencesHeading">전방 기상안내</h3>

@@ -33,12 +33,13 @@ function fakeDocument(){
   }
  };
 }
-test('both map orientation modes are available during guidance',()=>{
- assert.match(css,/rotate\(var\(--sunny-map-rotation,0deg\)\)/);
- assert.match(app,/classList\.add\('sunny-heading-up'\)/);
+test('Kakao raster street labels stay upright while the vehicle direction rotates',()=>{
+ assert.doesNotMatch(css,/rotate\(var\(--sunny-map-rotation,0deg\)\)/);
+ assert.doesNotMatch(app,/classList\.add\('sunny-heading-up'\)/);
+ assert.match(app,/classList\.remove\('sunny-heading-up'\)/);
  assert.match(app,/marker\.style\.rotate=/);
  assert.match(app,/resetDrivingMapHeading\(\)/);
- assert.match(ui,/진행방향 위로/);
+ assert.match(ui,/차량 방향 표시 · 글자 고정/);
 });
 test('screenshot: four bottom tabs are fixed and accessible even during active guidance',()=>{
  for(const id of ['navHome','navRoute','navLayers','navSettings'])

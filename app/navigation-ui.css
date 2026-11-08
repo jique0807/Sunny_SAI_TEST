@@ -2009,12 +2009,8 @@ body.sunny-guiding #navRadarQuick.sunny-radar-quick {
  }
 }
 
-body.sunny-guiding.sunny-heading-up .dashboard .map-canvas > #kakaoMap:not([hidden]){
- inset:auto!important;left:50%!important;top:50%!important;
- width:var(--sunny-rotated-map-size)!important;height:var(--sunny-rotated-map-size)!important;
- max-width:none!important;max-height:none!important;
- transform:translate(-50%,-50%) rotate(var(--sunny-map-rotation,0deg));
-}
+/* Kakao raster tiles contain baked-in street labels. Never rotate the map DOM:
+   only .sunny-drive-gps-pointer rotates to real GPS heading in public/app.js. */
 .sunny-drive-gps-pointer.sunny-bearing-unknown svg{grid-area:1/1;visibility:hidden}
 .sunny-drive-gps-pointer.sunny-bearing-unknown::after{
  content:"";grid-area:1/1;width:15px;height:15px;border:2px solid white;

@@ -101,14 +101,36 @@ test('heading-up uses observed GPS travel direction, falling back to reliable mo
  assert.equal(poor.source,'unreliable');assert.equal(poor.bearing,null);
  assert.ok(Math.abs(angleStep(350,10)-1)<.1);
 });
-test('GPS direction rotates the map in course mode',()=>{
+test('GPS heading rotates only the blue car arrow, not Kakao raster labels',()=>{
  assert.match(app,/resolveDrivingHeading\(lastHeadingFix,fix,navBearing,navBearingAt\)/);
  assert.match(app,/marker\.style\.rotate=/);
- assert.match(app,/classList\.add\('sunny-heading-up'\)/);
+ assert.match(app,/body\.classList\.remove\('sunny-heading-up'\)/);
+ assert.doesNotMatch(app,/classList\.add\('sunny-heading-up'\)/);
+ assert.doesNotMatch(css,/rotate\(var\(--sunny-map-rotation,0deg\)\)/);
  assert.doesNotMatch(app,/setDraggable\?\.\(false\)/);
  assert.doesNotMatch(app,/\.setRotation\(/);
- assert.match(css,/rotate\(var\(--sunny-map-rotation,0deg\)\)/);
-
+});
+test('old saved course setting also clears previously rotated Kakao tiles',()=>{
+ const start=app.indexOf('function applyDrivingMapHeading(){');
+ const end=app.indexOf('function resetDrivingMapHeading(){',start);
+ assert.ok(start>0&&end>start);
+ const values=new Set(['sunny-heading-up']),removed=[],relayouts=[];
+ const ctx=vm.createContext({
+  document:{body:{
+   classList:{contains:name=>values.has(name),remove:name=>values.delete(name)},
+   style:{removeProperty:name=>removed.push(name)}
+  }},
+  kmap:{relayout(){relayouts.push('relayout');}},
+  activeMap:'kakao'
+ });
+ vm.runInContext(app.slice(start,end),ctx);
+ vm.runInContext('applyDrivingMapHeading()',ctx);
+ assert.equal(values.has('sunny-heading-up'),false);
+ assert.ok(removed.includes('--sunny-map-rotation'));
+ assert.ok(removed.includes('--sunny-rotated-map-size'));
+ assert.deepEqual(relayouts,['relayout']);
+ vm.runInContext('applyDrivingMapHeading()',ctx);
+ assert.deepEqual(relayouts,['relayout']);
 });
 test('right-side zoom control is gone and route progress rail is repositioned',()=>{
  assert.doesNotMatch(app,/new kakao\.maps\.ZoomControl\(\)/);
