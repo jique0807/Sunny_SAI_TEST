@@ -213,7 +213,7 @@ body{background:var(--bg);color:var(--ink)}
  .dashboard .workspace{position:static!important;display:block!important;width:100%!important;height:100%!important;min-height:0!important;padding:0!important;margin:0!important;background:transparent!important}
  .dashboard .map-panel{display:contents!important}
  .dashboard .map-canvas{position:fixed!important;inset:0!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100vw!important;height:100dvh!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;overflow:hidden!important;z-index:0!important}
- .dashboard .map-canvas>.real-map,.dashboard .map-canvas>.schematic,.dashboard .map-canvas>#actualRoute{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;border-radius:0!important}
+ .dashboard .map-canvas #kakaoMap,.dashboard .map-canvas>.real-map,.dashboard .map-canvas>.schematic,.dashboard .map-canvas>#actualRoute{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;border-radius:0!important}
  .dashboard .map-canvas>[hidden]{display:none!important}
  .drive-home-bar{position:fixed!important;top:calc(12px + env(safe-area-inset-top))!important;left:12px!important;right:12px!important;z-index:600!important}
  .nav-bottom-bar{position:fixed!important;bottom:0!important;z-index:650!important}
@@ -2009,12 +2009,17 @@ body.sunny-guiding #navRadarQuick.sunny-radar-quick {
  }
 }
 
-body.sunny-guiding.sunny-heading-up .dashboard .map-canvas > #kakaoMap:not([hidden]){
+#kakaoMapRotation{display:contents}
+body.sunny-guiding.sunny-heading-up #kakaoMapRotation,
+body[data-sunny-nav="home"].sunny-heading-up:not(.nav-route-open) #kakaoMapRotation{
+ display:block;position:absolute;
  inset:auto!important;left:50%!important;top:50%!important;
  width:var(--sunny-rotated-map-size)!important;height:var(--sunny-rotated-map-size)!important;
  max-width:none!important;max-height:none!important;
  transform:translate(-50%,-50%) rotate(var(--sunny-map-rotation,0deg));
 }
+#kakaoMapRotation:not([hidden]) #kakaoMap{width:100%;height:100%}
+
 .sunny-drive-gps-pointer.sunny-bearing-unknown svg{grid-area:1/1;visibility:hidden}
 .sunny-drive-gps-pointer.sunny-bearing-unknown::after{
  content:"";grid-area:1/1;width:15px;height:15px;border:2px solid white;
