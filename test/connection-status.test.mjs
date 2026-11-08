@@ -107,7 +107,7 @@ test('environment settings include readable status panel and correctly wired sou
  'settingConnectionSummary','settingConnectionRefresh','settingConnectionCheckedAt'])
   assert.equal(ui.split('id="'+id+'"').length-1,1,id);
  assert.match(ui,/인증키 등록 ≠ 실제 수신 성공/);
- assert.match(ui,/자료 종류 12개/);
+ assert.match(ui,/API 키 등록 및 연결 결과/);
  assert.match(app,/await import\('\/connection-status\.mjs'\)/);
  assert.match(app,/connectionPanel=initConnectionStatusPanel/);
  assert.match(css,/sunny-source-row\[data-connection-state="ok"\]/);

@@ -43,7 +43,7 @@ export function applySessionConfiguration(current,session){
   road:config.roadRisk,warning:config.kma,floodNational:config.safemap
  };
  for(const [id,yes]of Object.entries(configured)){
-  copy[id]={...(yes?state('configured','실제 API 응답 검사 전'):state('missing','서버 인증키 미설정')),keyRegistered:Boolean(yes)};
+  copy[id]={...(yes?state('configured',id==='vworld'?'API 키 등록됨 · 위성 타일 수신은 지도에서 확인할 수 있습니다.':'실제 API 응답 검사 전'):state('missing','서버 인증키 미설정')),keyRegistered:Boolean(yes)};
  }
  return copy;
 }
@@ -122,7 +122,7 @@ export function initConnectionStatusPanel({
 }={}){
  const $=id=>document.getElementById(id);
  const items=$('settingConnectionItems'),button=$('settingConnectionRefresh'),
-  summary=$('settingConnectionSummary'),stamp=$('settingConnectionCheckedAt');
+  refreshLabel=$('settingConnectionRefreshLabel')||button,summary=$('settingConnectionSummary'),stamp=$('settingConnectionCheckedAt');
  let values=initialConnectionResults(),busy=false,lastChecked=null,request=0;
  const nodes=new Map();
  function render(){
@@ -175,7 +175,7 @@ export function initConnectionStatusPanel({
  async function refresh(){
   if(busy)return false;
   busy=true;const run=++request;
-  if(button){button.disabled=true;button.textContent='연결 검사 중…';}
+  if(button){button.disabled=true;refreshLabel.textContent='연결 검사 중…';}
   try{
    await waitForSession();
    const session=await requestJSON('/api/session');
@@ -213,7 +213,7 @@ export function initConnectionStatusPanel({
   }finally{
    if(run===request){
     busy=false;
-    if(button){button.disabled=false;button.textContent='↻ 상태 새로고침';}
+    if(button){button.disabled=false;refreshLabel.textContent='상태 새로고침';}
    }
   }
  }

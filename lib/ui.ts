@@ -82,10 +82,10 @@ export const ui = `
 </section>
 <section id="settingsDataConnections" class="sunny-settings-section sunny-source-settings" aria-labelledby="settingsDataConnectionsHeading">
  <details class="sunny-source-fold">
-  <summary id="settingsDataConnectionsHeading"><strong>데이터 연결 상태</strong><small>자료 종류 12개 · 인증키·실제 수신·오류 확인</small></summary>
+  <summary id="settingsDataConnectionsHeading"><strong>데이터 연결 상태</strong><small>API 키 등록 및 연결 결과</small></summary>
  <div class="sunny-source-settings-head">
   <div><p>지도·경로·기상·도로위험 자료의 서버 연결 및 수신 여부를 확인합니다.</p></div>
-  <button id="settingConnectionRefresh" type="button" aria-label="전체 데이터 연결 상태 다시 검사"><span aria-hidden="true">↻</span> 상태 새로고침</button>
+  <button id="settingConnectionRefresh" type="button" aria-label="전체 데이터 연결 상태 다시 검사"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2 5"/></svg><span id="settingConnectionRefreshLabel">상태 새로고침</span></button>
  </div>
  <p id="settingConnectionSummary" class="sunny-source-summary" role="status" aria-live="polite">검사 전 · 자료별 상태를 조회해주세요.</p>
  <div id="settingConnectionItems" class="sunny-source-items" role="list" aria-label="API 데이터 종류별 연결 상태"></div>

@@ -1616,11 +1616,11 @@ body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
  display:inline-flex;align-items:center;justify-content:center;gap:7px;
  border:1px solid #a6cbdc;border-radius:10px;background:#e7f4fa;
  color:#145776;font:inherit;font-weight:750;font-size:12px;
- padding:10px 12px;min-height:42px;cursor:pointer;touch-action:manipulation;
+ padding:10px 12px;min-height:44px;cursor:pointer;touch-action:manipulation;
 }
 #settingConnectionRefresh:disabled{opacity:.65;cursor:progress}
 #settingConnectionRefresh:focus-visible{outline:3px solid #1478b6;outline-offset:2px}
-#settingConnectionRefresh span{font-size:19px;line-height:1}
+#settingConnectionRefresh svg{width:18px;height:18px;flex:none}
 .sunny-source-summary{
  padding:8px 11px;border:1px solid #d6e3eb;background:#f5f9fb;
  border-radius:9px;color:#2b536d;font-weight:700;font-size:12px;line-height:1.45;
@@ -1650,8 +1650,8 @@ body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
 .sunny-source-row[data-connection-state="partial"] .sunny-source-state,
 .sunny-source-row[data-connection-state="configured"] .sunny-source-state{
  background:#fff4e4;border-color:#f0d6a6;color:#946318}
-.sunny-source-row[data-connection-state="error"] .sunny-source-state,
-.sunny-source-row[data-connection-state="missing"] .sunny-source-state{
+.sunny-source-row:is([data-connection-state="error"],[data-connection-state="missing"],
+ [data-connection-state="pending"],[data-connection-state="disconnected"]) .sunny-source-state{
  background:#ffeded;border-color:#f1c7c7;color:#a23b3b}
 .sunny-source-row[data-connection-state="checking"] .sunny-source-state{
  background:#e7f2ff;border-color:#b8d8f4;color:#1b659b}
@@ -1668,21 +1668,19 @@ body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
 /* The long diagnostics list stays folded until the user explicitly expands it. */
 .sunny-source-fold{border:1px solid #dbe6ed;border-radius:12px;padding:9px 11px;background:#fcfdff}
 .sunny-source-fold>summary{
- display:flex;align-items:center;gap:10px;cursor:pointer;min-height:35px;
+ display:grid;grid-template-columns:minmax(0,1fr) 12px;align-items:center;gap:2px 12px;cursor:pointer;min-height:44px;
  color:#243f56;font-size:13px;line-height:1.4;list-style:none;
 }
 .sunny-source-fold>summary::-webkit-details-marker{display:none}
-.sunny-source-fold>summary strong{flex:1 1 auto;min-width:0}
-.sunny-source-fold>summary small{font-size:10px;font-weight:500;color:#6a7e8d;text-align:right}
-.sunny-source-fold>summary:after{content:"▾";font-size:18px;color:#536e83;line-height:1}
-.sunny-source-fold[open]>summary:after{content:"▴"}
+.sunny-source-fold>summary strong{grid-column:1;grid-row:1;min-width:0}
+.sunny-source-fold>summary small{grid-column:1;grid-row:2;font-size:11px;color:#6a7e8d}
+.sunny-source-fold>summary:after{
+ content:"";grid-column:2;grid-row:1 / span 2;width:8px;height:8px;
+ border-right:2px solid #536e83;border-bottom:2px solid #536e83;transform:rotate(45deg);
+}
+.sunny-source-fold[open]>summary:after{transform:rotate(225deg)}
 .sunny-source-fold>summary:focus-visible{outline:3px solid #177eb7;outline-offset:3px;border-radius:6px}
 .sunny-source-fold[open]>.sunny-source-settings-head{margin-top:10px}
-@media(max-width:650px){
- .sunny-source-fold>summary{flex-wrap:wrap}
- .sunny-source-fold>summary small{flex-basis:100%;text-align:left}
- .sunny-source-fold>summary:after{margin-left:auto}
-}
 
 
 /* Screenshot remediation: keep mobile nav fixed, preserve unrotated Kakao
@@ -1938,7 +1936,10 @@ body.sunny-rain-grid-minimized .sunny-radar-quick:not([hidden]){
 #navRainGridTimeBar.sunny-grid-active > .sunny-rain-grid-legend{display:none!important}
 
 #settings > .dialog-head{position:sticky;top:0;z-index:2;background:#fff}
-#settings > .dialog-head button{min-width:40px;min-height:40px;flex-shrink:0}
+#settings > .dialog-head button{
+ min-width:44px;min-height:44px;flex-shrink:0;display:grid;place-items:center;
+ background:#f1f5fa;border:1px solid #c4d4e2;border-radius:10px;line-height:1;
+}
 #settingVoiceSpeedValue{font-weight:700;color:#1668c8;margin-inline-start:6px}
 
 .sunny-route-map-hazard{
