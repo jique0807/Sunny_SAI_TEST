@@ -1935,7 +1935,6 @@ body.sunny-rain-grid-minimized .sunny-radar-quick:not([hidden]){
 #navRainGridTimeBar.sunny-grid-active #navRainGridClose{
  background:#fff3f2;border-color:#f3d4d1;color:#9f3030;
 }
-#navWeatherTimeBar > .sunny-rain-grid-legend,
 #navRainGridTimeBar.sunny-grid-active > .sunny-rain-grid-legend{display:none!important}
 
 #settings > .dialog-head{position:sticky;top:0;z-index:2;background:#fff}
@@ -2020,3 +2019,6 @@ body.sunny-guiding.sunny-heading-up .dashboard .map-canvas > #kakaoMap:not([hidd
  content:"";grid-area:1/1;width:15px;height:15px;border:2px solid white;
  border-radius:50%;background:#1769ed;
 }
+
+#navWeatherTimeBar #navWeatherTimeRange{width:100%;margin:0}
+#navWeatherTimeBar #navWeatherTimeLabel{margin-left:auto;font-weight:650;font-size:11px;color:#184a74}

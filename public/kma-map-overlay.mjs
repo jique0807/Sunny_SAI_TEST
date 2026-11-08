@@ -68,14 +68,14 @@ export function initKmaMapOverlay({query,getContext,fallback,getActiveMap,format
   if(refresh)refresh.disabled=!enabled()||!configured;
  }
  function timing(data){
-  if(reception)reception.innerHTML=Array.from({length:4},(_,i)=>{
+  if(reception)reception.innerHTML=Array.from({length:6},(_,i)=>{
    const received=data?.cells?.some(cell=>Number.isInteger((i===0?cell.forecast:cell.forecasts?.[i])?.precipitationType));
    return '<span data-state="'+(received?'received':'idle')+'"></span>';
   }).join('');
   const iso=data?.validTimes?.[lead];
   if(timeLabel)timeLabel.textContent=iso?
    new Date(iso).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' 예보':
-   '현재 +'+lead+'시간 · 자료 조회 전';
+   '자료 조회 전';
  }
  function draw(data){
   clear();timePanel();timing(data);
@@ -141,7 +141,7 @@ export function initKmaMapOverlay({query,getContext,fallback,getActiveMap,format
   if(!force&&cache&&age<120000){clear();message('지도를 이동했습니다. 「현재 지도 범위 다시 조회」를 눌러주세요');return;}
   const points=sampleMapPoints(ctx);
   if(!points.length){clear();message('대한민국 영역으로 지도를 이동하세요');return;}
-  const requestId=++seq;clear();message('기상청 실제 격자 예보 수신 중 · 최대 16개, 시각별 4장');
+  const requestId=++seq;clear();message('기상청 실제 격자 예보 수신 중 · 최대 16개, 시각별 6장');
   if(refresh)refresh.disabled=true;
   try{
    const data=await query(points);
@@ -160,7 +160,7 @@ export function initKmaMapOverlay({query,getContext,fallback,getActiveMap,format
   if(playback!==null)return;
   playback=setInterval(()=>{
    if(!enabled()||document.hidden){stopPlayback();return;}
-   slider.value=String((lead+1)%4);slider.dispatchEvent(new Event('input'));
+   slider.value=String((lead+1)%6);slider.dispatchEvent(new Event('input'));
   },1000);
  });
  document.getElementById('navSnowPause')?.addEventListener('click',stopPlayback);
@@ -177,7 +177,7 @@ export function initKmaMapOverlay({query,getContext,fallback,getActiveMap,format
   update();
  });
  slider?.addEventListener('input',()=>{
-  lead=Math.max(0,Math.min(3,Number(slider.value)||0));
+  lead=Math.max(0,Math.min(5,Number(slider.value)||0));
   if(cache)draw(cache.data);else timing();
  });
  close?.addEventListener('click',()=>{
