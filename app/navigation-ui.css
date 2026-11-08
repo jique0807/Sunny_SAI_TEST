@@ -1973,3 +1973,8 @@ body.sunny-guiding .sunny-drive-footer #sunnyDriveRadar[aria-pressed="true"] {
  background:#e5f1ff;color:#1458ab;border-color:#96bce9;
 }
 #sunnyDriveRadar span {font-weight:700}
+
+/* Guidance has its own radar control above the footer. */
+body.sunny-guiding #navRadarQuick.sunny-radar-quick {
+ display:none!important;
+}

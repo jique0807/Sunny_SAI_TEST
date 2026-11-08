@@ -99,13 +99,17 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
       title:(item.minutes===0?'현재 부근':item.minutes+'분 후')+' · '+item.title,
       subtitle:item.label+' · '+item.source,icon:item.icon,status:false
     });
-    // A single neutral no-event card is enough. Two identical cards looked
-    // like duplicated provider warnings in the actual mobile driving test.
     if(!slots.length){
       const known=combinedSamples().length>0;
       slots.push({title:known?'조회 지점에 추가 비·눈 예보 없음':'전방 기상예보 미확인',
        subtitle:known?'미조회 구간은 판단 불가':'실제 기상자료 미수신 · 위험 여부 판단 불가',
        icon:'·',status:true});
+    }
+    if(slots.length<alertCount){
+     const checked=new Set(combinedSamples().filter(sample=>sample.seconds>=seconds).map(sample=>sample.seconds)).size;
+     slots.push({title:'전방 예보 조회 상태',
+      subtitle:checked?'조회된 전방 지점 '+checked+'곳':'조회된 전방 지점 없음',
+      icon:'·',status:true});
     }
    }
    for(const [index,item] of slots.slice(0,alertCount).entries()){

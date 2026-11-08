@@ -60,7 +60,7 @@ test('screenshot: rain forecast and radar sheet is wide and shorter without repl
  assert.match(ui,/초단기 예보/);
  assert.doesNotMatch(ui,/id="navNationalRadar"/);
 });
-test('driving panel shows only one neutral no-rain card, but retains two real alerts',()=>{
+test('driving panel fills the configured slots with distinct status or weather cards',()=>{
  const original=globalThis.document;
  const {nodes,document}=fakeDocument();
  try{
@@ -70,13 +70,16 @@ test('driving panel shows only one neutral no-rain card, but retains two real al
    {lat:37.5,lng:127,seconds:0},{lat:37.51,lng:127,seconds:1200}
   ]};
   guide.start(route,{samples:[]});
-  assert.equal(nodes.get('sunnyDriveAlerts').children.length,1);
+  assert.equal(nodes.get('sunnyDriveAlerts').children.length,2);
   assert.match(nodes.get('sunnyDriveAlerts').children[0].children[1].children[0].textContent,/전방 기상예보 미확인/);
+  assert.match(nodes.get('sunnyDriveAlerts').children[1].children[1].children[0].textContent,/전방 예보 조회 상태/);
   guide.setWeather({samples:[{status:'forecast',seconds:400,label:'첫 구간',
    forecast:{provider:'kma',rain:2,precipitationType:1}},
    {status:'forecast',seconds:850,label:'두 번째 구간',
     forecast:{provider:'kma',rain:0,precipitationType:3}}]});
   assert.equal(nodes.get('sunnyDriveAlerts').children.length,2);
+  guide.setPreferences({alertCount:1});
+  assert.equal(nodes.get('sunnyDriveAlerts').children.length,1);
   guide.stop();
   assert.equal(nodes.get('sunnyDriveAlerts').children.length,0);
  }finally{if(original===undefined)delete globalThis.document;else globalThis.document=original;}
