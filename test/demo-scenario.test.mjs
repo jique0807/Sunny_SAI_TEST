@@ -75,15 +75,15 @@ test('fictional warning adds one NEW geolocated point 26 percent ahead, never a 
  assert.throws(()=>makeDemoBreakingWarning({...route,rainPath:[]}),/가상 특보/);
 });
 
-test('manual or automatic new warning appears in route and driver UI but never in real path',()=>{
+test('automatic new warning appears in route and driver UI but never in real path',()=>{
  const ui=readFileSync(new URL('../lib/ui.ts',import.meta.url),'utf8');
  const drive=readFileSync(new URL('../public/drive-guidance.mjs',import.meta.url),'utf8');
- assert.match(ui,/id="sunnyDemoBreaking"/);
+ assert.doesNotMatch(ui,/id="sunnyDemoBreaking"/);
  assert.match(app,/function injectDemoBreakingWarning\(\)/);
  assert.match(app,/shouldTriggerDemoBreakingWarning\(previous,progress,!!route\.demoBreakingWarning\)/);
  assert.match(app,/route\.demoHazards=\[\.\.\.route\.demoHazards,hazard\]/);
  assert.match(app,/drawDemoOverlays\(\);moveCar\(\)/);
- assert.match(app,/sunnyDemoBreaking'\)\?\.addEventListener\('click'/);
+ assert.doesNotMatch(app,/sunnyDemoBreaking/);
  assert.match(app,/function resetDemoBreakingWarning\(\)/);
  assert.match(drive,/const breaking=upcoming\.find\(h=>h\.breaking\)/);
  assert.match(drive,/sunny-drive-alert-urgent/);
@@ -99,7 +99,7 @@ test('demo screen avoids repetitive synthetic labels but keeps a clear presentat
  assert.deepEqual(scenario.hazards.map(h=>h.title),['강한 비','짙은 안개','도로 침수 위험']);
  assert.ok(scenario.hazards.every(h=>!/가상/.test(h.title+h.measure+h.description)));
  assert.match(ui,/id="navDemoDisclaimer"[^>]*>.*시연 모드.*실제 관측/);
- assert.match(ui,/id="sunnyDemoBreaking"[^>]*aria-label="긴급특보 시연 발생"[^>]*>🚨<\/button>/);
+ assert.doesNotMatch(ui,/sunny-demo-breaking-trigger|id="sunnyDemoBreaking"/);
  assert.match(drive,/시연 모드 · 실제 특보·위험정보 아님/);
  assert.match(app,/label\.textContent=\(\{rain:'강수',fog:'안개',flood:'침수',warning:'특보'\}\)/);
  const demo=app.slice(app.indexOf('async function demoRoute(){'),app.indexOf('const scriptLoads=new Map();'));
