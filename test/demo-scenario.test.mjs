@@ -16,11 +16,11 @@ test('real Seoul and Busan city hall endpoints are predefined and not user GPS',
  assert.equal(DEMO_SEOUL_BUSAN.destination.name,'부산시청');
  assert.ok(DEMO_SEOUL_BUSAN.origin.lat>37&&DEMO_SEOUL_BUSAN.destination.lat<36);
 });
-test('five clearly fictional hazard markers follow route time and stay independent of real KMA forecasts',()=>{
+test('three clearly identified demo hazards follow route time and stay separate from KMA forecasts',()=>{
  const x=makeDemoScenario(route);
- assert.deepEqual(x.hazards.map(h=>h.kind),['rain','fog','ice','flood','rain']);
+ assert.deepEqual(x.hazards.map(h=>h.kind),['rain','fog','flood']);
  assert.equal(x.hazards.length,DEMO_SCENES.length);
- assert.ok(x.hazards.every(h=>h.demo&&/가상/.test(h.provider)&&Number.isFinite(h.lat)&&Number.isFinite(h.lng)));
+ assert.ok(x.hazards.every(h=>h.demo&&/시연/.test(h.provider)&&Number.isFinite(h.lat)&&Number.isFinite(h.lng)));
  assert.ok(x.hazards.every((h,i)=>i===0||h.seconds>x.hazards[i-1].seconds));
  assert.ok(x.samples.every(s=>s.status==='demo'&&s.forecast===null));
  assert.deepEqual(buildRouteHazards(x.samples),[]);
@@ -33,7 +33,7 @@ test('event locations interpolate through Kakao route timestamps',()=>{
  assert.equal(demoPointAtSeconds([],100),null);
  assert.throws(()=>makeDemoScenario({...route,rainPath:[]}),/시연 경로/);
 });
-test('demo route and five markers are wired into navigation rail, map, and simulated playback',()=>{
+test('demo route and three initial markers are wired into navigation rail, map, and simulated playback',()=>{
  assert.match(ui,/id="navDemoSeoulBusan"/);
  assert.match(ui,/id="navDemoDisclaimer"/);
  assert.match(ui,/id="sunnyDemoNext"/);
@@ -48,7 +48,7 @@ test('demo route and five markers are wired into navigation rail, map, and simul
 test('no newly issued warning is present before the surprise mid-drive trigger',()=>{
  const x=makeDemoScenario(route);
  assert.equal(x.hazards.some(h=>h.breaking),false);
- assert.equal(x.hazards.length,5);
+ assert.equal(x.hazards.length,3);
  assert.equal(DEMO_BREAKING_TRIGGER,0.42);
  assert.equal(DEMO_BREAKING_POSITION,0.68);
  assert.equal(shouldTriggerDemoBreakingWarning(40,41,false),false);
@@ -66,8 +66,8 @@ test('fictional warning adds one NEW geolocated point 26 percent ahead, never a 
  assert.ok(warning.breaking&&warning.demo);
  assert.equal(warning.seconds,Math.round(route.duration*.68));
  assert.equal(warning.issuedAt,'2026-11-09T02:15:00.000Z');
- assert.match(warning.measure,/가상.*실제 기상청 특보 아님/);
- assert.match(warning.provider,/가상/);
+ assert.match(warning.measure,/호우주의보 발효/);
+ assert.match(warning.provider,/시연/);
  assert.ok(Number.isFinite(warning.lat)&&Number.isFinite(warning.lng));
  assert.ok(!scenario.hazards.some(h=>h.id===warning.id));
  assert.ok(warning.seconds>Math.round(route.duration*.42));
@@ -87,5 +87,23 @@ test('manual or automatic new warning appears in route and driver UI but never i
  assert.match(app,/function resetDemoBreakingWarning\(\)/);
  assert.match(drive,/const breaking=upcoming\.find\(h=>h\.breaking\)/);
  assert.match(drive,/sunny-drive-alert-urgent/);
- assert.match(app,/\[가상 긴급상황\]/);
+ assert.match(app,/긴급 기상특보가 발효됐습니다/);
+});
+
+test('demo screen avoids repetitive synthetic labels but keeps a clear presentation-only disclosure',()=>{
+ const ui=readFileSync(new URL('../lib/ui.ts',import.meta.url),'utf8');
+ const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+ const drive=readFileSync(new URL('../public/drive-guidance.mjs',import.meta.url),'utf8');
+ const scenario=makeDemoScenario(route);
+ assert.equal(scenario.hazards.length,3);
+ assert.deepEqual(scenario.hazards.map(h=>h.title),['강한 비','짙은 안개','도로 침수 위험']);
+ assert.ok(scenario.hazards.every(h=>!/가상/.test(h.title+h.measure+h.description)));
+ assert.match(ui,/id="navDemoDisclaimer"[^>]*>.*시연 모드.*실제 관측/);
+ assert.match(ui,/id="sunnyDemoBreaking"[^>]*>🚨 긴급특보 발생/);
+ assert.match(drive,/시연 모드 · 실제 특보·위험정보 아님/);
+ assert.match(app,/label\.textContent=\(\{rain:'강수',fog:'안개',flood:'침수',warning:'특보'\}\)/);
+ const demo=app.slice(app.indexOf('async function demoRoute(){'),app.indexOf('const scriptLoads=new Map();'));
+ const displayed=demo.split('\n').filter(line=>/reply\(|marker\.title|marker\.setAttribute\('aria-label'|label\.textContent/.test(line));
+ assert.ok(displayed.length>8);
+ assert.ok(displayed.every(line=>!line.includes('가상')),'demo narration and visible map pins should have no repeated virtual label');
 });
