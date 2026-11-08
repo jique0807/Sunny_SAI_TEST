@@ -37,7 +37,7 @@ export function matchRouteRoadRisks(records,path,departure,now=Date.now()){
   const eta=Date.parse(departure)+from.seconds*1000;
   const ice=record.kind==='ice';
   return [{...from,kind:record.kind,icon:ice?'🧊':'🌫️',
-   title:ice?'도로 살얼음 위험':'도로 저시정 위험',
+   title:ice?'도로 살얼음 위험':'도로 안개 위험',
    label:'도로 링크 '+record.linkId,eta:Number.isFinite(eta)?new Date(eta).toISOString():null,
    validTime:record.dataTime,roadRisk:record.risk,provider:'기상청 도로위험기상'}];
  }).sort((a,b)=>a.seconds-b.seconds);
@@ -46,10 +46,9 @@ export function matchRouteRoadRisks(records,path,departure,now=Date.now()){
 export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
  const ice=document.getElementById('navLayerroad');
  const visibility=document.getElementById('navLayerfog');
- const road=document.getElementById('navRoadRoute');
  const button=document.getElementById('navRoadRiskRefresh');
  const status=document.getElementById('navRoadRiskStatus');
- let available=false,data=null,items=[],pending=0;
+ let available=false,data=null,items=[],pending=0,loading=false;
  let routeMatch;
  const enabled=()=>Boolean(ice?.checked||visibility?.checked);
  const message=s=>{if(status)status.textContent='기상청 도로위험: '+s;};
@@ -64,11 +63,12 @@ export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
   const context=getContext();
   if(!context){message('카카오 지도 또는 일반지도를 선택해주세요');return;}
   const records=displayableRisks(data.locations,ice.checked,visibility.checked);
+  const coverage=data.roadName+' · '+data.receivedRoads+'/'+data.totalRoads+'개 노선 응답';
   if(!records.length){
    const reason=data.status==='unmapped'?'ZIP에 위험도는 있으나 좌표·도로 형상이 확인되지 않았습니다. 잘못된 지도 표시는 하지 않습니다':
     data.status==='unsupported_format'?'원본 ZIP 자료구조가 확인되지 않아 위치 표출을 중단했습니다':
     '선택한 유형에서 위치가 검증된 위험구간 없음 (안전하다는 뜻이 아님)';
-   message(data.roadName+' · '+reason);return;
+   message(coverage+' · '+reason);return;
   }
   for(const item of records){
    const points=item.geometry.points,seriousness=item.risk===3?'위험':item.risk===2?'주의':'관심';
@@ -94,24 +94,24 @@ export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
     items.push({map:context.map,item:geometry});
    }
   }
-  message(data.roadName+' · '+records.length+'개 위치 검증 위험 '+(records.some(x=>x.kind==='ice')?'살얼음 ':'')+
+  message(coverage+' · '+records.length+'개 위치 검증 위험 '+(records.some(x=>x.kind==='ice')?'살얼음 ':'')+
    (records.some(x=>x.kind==='visibility')?'가시거리':'')+' 표출 · 기상청 예측, 실제 결빙 확정 아님');
  }
  async function load(){
-  clear();data=null;onChange?.();const request=++pending;
-  if(!enabled())return;
-  if(!available){message('KMA_API_KEY 미설정');return;}
+  clear();data=null;onChange?.();const request=++pending;loading=true;
+  if(!enabled()){loading=false;return;}
+  if(!available){loading=false;message('KMA_API_KEY 미설정');return;}
   message('기상청 도로위험 노선별 ZIP 수신·위치 확인 중');
   if(button)button.disabled=true;
   try{
-   const d=await query(road?.value||'001');
+   const d=await query('all');
    if(request!==pending)return;
    data=d;
    await ensureMap();
    if(request===pending)repaint();
   }catch(e){
    if(request===pending)message('위험정보 조회 불가 · '+String(e?.message||'API 활용신청·자료 제공기간 확인').slice(0,155));
-  }finally{if(request===pending&&button)button.disabled=!available;}
+  }finally{if(request===pending){loading=false;if(button)button.disabled=!available;}}
  }
  function setAvailable(value){
   available=Boolean(value);
@@ -119,17 +119,15 @@ export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
    checkbox.disabled=!available;
    if(!available)checkbox.checked=false;
   }
-  if(road)road.disabled=!available;
   if(button)button.disabled=!available;
   if(!available){clear();data=null;onChange?.();message('KMA_API_KEY 설정 필요');}
   else message('KMA 키 등록 · 도로위험 API 별도 활용승인 여부는 실제 조회 시 확인');
  }
  for(const checkbox of [ice,visibility])checkbox?.addEventListener('change',()=>{
-  if(!enabled()){pending++;clear();onChange?.();message('표출 해제');return;}
+  if(!enabled()){pending++;loading=false;clear();onChange?.();message('표출 해제');return;}
   if(data){repaint();return;}
-  load();
+  if(!loading)load();
  });
- road?.addEventListener('change',()=>{pending++;clear();data=null;if(enabled())load();});
  button?.addEventListener('click',load);
  return {setAvailable,load,repaint,clear,hasData:()=>Boolean(data),
   routeHazards(route){
