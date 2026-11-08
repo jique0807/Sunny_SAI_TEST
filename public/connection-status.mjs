@@ -93,7 +93,7 @@ export function mapConnectionProbe(kind,data,previous){
   const wrn=data?.warning;
   put('warning',wrn?.state==='request_failed'?'disconnected':['header_or_empty_received','empty_response'].includes(wrn?.state)?'empty':wrn?.state==='text_received'||wrn?.state==='header_or_empty_received'?
    'partial':'error',wrn?.state==='text_received'||wrn?.state==='header_or_empty_received'?
-    '공식 텍스트 응답 · 특보내용·구역경계 미검증':
+    Number.isInteger(wrn.activeCount)?'발효 특보 '+wrn.activeCount+'건 · 구역경계 미검증':'공식 텍스트 응답 · 특보내용·구역경계 미검증':
     wrn?.http===403?'기상특보 접근 거절(403)':'기상특보 API 실수신 미확인');
   for(const [id,flood]of [['floodNational',data?.flood],['floodLocal',data?.floodLocal]]){
    const png=flood?.state==='png_received';

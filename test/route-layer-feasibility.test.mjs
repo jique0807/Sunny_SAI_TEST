@@ -9,7 +9,9 @@ function mockedProvider(url){
  const u=new URL(url);
  if(u.pathname.endsWith('/wrn_now_data.php')){
   assert.equal(u.searchParams.get('authKey'),key);
-  return new Response('# REG_ID,WRN,LVL,TM_FC\nL1100100,R,2,202611071200\n',
+  assert.equal(u.searchParams.get('disp'),'0');
+  assert.equal(u.searchParams.get('fe'),'e');
+  return new Response('# REG_ID WRN LVL TM_FC TM_EF CMD\nL1100100 R 2 202001011200 202001011200 1\n',
    {headers:{'content-type':'text/plain'}});
  }
  if(u.pathname.endsWith('/road_file_down.php')){
@@ -31,7 +33,7 @@ test('warning API has a real official endpoint but no inferred polygon',async()=
  const r=await probeKmaWarning(key,mockedProvider);
  assert.equal(r.state,'text_received');assert.equal(r.http,200);
  assert.equal(r.geometry,'region_codes_only');
- assert.ok(r.candidateRows>0);
+ assert.equal(r.activeCount,1);
  assert.ok(!JSON.stringify(r).includes(key));
 });
 test('road-risk ZIP not verified means unavailable; never invent map coordinates',async()=>{
