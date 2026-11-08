@@ -17,7 +17,7 @@ export function ahead(path,seconds,now=Date.now()){
   const target=seconds+delta;if(target>path.at(-1).seconds)continue;
   const i=path.findIndex(p=>p.seconds>=target);const b=path[Math.max(0,i)],a=path[Math.max(0,i-1)];
   const f=Math.max(0,Math.min(1,(target-a.seconds)/(b.seconds-a.seconds||1)));
-  out.push({lat:a.lat+(b.lat-a.lat)*f,lng:a.lng+(b.lng-a.lng)*f,label:b.label||'전방 경로',eta:new Date(now+delta*1000).toISOString()});
+  out.push({lat:a.lat+(b.lat-a.lat)*f,lng:a.lng+(b.lng-a.lng)*f,seconds:target,label:b.label||'전방 경로',eta:new Date(now+delta*1000).toISOString()});
  }return out;
 }
 export function rainLevel(f){

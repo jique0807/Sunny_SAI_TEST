@@ -601,3 +601,1422 @@ body{background:var(--bg);color:var(--ink)}
 }
 .nav-demo-rain-overlay[hidden]{display:none!important}
 .nav-layers-sheet input[type=range]{width:125px;accent-color:#1768ed;appearance:auto}
+
+/* Adaptive mobile viewport: compact phones, tall devices, landscape and foldables. */
+@media (max-width:900px){
+ :root{--sunny-bottom-nav-height:calc(64px + env(safe-area-inset-bottom,0px))}
+ html,body{width:100%;max-width:100%;overflow-x:hidden!important}
+ .dashboard,.dashboard .workspace{min-width:0!important;max-width:100vw!important}
+ .dashboard .map-canvas,body.nav-route-open .dashboard .map-canvas{
+  height:calc(100vh - var(--sunny-bottom-nav-height))!important;
+  height:calc(100dvh - var(--sunny-bottom-nav-height))!important;
+  bottom:var(--sunny-bottom-nav-height)!important;
+ }
+ .nav-bottom-bar{height:var(--sunny-bottom-nav-height)!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;padding:4px max(6px,env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left))!important}
+ .nav-bottom-bar button{min-width:0!important;min-height:44px!important;overflow:hidden}
+ .nav-search-sheet:not([hidden]){inset:0 0 var(--sunny-bottom-nav-height) 0!important;max-height:calc(100dvh - var(--sunny-bottom-nav-height))!important;overflow-y:auto!important;overscroll-behavior:contain;padding:calc(12px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right)) 20px max(12px,env(safe-area-inset-left))!important;box-sizing:border-box}
+ .nav-layers-sheet:not([hidden]){bottom:var(--sunny-bottom-nav-height)!important;max-height:min(68dvh,calc(100dvh - var(--sunny-bottom-nav-height) - env(safe-area-inset-top,0px) - 12px))!important;overflow-y:auto!important;overscroll-behavior:contain;box-sizing:border-box}
+ .nav-layer-row{min-width:0}
+ .nav-layer-row span{min-width:0;flex:1}
+ .nav-layer-row small{overflow-wrap:anywhere}
+ .studio-route-points{min-width:0}
+ .studio-route-points .studio-point{min-width:0!important}
+}
+@media(max-width:370px){
+ .nav-bottom-bar button span{font-size:10px!important}
+ .nav-layers-sheet:not([hidden]){padding:12px 12px 16px!important}
+ .nav-layer-row{gap:8px;min-height:62px}
+ .nav-layer-row b{font-size:13px}
+ .nav-layer-row input[type=range]{width:95px}
+ .nav-search-sheet #navFavoritesList{gap:5px!important}
+ .nav-search-sheet .nav-favorite-empty,.nav-search-sheet .nav-favorite-tile{min-width:0;padding-inline:3px!important}
+}
+@media(max-width:900px) and (orientation:landscape) and (max-height:520px){
+ :root{--sunny-bottom-nav-height:calc(52px + env(safe-area-inset-bottom,0px))}
+ .nav-bottom-bar button{flex-direction:row!important;gap:5px!important;font-size:18px!important}
+ .nav-bottom-bar button span{font-size:11px!important}
+ .nav-layers-sheet:not([hidden]){max-height:calc(100dvh - var(--sunny-bottom-nav-height) - 8px)!important;border-radius:14px 14px 0 0}
+ .nav-search-sheet:not([hidden]){padding-top:8px!important}
+}
+
+/* Navigation shell: persistent bottom tabs, actionable header, no basemap switch during route results. */
+@media(max-width:900px){
+ .sunny-mobile-brand-banner{pointer-events:auto!important;cursor:pointer;appearance:none;border:0;border-bottom:1px solid #e2e8f0;text-align:left;width:100%;font:inherit;color:inherit;border-radius:0}
+ .sunny-mobile-brand-banner:focus-visible{outline:3px solid #1768ed;outline-offset:-3px}
+ .nav-bottom-bar{display:grid!important;position:fixed!important;z-index:1000!important;bottom:0!important;left:0!important;right:0!important;visibility:visible!important}
+ .nav-route-result:not([hidden]){bottom:var(--sunny-bottom-nav-height)!important;max-height:calc(100dvh - var(--sunny-bottom-nav-height) - 72px);overflow-y:auto}
+ body.nav-route-open .map-switch{display:none!important}
+ body.nav-route-open .map-toolbar{display:none!important}
+}
+
+/* Overlay controls: compact, scrollable on iOS, opacity for actual forecast markers. */
+.nav-forecast-map-label{opacity:var(--sunny-weather-layer-opacity,.55)!important}
+@media(max-width:900px){
+ .nav-layer-list{max-height:min(43dvh,350px);overflow-y:auto;overscroll-behavior:contain;border-top:1px solid #e8edf3}
+ .nav-layer-list .nav-layer-row{min-height:54px!important;padding:8px 2px!important}
+ .nav-layer-list .nav-layer-row input{cursor:not-allowed}
+ .nav-layer-opacity{display:block;padding:14px 2px 8px;border-top:1px solid #e8edf3}
+ .nav-layer-opacity>span{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px}
+ .nav-layer-opacity output{font-variant-numeric:tabular-nums;color:#1768ed;font-weight:800}
+ .nav-layer-opacity input[type=range]{display:block;width:100%!important;height:28px;margin:8px 0 0;accent-color:#1768ed;appearance:auto}
+ .nav-layers-sheet .nav-layer-note{font-size:11px;line-height:1.5}
+}
+
+/* Georeferenced KMA 5-km grid sample labels (not area-interpolated weather fields) */
+.sunny-kma-grid-marker{pointer-events:none!important;overflow:visible!important}
+.sunny-kma-grid-marker span,.sunny-kma-grid-label{
+ display:inline-block;box-sizing:border-box;min-width:42px;max-width:100px;
+ padding:4px 5px;background:rgba(255,255,255,.95);border:1px solid #426078;
+ border-radius:7px;color:#17394a;font-size:11px;font-weight:700;line-height:14px;
+ text-align:center;white-space:nowrap;box-shadow:0 1px 5px #0003;
+ pointer-events:none;
+}
+.nav-kma-refresh{
+ display:block;width:100%;padding:11px 12px;margin:10px 0 7px;border:1px solid #94bad7;
+ border-radius:10px;background:#e8f4ff;color:#164b71;font-weight:700;font-size:12px;
+}
+.nav-kma-refresh:disabled{opacity:.55;cursor:not-allowed}
+
+/* Reliable, accessible close control for the weather-layer sheet. */
+.nav-layers-sheet[hidden]{display:none!important}
+.nav-layers-sheet:not([hidden]){z-index:1100!important}
+.nav-layers-sheet .nav-layers-head{
+ position:sticky;top:-12px;z-index:10;margin:-12px -12px 12px;
+ padding:12px 12px 10px;background:#fff;border-radius:14px 14px 0 0;
+ border-bottom:1px solid #e3e9f1;
+}
+.nav-layers-sheet .nav-layers-close{
+ display:inline-flex!important;align-items:center;justify-content:center;
+ flex:0 0 46px!important;min-width:46px!important;min-height:46px!important;
+ padding:0!important;background:#edf1f7!important;color:#192e46!important;
+ border:1px solid #c9d1db!important;border-radius:50%!important;
+ font-size:22px!important;font-weight:700!important;line-height:1;
+ cursor:pointer!important;touch-action:manipulation;
+}
+.nav-layers-sheet .nav-layers-close:focus-visible{
+ outline:3px solid #1a75e8;outline-offset:2px;
+}
+.nav-layer-list .nav-layer-row input:not(:disabled){cursor:pointer}
+.nav-road-risk-controls{border-top:1px solid #e1e9f3;padding:10px 2px 14px}
+.nav-road-risk-controls label{display:block;font-size:12px;font-weight:700;color:#273c55}
+.nav-road-risk-controls select{display:block;width:100%;min-height:42px;margin:6px 0 9px;
+ font-size:13px;padding:7px 10px;border:1px solid #b6c7d7;border-radius:9px;background:white;color:#18354b}
+.nav-road-risk-controls button{display:block;width:100%;min-height:42px;border:0;border-radius:9px;
+ color:white;background:#225ca0;font-weight:700;font-size:13px;cursor:pointer}
+.nav-road-risk-controls button:disabled{opacity:.5;cursor:not-allowed}
+.nav-road-risk-controls p{margin:8px 0;font-size:12px;line-height:1.5;overflow-wrap:anywhere;color:#495f78}
+@media(min-width:901px){
+ .nav-layers-sheet:not([hidden]){
+  display:block!important;left:auto!important;right:18px!important;bottom:18px!important;
+  width:min(450px,calc(100vw - 36px))!important;max-height:min(78vh,760px)!important;
+  padding:12px!important;overflow:auto!important;box-sizing:border-box;
+  background:#fff;box-shadow:0 8px 28px #0004;border:1px solid #dde4ef;border-radius:16px;
+ }
+}
+
+/* Foreground weather overlay timeline — real sampled KMA forecasts only. */
+.nav-weather-timebar[hidden]{display:none!important}
+.nav-weather-timebar:not([hidden]){
+ position:fixed;z-index:860;bottom:calc(var(--sunny-bottom-nav-height,68px) + 12px);
+ left:max(10px,env(safe-area-inset-left));right:max(10px,env(safe-area-inset-right));
+ background:rgba(255,255,255,.96);color:#1b334a;box-shadow:0 6px 22px #172b4740;
+ border:1px solid #cfe0ed;border-radius:15px;padding:12px 14px 10px;
+ box-sizing:border-box;backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
+}
+.nav-weather-timehead{display:flex;align-items:center;gap:6px;min-height:34px;}
+.nav-weather-timehead strong{font-size:13px;white-space:nowrap}
+.nav-weather-timehead span{font-size:11px;margin-left:auto;color:#2062a3;font-weight:700;text-align:right}
+.nav-weather-timehead button{
+ margin-left:6px;flex:none;display:inline-flex;align-items:center;justify-content:center;
+ width:32px;height:32px;border-radius:50%;border:1px solid #d2dce5;
+ background:#f0f4f9;color:#153c5d;font-size:18px;cursor:pointer;touch-action:manipulation;
+}
+.nav-weather-timebar input[type=range]{
+ width:100%;display:block;height:28px;margin:7px 0 0;accent-color:#219fe0;cursor:pointer;
+}
+.nav-weather-time-ticks{display:flex;justify-content:space-between;font-size:10px;color:#667a8f}
+.nav-weather-legend{display:flex;align-items:center;gap:6px;margin-top:11px;font-size:10px;color:#425e76}
+.nav-weather-legend>span{white-space:nowrap;font-weight:700}
+.nav-weather-legend small{font-size:9px;color:#63768d;white-space:nowrap}
+.nav-weather-gradient{height:9px;flex:1;min-width:30px;border-radius:20px;background:linear-gradient(90deg,#8bdef6,#43c2f1,#149ee0,#0872cd,#2261b6,#56369b)}
+.nav-weather-timebar>p{font-size:10px;margin:8px 0 0;color:#63768d}
+@media(min-width:901px){
+ .nav-weather-timebar:not([hidden]){
+  left:auto;right:24px;bottom:24px;width:min(450px,calc(100vw - 48px));
+ }
+}
+@media(max-width:385px){
+ .nav-weather-timehead strong{font-size:11px}
+ .nav-weather-timehead span{font-size:10px}
+ .nav-weather-legend{flex-wrap:wrap}
+ .nav-weather-legend small{font-size:9px}
+}
+
+/* Only Home may switch map providers. Route and Layers always use Kakao. */
+body[data-sunny-nav="route"] .nav-map-layer-control,
+body[data-sunny-nav="layers"] .nav-map-layer-control,
+body[data-sunny-nav="settings"] .nav-map-layer-control,
+body[data-sunny-nav="route"] .map-switch,
+body[data-sunny-nav="layers"] .map-switch,
+body[data-sunny-nav="settings"] .map-switch {
+ display:none!important;
+}
+/* Prevent alternate-map content from flashing before Kakao has initialized. */
+#schematic[hidden],#kakaoMap[hidden],#osmMap[hidden],#vworldMap[hidden],
+#actualRoute[hidden],#mapNotice[hidden] {display:none!important}
+#kakaoMap:not([hidden]) {display:block;min-height:100%}
+/* Kakao failure is explicit and retryable; do not silently show OSM. */
+#mapNotice:not([hidden]){max-width:480px;left:50%;right:auto;width:min(84%,480px);
+ transform:translateX(-50%);z-index:820;box-shadow:0 4px 22px #172b4742;
+ color:#163a55;background:#fff;padding:17px;white-space:normal;overflow-wrap:anywhere}
+.kakao-map-retry{display:block;margin:12px auto 0;padding:10px 15px;min-height:42px;
+ background:#1768ed;color:#fff;border-color:#1768ed;font-weight:700}
+.kakao-map-retry:focus-visible{outline:3px solid #2e86ff;outline-offset:2px}
+
+/* GPS-led Sunny SAI in-app navigation. Tiny weather chips float ON the map. */
+.sunny-drive-overlay[hidden]{display:none!important}
+.sunny-drive-overlay:not([hidden]){
+ position:absolute;inset:0;z-index:760;pointer-events:none;
+ font-family:-apple-system,BlinkMacSystemFont,'Noto Sans KR',sans-serif;
+}
+.sunny-drive-alerts{
+ position:absolute;top:16px;left:12px;z-index:2;width:min(310px,calc(100% - 94px));
+ display:flex;flex-direction:column;gap:5px;max-height:116px;overflow:hidden;
+}
+.sunny-drive-alert{
+ display:flex;align-items:center;gap:8px;min-height:39px;max-height:51px;
+ padding:6px 9px;border:1px solid #d6e3ed;border-left:3px solid #278dda;
+ background:rgba(255,255,255,.91);border-radius:10px;
+ box-shadow:0 2px 12px #172b4729;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);
+}
+.sunny-drive-alert-icon{font-size:16px;color:#1768b8;line-height:1;flex:none}
+.sunny-drive-alert-text{display:flex;flex-direction:column;gap:1px;min-width:0}
+.sunny-drive-alert-text strong{font-size:12px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#183b53}
+.sunny-drive-alert-text small{font-size:10px;color:#5d7182;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sunny-drive-no-alert{
+ background:rgba(255,255,255,.9);border:1px solid #dde5ed;border-radius:9px;
+ padding:8px 10px;margin:0;font-size:10.5px;color:#4d6073;
+ box-shadow:0 2px 9px #13263a1a;
+}
+.sunny-drive-progress{
+ position:absolute;right:9px;top:clamp(120px,25%,200px);bottom:85px;
+ width:37px;display:flex;align-items:center;flex-direction:column;
+ gap:6px;max-height:470px;min-height:130px;z-index:2;
+}
+.sunny-drive-destination,.sunny-drive-origin{
+ padding:3px 4px;border-radius:5px;background:rgba(255,255,255,.94);
+ color:#375778;font-size:9px;font-weight:800;text-shadow:0 1px #fff;
+}
+.sunny-drive-progress-track{
+ position:relative;width:11px;flex:1;min-height:85px;border-radius:10px;
+ background:#b8c7d4;box-shadow:0 0 0 3px rgba(255,255,255,.9),0 3px 10px #172b4744;
+}
+.sunny-drive-progress-fill{position:absolute;bottom:0;left:0;right:0;height:0;border-radius:10px;background:linear-gradient(0deg,#1b7cdd,#26c486)}
+.sunny-drive-progress-pointer{position:absolute;bottom:0;left:50%;transform:translate(-50%,50%);
+ display:grid;place-items:center;width:24px;height:24px;border-radius:50%;font-size:12px;
+ background:#1673ed;color:#fff;border:3px solid #fff;box-shadow:0 2px 8px #0003}
+.sunny-drive-risk-marks{position:absolute;inset:0;pointer-events:none}
+.sunny-drive-risk-dot{position:absolute;left:50%;width:13px;height:13px;
+ transform:translate(-50%,50%);background:#ef9f24;border:2px solid white;border-radius:50%;
+ box-shadow:0 1px 3px #0005}
+.sunny-drive-risk-dot[data-risk="snow"],.sunny-drive-risk-dot[data-risk="mixed"]{background:#8d64cd}
+.sunny-drive-footer{
+ position:absolute;left:12px;right:56px;bottom:12px;min-height:45px;
+ padding:7px 8px 7px 12px;border-radius:11px;
+ background:rgba(255,255,255,.94);display:flex;gap:8px;align-items:center;
+ box-shadow:0 3px 15px #172b473d;backdrop-filter:blur(7px);
+ pointer-events:auto;z-index:4;
+}
+.sunny-drive-footer>div{min-width:0;display:flex;flex-direction:column;gap:3px;flex:1}
+.sunny-drive-footer strong{color:#163e63;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sunny-drive-footer small{color:#5f768d;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sunny-drive-footer button{
+ flex:none;min-height:34px;border-radius:8px;padding:6px 10px;border:1px solid #bdcddf;
+ background:#edf3fb;font-size:11px;color:#29577b;font-weight:700;cursor:pointer;
+}
+.sunny-drive-gps-pointer{
+ display:grid;place-items:center;width:32px;height:36px;
+ filter:drop-shadow(0 2px 3px #16375d80);
+ pointer-events:none;transform-origin:center;
+}
+body.sunny-guiding .map-floating,
+body.sunny-guiding .drive-home-bar,
+body.sunny-guiding .sunny-mobile-brand-banner,
+body.sunny-guiding .nav-map-layer-control,
+body.sunny-guiding .nav-weather-timebar{display:none!important}
+@media(max-width:900px){
+ .sunny-drive-alerts{top:calc(env(safe-area-inset-top,0px) + 18px);left:10px;width:min(290px,calc(100% - 85px))}
+ .sunny-drive-alert{min-height:38px;padding:5px 7px}
+ .sunny-drive-progress{right:9px;top:clamp(130px,26vh,210px);bottom:calc(var(--sunny-bottom-nav-height,68px) + 86px)}
+ .sunny-drive-footer{bottom:calc(var(--sunny-bottom-nav-height,68px) + 9px);left:10px;right:53px}
+}
+@media(max-width:360px){
+ .sunny-drive-alert-text strong{font-size:11px}
+ .sunny-drive-alert-text small{font-size:9px}
+ .sunny-drive-alerts{width:calc(100% - 78px)}
+ .sunny-drive-footer strong{font-size:11px}
+}
+
+/* 2026-11-06: compact staggered driving weather and viewport-edge summary. */
+body.sunny-guiding .topbar,
+body.sunny-guiding .sunny-mobile-brand-banner,
+body.sunny-guiding .nav-map-layer-control,
+body.sunny-guiding .map-toolbar {display:none!important}
+body.sunny-guiding .dashboard .map-canvas,
+body.sunny-guiding.nav-route-open .dashboard .map-canvas{
+ position:fixed!important;inset:0!important;top:0!important;left:0!important;
+ width:100vw!important;height:100dvh!important;min-height:0!important;
+ max-height:none!important;bottom:0!important;border:0!important;
+ padding:0!important;overflow:hidden!important;border-radius:0!important;
+}
+body.sunny-guiding .sunny-drive-overlay:not([hidden]){position:absolute!important;inset:0!important;z-index:900!important}
+body.sunny-guiding .sunny-drive-alerts{
+ top:calc(10px + env(safe-area-inset-top,0px))!important;
+ left:12px!important;right:auto!important;
+ width:min(282px,calc(100vw - 84px))!important;
+ height:98px!important;max-height:98px!important;
+ display:block!important;overflow:visible!important;pointer-events:none!important;
+}
+body.sunny-guiding .sunny-drive-alert{
+ position:absolute!important;box-sizing:border-box!important;
+ display:flex!important;align-items:center!important;
+ width:calc(100% - 16px)!important;height:43px!important;
+ min-height:43px!important;max-height:43px!important;
+ margin:0!important;padding:5px 9px!important;
+ border-radius:7px!important;
+ box-shadow:0 2px 10px rgba(12,33,56,.23)!important;
+ background:rgba(255,255,255,.93)!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(1){
+ top:0!important;left:0!important;z-index:3!important;border-left:3px solid #1478cf!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(2){
+ top:34px!important;left:16px!important;z-index:2!important;
+ border-left:3px solid #7358bc!important;
+}
+body.sunny-guiding .sunny-drive-alert-muted{opacity:.94;border-left-color:#a5b7c4!important}
+body.sunny-guiding .sunny-drive-alert-text strong{font-size:12px!important;line-height:1.15!important}
+body.sunny-guiding .sunny-drive-alert-text small{font-size:9px!important;line-height:1.15!important}
+body.sunny-guiding .sunny-drive-alert-icon{font-size:16px!important;width:16px!important;text-align:center}
+body.sunny-guiding .sunny-drive-progress{
+ right:14px!important;top:clamp(132px,25dvh,205px)!important;
+ bottom:calc(81px + env(safe-area-inset-bottom,0px))!important;
+ max-height:none!important;min-height:90px!important;
+ width:27px!important;gap:6px!important;
+ z-index:2!important;
+}
+body.sunny-guiding .sunny-drive-progress-track{width:10px!important;min-height:58px!important}
+body.sunny-guiding .sunny-drive-footer{
+ position:absolute!important;
+ left:0!important;right:0!important;bottom:0!important;
+ width:100%!important;box-sizing:border-box!important;
+ margin:0!important;border-radius:16px 16px 0 0!important;
+ min-height:64px!important;
+ padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px))!important;
+ background:rgba(255,255,255,.97)!important;
+ border-top:1px solid #d6e3ef!important;
+ z-index:20!important;
+}
+body.sunny-guiding .sunny-drive-footer strong{font-size:14px!important}
+body.sunny-guiding .sunny-drive-footer small{font-size:10px!important}
+body.sunny-guiding .sunny-drive-footer button{min-height:40px!important;min-width:54px!important}
+@media(max-width:360px){
+ body.sunny-guiding .sunny-drive-alerts{width:calc(100vw - 80px)!important;left:10px!important}
+ body.sunny-guiding .sunny-drive-footer strong{font-size:12px!important}
+ body.sunny-guiding .sunny-drive-footer small{font-size:9px!important}
+}
+
+/* Driving screen: dedicated Home shortcut; bottom Home tab resets fully too. */
+body.sunny-guiding .sunny-drive-footer #sunnyDriveHome{
+ min-width:48px!important;min-height:40px!important;
+ border:1px solid #bed5e8!important;border-radius:9px!important;
+ color:#165c90!important;background:#eaf4ff!important;
+ font-size:12px!important;font-weight:800!important;white-space:nowrap!important;
+ padding:6px 8px!important;
+}
+body.sunny-guiding .sunny-drive-footer>div{min-width:0!important;flex:1!important}
+@media(max-width:370px){
+ body.sunny-guiding .sunny-drive-footer #sunnyDriveHome{min-width:42px!important;padding:6px!important;font-size:11px!important}
+ body.sunny-guiding .sunny-drive-footer{gap:5px!important}
+}
+
+/* User-configurable driving preferences, narrow-screen dialog layout. */
+#settings{box-sizing:border-box;max-height:min(88dvh,900px);overflow-y:auto;overscroll-behavior:contain}
+#settings .sunny-settings-section{margin:17px 0 14px;padding:12px 14px;border-radius:13px;border:1px solid #e1e9f0;background:#f9fbfe}
+#settings .sunny-settings-section h3{font-size:14px;line-height:1.3;color:#193e5d;margin:0 0 9px;padding:0 0 7px;border-bottom:1px solid #e4edf5}
+#settings .sunny-setting-option{
+ display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;column-gap:12px;row-gap:7px;
+ padding:11px 0;border-bottom:1px solid #e9eef3;cursor:pointer;box-sizing:border-box;
+}
+#settings .sunny-setting-option:last-child{border-bottom:0}
+#settings .sunny-setting-option>span{display:flex;flex-direction:column;gap:3px;flex:1 1 160px;min-width:0}
+#settings .sunny-setting-option b{font-size:12px;line-height:1.3;color:#21405c}
+#settings .sunny-setting-option small{font-size:10px;line-height:1.5;color:#60768d;overflow-wrap:anywhere}
+#settings .sunny-setting-option select{
+ flex:0 1 185px;max-width:100%;min-height:36px;min-width:150px;padding:5px 7px;
+ font-size:12px;border:1px solid #b7cadb;border-radius:8px;background:#fff;color:#1a3955;
+}
+#settings .sunny-setting-option input[type=checkbox]{width:22px;height:22px;flex:none;accent-color:#1768ed}
+#settings .sunny-setting-slider output{font-size:12px;font-weight:700;color:#1668c8}
+#settings .sunny-setting-slider input[type=range]{display:block;width:100%;flex:1 0 100%;margin:4px 0 1px;accent-color:#1768ed}
+#settings .sunny-settings-bottom{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0}
+#settings .sunny-settings-bottom button{background:#f1f5fa;border:1px solid #c4d4e2;border-radius:8px;
+ min-height:38px;padding:8px 12px;color:#244f78;font-size:12px;font-weight:700}
+#settings .sunny-settings-bottom p{flex:1;margin:0;font-size:11px;color:#58768e}
+@media(max-width:550px){
+ #settings{max-width:calc(100vw - 24px);width:calc(100vw - 24px);max-height:calc(100dvh - 36px);padding:16px}
+ #settings .sunny-settings-section{padding:10px 11px}
+ #settings .sunny-setting-option select{flex:1 1 100%;width:100%;max-width:none}
+ #settings .sunny-setting-option>span{flex:1 1 180px}
+}
+
+/* Unified georeferenced forecast-hazard markers in search and driving.
+   A marker exists only when a real KMA forecast was received for a route point. */
+.nav-route-risk-layout{display:grid;grid-template-columns:minmax(0,1fr) 53px;
+ align-items:stretch;gap:8px;margin:10px 0}
+.nav-route-risk-summary{min-width:0}
+.nav-route-risk-summary .nav-route-result-main{margin:5px 0 7px}
+.nav-route-risk-status{font-size:11px;line-height:1.45;color:#52728c;margin:9px 0 0}
+.nav-route-risk-rail{display:flex;align-items:center;flex-direction:column;
+ gap:5px;min-height:160px;max-height:200px;padding:5px 4px;
+ border-radius:12px;background:#f4f8fd;border:1px solid #e2ebf4}
+.nav-route-risk-rail>span{font-size:10px;color:#506c84;font-weight:700;white-space:nowrap}
+.nav-route-risk-track{position:relative;flex:1;min-height:100px;width:10px;
+ background:linear-gradient(#cbd7e4,#9fbed6);border-radius:9px}
+.nav-route-risk-marks,.sunny-drive-risk-marks{position:absolute;inset:0;overflow:visible}
+.sunny-rail-hazard{
+ position:absolute;left:50%;transform:translate(-50%,50%);
+ display:inline-flex;align-items:center;justify-content:center;z-index:8;
+ box-sizing:border-box;min-width:27px;min-height:27px;width:28px;height:28px;
+ padding:1px!important;margin:0;border-radius:50%;
+ background:rgba(255,255,255,.97)!important;border:2px solid #d9e5f0!important;
+ font-size:14px;line-height:1;box-shadow:0 2px 7px rgba(18,53,79,.3);
+ cursor:pointer;pointer-events:auto!important;touch-action:manipulation;
+}
+.sunny-rail-hazard[data-risk="snow"],.sunny-rail-hazard[data-risk="mixed"]{border-color:#b19ae5!important}
+.sunny-rail-hazard[data-risk="rain"]{border-color:#8ccff1!important}
+.sunny-rail-hazard:focus-visible{outline:3px solid #1474cf;outline-offset:3px}
+.sunny-drive-risk-marks{pointer-events:none}
+.sunny-hazard-detail[hidden]{display:none!important}
+.sunny-hazard-detail{
+ position:relative;box-sizing:border-box;z-index:20;
+ padding:11px 12px;border:1px solid #bcd6ea;border-radius:12px;
+ background:rgba(255,255,255,.98);color:#193d58;
+ box-shadow:0 3px 16px rgba(20,53,82,.22);font-size:11px;
+ max-width:100%;pointer-events:auto;
+}
+.sunny-hazard-detail-heading{display:flex;justify-content:space-between;
+ align-items:center;gap:10px;margin-bottom:8px}
+.sunny-hazard-detail-heading strong{font-size:13px}
+.sunny-hazard-detail-heading button{flex:none;width:32px;height:32px;
+ display:grid;place-items:center;cursor:pointer;border:1px solid #d3e2ee;
+ border-radius:50%;background:#f3f8ff;color:#1f557d;font-size:15px}
+.sunny-hazard-detail p{margin:4px 0;line-height:1.4;overflow-wrap:anywhere}
+.nav-route-hazard-detail{margin:8px 0 12px}
+body.sunny-guiding .sunny-drive-hazard-detail{
+ position:absolute;right:54px;top:clamp(115px,25dvh,190px);
+ width:min(255px,calc(100vw - 100px));z-index:24;
+}
+body.sunny-guiding .sunny-drive-risk-marks{z-index:8;pointer-events:none}
+body.sunny-guiding .sunny-rail-hazard{pointer-events:auto!important}
+@media(max-width:450px){
+ .nav-route-risk-layout{grid-template-columns:minmax(0,1fr) 48px;gap:7px}
+ .nav-route-risk-rail{padding:5px 2px}
+ .sunny-rail-hazard{width:27px;height:27px}
+ body.sunny-guiding .sunny-drive-hazard-detail{right:52px;width:min(240px,calc(100vw - 94px))}
+}
+
+
+/* Preview: actual KMA provider-rendered precipitation forecast image.
+   This is an independent image window; never pretend it is a geo-aligned overlay. */
+.nav-radar-open{display:block;width:100%;margin:9px 0 4px;padding:11px 12px;
+ border:1px solid #83bedc;border-radius:11px;background:#e5f5ff;color:#164866;
+ font-weight:750;font-size:12px;cursor:pointer;text-align:left}
+.nav-radar-open small{float:right;font-size:10px;color:#2b718f}
+.nav-radar-hint{font-size:10px;line-height:1.5;color:#537389;margin:0 0 9px}
+.sunny-radar-quick{position:fixed;right:78px;top:84px;z-index:65;
+ border:1px solid #c4dff4;background:rgba(255,255,255,.96);color:#175178;
+ border-radius:18px;padding:9px 12px;font-size:12px;font-weight:750;cursor:pointer;
+ box-shadow:0 3px 14px rgba(18,51,76,.19);touch-action:manipulation}
+.sunny-radar-panel[hidden]{display:none!important}
+.sunny-radar-panel{position:fixed;z-index:95;right:72px;top:135px;
+ width:min(344px,calc(100vw - 100px));max-height:min(70dvh,600px);
+ box-sizing:border-box;overflow-y:auto;overscroll-behavior:contain;
+ border:1px solid #b4d3eb;border-radius:17px;padding:12px;
+ background:rgba(255,255,255,.98);color:#153d5b;
+ box-shadow:0 9px 30px rgba(0,32,77,.27);font-size:11px;pointer-events:auto}
+.sunny-radar-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sunny-radar-head strong{font-size:14px;color:#184a6b}
+.sunny-radar-head button{width:33px;height:33px;flex:none;cursor:pointer;
+ border-radius:50%;border:1px solid #bdd5e6;background:#f4f9fc;color:#244c69;font-size:15px}
+.sunny-radar-intro,.sunny-radar-caution{margin:8px 0;color:#566f83;font-size:10px;line-height:1.5}
+.sunny-radar-image-wrap{display:flex;align-items:center;justify-content:center;
+ background:#edf4fa;min-height:100px;max-height:32dvh;overflow:hidden;border-radius:9px}
+.sunny-radar-image-wrap img{display:block;width:100%;max-height:32dvh;object-fit:contain}
+.sunny-radar-image-wrap img[hidden]{display:none!important}
+.sunny-radar-time{margin:9px 0 5px;font-size:11px;font-weight:750;color:#175484}
+.sunny-radar-slider-label{display:block;margin:8px 0 3px;font-size:10px;color:#476c89}
+#navRadarLead{display:block;width:100%;accent-color:#1487d6;min-height:25px}
+.sunny-radar-ticks{display:flex;justify-content:space-between;color:#628097;font-size:10px}
+.sunny-radar-footer{display:flex;align-items:center;justify-content:space-between;gap:7px;margin:10px 0 4px}
+.sunny-radar-footer button{padding:8px;border-radius:8px;border:1px solid #aacbdf;
+ background:#ecf7ff;color:#15517a;font-weight:750;cursor:pointer}
+.sunny-radar-footer button:disabled{opacity:.5}
+.sunny-radar-footer small{font-size:9px;color:#718a9c}
+.sunny-radar-status{margin:6px 0;color:#355b78;font-size:10px;line-height:1.4}
+.sunny-radar-caution{padding-top:7px;border-top:1px solid #e3edf4}
+@media(max-width:650px){
+ .sunny-radar-quick{top:calc(75px + env(safe-area-inset-top,0px));right:63px;font-size:11px;padding:8px 10px}
+ .sunny-radar-panel{left:12px;right:auto;top:auto;bottom:calc(80px + env(safe-area-inset-bottom,0px));
+  width:min(325px,calc(100vw - 88px));max-height:54dvh;padding:10px}
+ .sunny-radar-image-wrap,.sunny-radar-image-wrap img{max-height:23dvh}
+ body.sunny-guiding .sunny-radar-panel{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+}
+
+/* Strict scope: base-map thumbnail selector is NEVER visible outside Home. */
+body:not([data-sunny-nav="home"]) .nav-map-layer-control,
+body:not([data-sunny-nav="home"]) .map-switch,
+body.nav-route-open .nav-map-layer-control,
+body.nav-sheet-open .nav-map-layer-control,
+body.sunny-guiding .nav-map-layer-control,
+body:has(.nav-layers-sheet:not([hidden])) .nav-map-layer-control,
+body:has(.nav-radar-panel:not([hidden])) .nav-map-layer-control {
+ display:none!important;
+}
+
+/* Nationwide KMA 5km rainfall polygons in a canvas positioned over Kakao tiles.
+   Camera projection is recalculated for each map pan/zoom, including GPS navigation. */
+#kakaoMap .sunny-rain-grid-canvas{position:absolute;inset:0;z-index:12;
+ pointer-events:none!important;touch-action:none;user-select:none}
+.sunny-rain-grid-timeline[hidden]{display:none!important}
+.sunny-rain-grid-timeline{position:fixed;left:50%;transform:translateX(-50%);
+ bottom:calc(82px + env(safe-area-inset-bottom,0px));z-index:810;
+ box-sizing:border-box;width:min(430px,calc(100vw - 44px));max-height:46dvh;overflow-y:auto;
+ border-radius:15px;padding:11px 12px 12px;border:1px solid #c4dcea;
+ background:rgba(255,255,255,.97);color:#174363;box-shadow:0 7px 23px #132d4c42;
+ pointer-events:auto}
+.sunny-rain-grid-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sunny-rain-grid-head strong{font-size:12px}
+.sunny-rain-grid-head button{width:29px;height:29px;border:1px solid #c3d8e9;
+ background:#f1f7fc;border-radius:50%;cursor:pointer}
+.sunny-rain-grid-valid{font-size:11px;font-weight:700;color:#235c84;margin:4px 0 6px}
+.sunny-rain-grid-timeline label{font-size:10px;color:#5b7489}
+#navRainGridLead{display:block;width:100%;margin:5px 0;min-height:26px;accent-color:#187fd4}
+.sunny-rain-grid-ticks{display:flex;justify-content:space-between;font-size:9px;color:#597890}
+.sunny-rain-grid-legend{display:flex;align-items:center;gap:6px;margin:8px 0;font-size:9px}
+.sunny-rain-grid-legend>span{font-weight:700;white-space:nowrap}
+.sunny-rain-grid-legend i{height:9px;flex:1;border-radius:8px;
+ background:linear-gradient(90deg,#8bdef6,#43c2f1,#149ee0,#0872cd,#2261b6,#56369b)}
+.sunny-rain-grid-legend small{white-space:nowrap;color:#648198;font-size:9px}
+.sunny-rain-grid-actions{display:flex;gap:10px;align-items:center;margin:8px 0}
+.sunny-rain-grid-actions button{padding:6px 8px;border:1px solid #b6d3e7;
+ border-radius:8px;background:#f0faff;color:#1b5984;font-size:10px;font-weight:700;cursor:pointer}
+.sunny-rain-grid-actions span{font-size:9px;color:#66879b}
+#navRainGridStatus{font-size:10px;line-height:1.45;margin:5px 0;color:#356a8b}
+.sunny-rain-grid-disclaimer{font-size:9px;line-height:1.5;color:#61788c}
+body.sunny-guiding .sunny-rain-grid-timeline{bottom:calc(85px + env(safe-area-inset-bottom,0px));
+ left:12px;transform:none;width:min(430px,calc(100vw - 94px));z-index:90}
+/* Keep base-map selector only on Home; lift it above the forecast timeline there. */
+body.sunny-rain-grid-active:not([data-sunny-nav="home"]) .nav-map-layer-control{display:none!important}
+@media(max-width:900px){
+ body.sunny-rain-grid-active[data-sunny-nav="home"] .nav-map-layer-control{
+  display:none!important;
+ }
+}
+@media(max-width:650px){
+ .sunny-rain-grid-timeline{left:12px;transform:none;
+  bottom:calc(77px + env(safe-area-inset-bottom,0px));width:calc(100vw - 85px);
+  max-height:37dvh;padding:9px 10px;z-index:775}
+ .sunny-rain-grid-legend{flex-wrap:wrap}
+ .sunny-rain-grid-legend i{min-width:80px}
+ .sunny-rain-grid-quick{font-size:11px}
+}
+
+/* Weather controls v2: prevent collisions with Home search + current location.
+   Keep one small rain action near the bottom navigation, opposite the home-only
+   map selector. While the time panel is open, its close control replaces both. */
+.sunny-radar-quick{
+ position:fixed!important;top:auto!important;left:auto!important;right:14px!important;
+ bottom:calc(var(--sunny-bottom-nav-height,68px) + 16px)!important;
+ z-index:780!important;max-width:126px;min-height:44px;padding:10px 12px!important;
+ white-space:nowrap;box-sizing:border-box;
+ background:rgba(255,255,255,.97)!important;box-shadow:0 4px 15px #12334b38!important;
+}
+body.sunny-rain-grid-active .sunny-radar-quick,
+body.sunny-rain-grid-active .nav-map-layer-control,
+body.sunny-rain-grid-active .map-switch{
+ display:none!important;
+}
+body.sunny-rain-grid-active .sunny-rain-grid-timeline{
+ display:block;bottom:calc(var(--sunny-bottom-nav-height,68px) + 12px)!important;
+}
+body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
+ bottom:calc(138px + env(safe-area-inset-bottom,0px))!important;
+ width:min(400px,calc(100vw - 90px))!important;
+}
+body.sunny-guiding:not(.sunny-rain-grid-active) .sunny-radar-quick{
+ top:auto!important;bottom:calc(148px + env(safe-area-inset-bottom,0px))!important;
+ left:12px!important;right:auto!important;
+}
+@media(max-width:900px){
+ .sunny-radar-quick{bottom:calc(var(--sunny-bottom-nav-height,68px) + 13px)!important;right:12px!important}
+ body.sunny-rain-grid-active .sunny-rain-grid-timeline{
+  left:10px!important;right:10px!important;transform:none!important;
+  bottom:calc(var(--sunny-bottom-nav-height,68px) + 10px)!important;
+  width:calc(100vw - 20px)!important;max-height:44dvh!important;
+ }
+ body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
+  bottom:calc(138px + env(safe-area-inset-bottom,0px))!important;
+  left:10px!important;right:65px!important;width:calc(100vw - 75px)!important;
+ }
+ body.sunny-guiding:not(.sunny-rain-grid-active) .sunny-radar-quick{
+  bottom:calc(148px + env(safe-area-inset-bottom,0px))!important;
+  left:12px!important;right:auto!important;
+ }
+}
+/* Scope is strict even under previous CSS selectors with important overrides. */
+body:not([data-sunny-nav="home"]) .nav-map-layer-control,
+body.nav-sheet-open .nav-map-layer-control,
+body.nav-route-open .nav-map-layer-control,
+body.sunny-guiding .nav-map-layer-control,
+body.sunny-rain-grid-active .nav-map-layer-control{display:none!important}
+
+/* Search and layer sheets own the interaction: do not cover their buttons. */
+body.nav-sheet-open .sunny-radar-quick,
+body:has(.nav-layers-sheet:not([hidden])) .sunny-radar-quick {
+ display:none!important;
+}
+
+
+/* 2026-11-06 Home: top-right vertical basemap thumbnails.
+   Visually below the search/location row; only Home is allowed to switch. */
+@media(max-width:900px){
+ body[data-sunny-nav="home"]:not(.nav-sheet-open):not(.nav-route-open):not(.sunny-guiding):not(.sunny-rain-grid-active) .nav-map-layer-control{
+  display:flex!important;flex-direction:column!important;align-items:center!important;
+  position:fixed!important;top:calc(var(--sunny-header-height,66px) + 70px)!important;
+  right:12px!important;left:auto!important;bottom:auto!important;
+  width:69px!important;gap:4px!important;padding:4px!important;z-index:730!important;
+ }
+ body[data-sunny-nav="home"] .nav-map-layer-control button{
+  width:59px!important;min-width:59px!important;height:55px!important;min-height:55px!important;
+ }
+}
+@media(min-width:901px){
+ body[data-sunny-nav="home"]:not(.sunny-guiding):not(.sunny-rain-grid-active) .nav-map-layer-control{
+  display:flex!important;flex-direction:column;position:fixed;top:135px;right:18px;left:auto;
+  bottom:auto!important;width:74px;gap:4px;z-index:730;padding:5px;background:#fff;
+  border:1px solid #d9e5ef;border-radius:12px;box-shadow:0 4px 17px #172b4733;
+ }
+ body[data-sunny-nav="home"] .nav-map-layer-control button{
+  display:flex;flex-direction:column;align-items:center;min-height:55px;
+  border:1px solid transparent;border-radius:8px;background:white;color:#173f5c;
+ }
+ body[data-sunny-nav="home"] .nav-map-layer-control button[aria-pressed="true"]{
+  border-color:#1768ed;background:#eff7ff;color:#1768ed;
+ }
+ body[data-sunny-nav="home"] .nav-map-layer-control .nav-map-thumb{
+  display:block;width:58px;height:35px;border-radius:5px;
+ }
+ body[data-sunny-nav="home"] .nav-map-layer-control .nav-map-thumb-label{font-size:10px;font-weight:700}
+}
+
+/* Small, high-contrast OFF shortcut. ON is visible in the compact panel header. */
+.sunny-radar-quick{display:flex;align-items:center;justify-content:center;gap:6px;
+ border:1px solid #bacbd8!important;color:#41627a!important;
+ background:#fff!important;font-weight:750!important}
+.sunny-radar-quick[data-rain-state="off"] .sunny-rain-toggle-dot{
+ width:8px;height:8px;flex:none;background:#8a9ba9;border-radius:50%}
+.sunny-radar-quick[data-rain-state="on"]{border-color:#238da7!important;color:#06577d!important;
+ background:#ddf6ff!important}
+.sunny-radar-quick[data-rain-state="on"] .sunny-rain-toggle-dot{
+ width:8px;height:8px;flex:none;background:#0aa4c4;border-radius:50%}
+#navRainSwitchBadge{min-width:27px;padding:3px 5px;border-radius:7px;
+ font-size:10px;line-height:1;background:#e7edf2;color:#476077}
+.sunny-radar-quick[data-rain-state="on"] #navRainSwitchBadge{
+ background:#087ea4;color:white}
+.sunny-rain-panel-on{display:inline-block;margin-left:3px;border-radius:6px;
+ padding:2px 5px;font-size:10px;color:white;background:#0987a5}
+
+/* Half-size forecast control panel: issued/valid time, play/pause, time, rain bar, reset. */
+body.sunny-rain-grid-active .sunny-rain-grid-timeline,
+.sunny-rain-grid-timeline{
+ width:min(335px,calc(100vw - 22px))!important;max-height:min(230px,43dvh)!important;
+ overflow-y:auto!important;padding:8px 10px!important;border-radius:12px!important;
+ box-shadow:0 6px 19px #16314c32!important;
+}
+.sunny-rain-grid-head{gap:6px!important;min-height:28px}
+.sunny-rain-grid-head strong{font-size:12px;display:flex;gap:4px;align-items:center}
+.sunny-rain-grid-head strong small{font-size:9px;font-weight:500;color:#668199}
+.sunny-rain-grid-head-actions{display:flex;gap:5px}
+.sunny-rain-grid-head-actions button{
+ min-width:29px;height:29px;border:1px solid #d0dfeb;background:#f3f8fc;
+ border-radius:8px;font-size:15px;color:#215171;cursor:pointer}
+.sunny-rain-grid-valid{margin:2px 0 6px!important;font-size:10px!important;line-height:1.25}
+.sunny-rain-grid-controls{display:flex;gap:5px;align-items:center;margin:2px 0 2px}
+.sunny-rain-grid-controls button{
+ min-height:29px;padding:4px 8px;border:1px solid #b8cfe0;border-radius:8px;
+ color:#20567d;background:#edf6fc;font-size:11px;font-weight:750;cursor:pointer;
+}
+.sunny-rain-grid-controls button:disabled{opacity:.4;cursor:default}
+#navRainGridStep{margin-left:auto;min-width:44px;text-align:right;font-size:11px;
+ font-variant-numeric:tabular-nums;font-weight:800;color:#14749c}
+#navRainGridLead{height:20px!important;min-height:20px!important;margin:0!important}
+.sunny-rain-grid-ticks{font-size:9px!important;line-height:1.2}
+.sunny-rain-grid-legend{display:flex!important;flex-wrap:nowrap!important;gap:5px!important;
+ margin:4px 0 2px!important;font-size:9px!important}
+.sunny-rain-grid-legend span{white-space:nowrap}
+.sunny-rain-grid-legend span small{font-size:8px;color:#637f91}
+.sunny-rain-grid-legend i{flex:1!important;min-width:35px!important;height:7px!important}
+.sunny-rain-grid-legend>small{font-size:8px!important;white-space:nowrap}
+#navRainGridStatus{font-size:9px!important;line-height:1.3!important;margin:3px 0!important;
+ max-height:28px;overflow-y:auto}
+.sunny-rain-grid-disclaimer{display:block;font-size:8px!important;line-height:1.25!important}
+#navRainGridRefresh[hidden]{display:none!important}
+@media(max-width:900px){
+ body.sunny-rain-grid-active .sunny-rain-grid-timeline{
+  width:min(335px,calc(100vw - 20px))!important;left:10px!important;
+  right:auto!important;transform:none!important;
+  bottom:calc(var(--sunny-bottom-nav-height,68px) + 10px)!important;
+ }
+ body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
+  width:min(315px,calc(100vw - 75px))!important;
+  bottom:calc(138px + env(safe-area-inset-bottom,0px))!important;
+ }
+}
+@media(max-width:360px){
+ .sunny-rain-grid-legend>small{font-size:7px!important}
+ .sunny-rain-grid-head strong{font-size:11px}
+}
+
+/* Clear map-route endpoints; current location rendered only when a GPS fix exists. */
+.sunny-route-point-pin{
+ display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none;
+ transform:translateY(-2px);filter:drop-shadow(0 2px 4px #001b3760);
+}
+.sunny-route-point-pin .sunny-route-pin-face{
+ display:grid;place-items:center;width:31px;height:31px;border-radius:50%;
+ border:2px solid white;font-size:14px;font-weight:900;line-height:1;color:white;
+ background:#1676dc;box-sizing:border-box
+}
+.sunny-route-point-pin small{
+ border:1px solid #e0ebf3;border-radius:8px;background:white;color:#153c58;
+ font-weight:800;padding:2px 5px;font-size:10px;white-space:nowrap;
+}
+.sunny-route-point-pin[data-kind="start"] .sunny-route-pin-face{background:#13a06b}
+.sunny-route-point-pin[data-kind="destination"] .sunny-route-pin-face{background:#df534d}
+.sunny-route-point-pin[data-kind="current"] .sunny-route-pin-face{
+ background:#1676dc;border-radius:11px 11px 11px 3px;
+}
+
+/* When the selected start is the real GPS position, show both markers.
+   Dashed leader connects the offset "current" badge to the same map point. */
+.sunny-route-point-pin.sunny-route-pin-colocated{position:relative;
+ transform:translate(37px,-2px)}
+.sunny-route-point-pin.sunny-route-pin-colocated::before{
+ content:"";position:absolute;left:-33px;top:15px;width:34px;
+ border-top:2px dashed #3979a9;opacity:.8;pointer-events:none
+}
+
+/* Home map selector: align at screenshot's upper-right map corner, just below brand header.
+   Keep at least a 46px touch target, without covering Home search/current-location controls. */
+@media(max-width:900px){
+ body[data-sunny-nav="home"]:not(.nav-sheet-open):not(.nav-route-open):not(.sunny-guiding):not(.sunny-rain-grid-active) .nav-map-layer-control{
+  top:calc(var(--sunny-header-height,66px) + 3px)!important;
+  right:3px!important;left:auto!important;bottom:auto!important;
+  width:57px!important;gap:2px!important;padding:3px!important;
+  border-radius:10px!important;box-sizing:border-box!important;
+ }
+ body[data-sunny-nav="home"] .nav-map-layer-control button{
+  width:49px!important;min-width:49px!important;height:46px!important;
+  min-height:46px!important;max-height:46px!important;
+  padding:1px 2px!important;gap:1px!important;border-radius:6px!important;
+ }
+ body[data-sunny-nav="home"] .nav-map-layer-control button .nav-map-thumb{
+  height:27px!important;flex:0 0 27px!important;width:100%!important;
+ }
+ body[data-sunny-nav="home"] .nav-map-layer-control button .nav-map-thumb-label{
+  font-size:9px!important;line-height:12px!important;
+ }
+}
+@media(min-width:901px){
+ body[data-sunny-nav="home"]:not(.sunny-guiding):not(.sunny-rain-grid-active) .nav-map-layer-control{
+  top:87px!important;right:6px!important;left:auto!important;bottom:auto!important;
+  width:60px!important;gap:2px!important;padding:4px!important;box-sizing:border-box!important;
+ }
+ body[data-sunny-nav="home"] .nav-map-layer-control button{
+  width:50px!important;min-width:50px!important;height:46px!important;
+  min-height:46px!important;padding:1px 2px!important;gap:1px!important;
+ }
+ body[data-sunny-nav="home"] .nav-map-layer-control button .nav-map-thumb{
+  height:27px!important;flex:0 0 27px!important;width:100%!important;
+ }
+ body[data-sunny-nav="home"] .nav-map-layer-control button .nav-map-thumb-label{
+  font-size:9px!important;line-height:12px!important;
+ }
+}
+
+/* Driving screen: shift the route summary footer approximately 0.5cm (~19px)
+   upward without moving, removing or changing any actions or ETA data. */
+body.sunny-guiding .sunny-drive-footer{
+ bottom:calc(19px + env(safe-area-inset-bottom,0px))!important;
+ left:8px!important;right:8px!important;width:calc(100% - 16px)!important;
+ border-radius:14px!important;
+ padding-bottom:10px!important;
+}
+
+/* Put the current→destination progress rail directly at the top-right edge
+   of the full-screen driving map. Constrain its length on short devices. */
+body.sunny-guiding .sunny-drive-progress{
+ position:absolute!important;
+ top:calc(8px + env(safe-area-inset-top,0px))!important;
+ right:4px!important;left:auto!important;bottom:auto!important;
+ height:min(54dvh,430px)!important;
+ max-height:calc(100dvh - 125px - env(safe-area-inset-bottom,0px))!important;
+ min-height:120px!important;width:27px!important;z-index:3!important;
+}
+
+/* Driving alerts: visually distinct, non-overlapping large top card and smaller
+   subordinate bottom card, matching the user's annotated driving screenshot.
+   Keep both real forecast messages intact and leave the right progress rail free. */
+body.sunny-guiding .sunny-drive-alerts{
+ top:calc(10px + env(safe-area-inset-top,0px))!important;
+ left:10px!important;
+ width:min(270px,calc(100vw - 82px))!important;
+ height:102px!important;max-height:102px!important;overflow:visible!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(1){
+ top:0!important;left:0!important;
+ width:min(248px,calc(100% - 12px))!important;
+ height:48px!important;min-height:48px!important;max-height:48px!important;
+ z-index:3!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(2){
+ top:56px!important;left:12px!important;
+ width:min(185px,calc(100% - 66px))!important;
+ height:38px!important;min-height:38px!important;max-height:38px!important;
+ z-index:2!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(2) .sunny-drive-alert-text strong{
+ font-size:11px!important;
+}
+@media(max-width:360px){
+ body.sunny-guiding .sunny-drive-alerts{
+  left:8px!important;width:calc(100vw - 81px)!important;
+ }
+ body.sunny-guiding .sunny-drive-alert:nth-child(1){
+  width:calc(100% - 10px)!important;
+ }
+ body.sunny-guiding .sunny-drive-alert:nth-child(2){
+  width:calc(100% - 62px)!important;
+ }
+}
+
+/* 2026-11-07: screenshot-guided driving overlay placement.
+   Keep weather cards near top-left as one tall card and one compact card below.
+   Forecast text still comes exclusively from actual KMA-backed guidance. */
+body.sunny-guiding .sunny-drive-alerts{
+ left:3px!important;
+ top:calc(3px + env(safe-area-inset-top,0px))!important;
+ width:min(220px,calc(100vw - 96px))!important;
+ height:150px!important;max-height:150px!important;
+ overflow:visible!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(1){
+ left:0!important;top:0!important;
+ width:min(213px,100%)!important;
+ height:102px!important;min-height:102px!important;max-height:102px!important;
+ padding:11px 10px!important;
+ align-items:flex-start!important;
+ border-radius:7px!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(1) .sunny-drive-alert-text{
+ justify-content:flex-start;gap:8px;min-width:0;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(1) .sunny-drive-alert-text strong{
+ white-space:normal!important;overflow:visible!important;
+ text-overflow:clip!important;line-height:1.4!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(1) .sunny-drive-alert-text small{
+ white-space:normal!important;overflow:visible!important;
+ text-overflow:clip!important;line-height:1.3!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(2){
+ left:0!important;top:104px!important;
+ width:min(168px,calc(100% - 22px))!important;
+ height:38px!important;min-height:38px!important;max-height:38px!important;
+ padding:4px 6px!important;
+ border-radius:5px!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(2) .sunny-drive-alert-icon{
+ font-size:13px!important;width:13px!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(2) .sunny-drive-alert-text{
+ gap:1px!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(2) .sunny-drive-alert-text strong{
+ font-size:10px!important;white-space:nowrap!important;
+ overflow:hidden!important;text-overflow:ellipsis!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(2) .sunny-drive-alert-text small{
+ font-size:8.5px!important;white-space:nowrap!important;
+ overflow:hidden!important;text-overflow:ellipsis!important;
+}
+/* Move the rain ON/OFF shortcut to the marked lower-left location, just above
+   the driving ETA banner, with a touchable 44px hit area and no overlap. */
+.sunny-radar-quick:not([hidden]){
+ left:10px!important;right:auto!important;top:auto!important;
+ bottom:calc(var(--sunny-bottom-nav-height,68px) + 11px)!important;
+ min-height:44px!important;
+}
+body.sunny-guiding:not(.sunny-rain-grid-active) .sunny-radar-quick:not([hidden]){
+ left:9px!important;right:auto!important;top:auto!important;
+ bottom:calc(84px + env(safe-area-inset-bottom,0px))!important;
+ min-height:44px!important;
+}
+@media(max-width:360px){
+ body.sunny-guiding .sunny-drive-alerts{
+  left:3px!important;width:min(220px,calc(100vw - 92px))!important;
+ }
+ body.sunny-guiding .sunny-drive-alert:nth-child(1){
+  width:min(213px,100%)!important;
+ }
+ body.sunny-guiding .sunny-drive-alert:nth-child(2){
+  width:min(168px,calc(100% - 22px))!important;
+ }
+}
+
+/* RN1 forecast / HSR observed radar selector lives in the existing rain panel.
+   Both sources share one map canvas and time panel: never show two layers at once. */
+.sunny-rain-source-mode{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+ gap:4px;margin:7px 0 5px}
+.sunny-rain-source-mode button{font:inherit;font-size:11px;font-weight:750;
+ min-height:36px;padding:6px 5px;cursor:pointer;color:#35617c;
+ border:1px solid #b8d4e3;border-radius:8px;background:#eef5f9}
+.sunny-rain-source-mode button[aria-pressed="true"]{
+ color:#fff;background:#176f9d;border-color:#176f9d;
+ box-shadow:0 1px 4px #164d7340}
+.sunny-rain-grid-timeline{max-height:min(290px,58dvh)!important}
+body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
+ max-height:min(290px,56dvh)!important}
+@media(max-width:650px){
+ body.sunny-rain-grid-active .sunny-rain-grid-timeline{
+  max-height:min(290px,56dvh)!important;overflow-y:auto!important}
+ .sunny-rain-source-mode button{font-size:10.5px;min-height:34px}
+}
+
+/* Sunny SAI 2026-11-07 UI QA: aligned close, reload, reset and honest layer states. */
+.nav-layer-row[hidden]{display:none!important}
+.nav-layer-section-title{
+ display:flex;align-items:center;justify-content:space-between;gap:8px;
+ margin:12px 0 6px;padding:7px 2px 5px;border-bottom:1px solid #e6ecf4;
+ font-size:13px;font-weight:800;color:#233d56;
+}
+.nav-layer-section-title small{font-size:10px;font-weight:550;color:#60788f;text-align:right}
+.nav-layer-pending{display:grid;gap:6px;margin:5px 0 10px}
+.nav-layer-pending>div{
+ display:flex;align-items:center;justify-content:space-between;gap:8px;
+ padding:10px 9px;background:#f4f6f9;border:1px solid #e2e8f0;border-radius:9px;
+}
+.nav-layer-pending span{display:flex;flex-direction:column;gap:4px;min-width:0}
+.nav-layer-pending b{font-size:12px;color:#405269}
+.nav-layer-pending small{font-size:10px;color:#687c90;line-height:1.4}
+.nav-layer-pending em{
+ flex:0 0 auto;font-size:10px;font-style:normal;font-weight:700;
+ color:#5f7180;background:#e7ebef;padding:5px 7px;border-radius:6px;white-space:nowrap;
+}
+.nav-layers-sheet .nav-layers-head{
+ display:grid!important;grid-template-columns:minmax(0,1fr) 44px;
+ align-items:center!important;gap:12px!important;
+}
+.nav-layers-head strong{min-width:0;overflow-wrap:anywhere}
+.nav-layers-sheet .nav-layers-close{
+ width:44px!important;height:44px!important;min-width:44px!important;
+ min-height:44px!important;max-width:44px!important;flex:0 0 44px!important;
+ display:inline-flex!important;justify-content:center!important;
+ align-items:center!important;line-height:1!important;padding:0!important;
+ box-sizing:border-box!important;
+}
+.nav-layers-sheet .nav-layers-close span,
+#navSearchClose span,#navRouteResultClose span,
+#navWeatherTimeClose span{display:inline-flex;align-items:center;justify-content:center;line-height:1;font-size:23px}
+.sunny-rain-grid-head{
+ display:grid!important;grid-template-columns:minmax(0,1fr) auto;
+ gap:7px!important;align-items:center!important;min-height:43px!important;
+}
+.sunny-rain-grid-head strong{
+ min-width:0;display:flex!important;align-items:center;flex-wrap:wrap;gap:3px 5px!important;
+ line-height:1.35;
+}
+.sunny-rain-grid-head-actions{
+ display:flex!important;flex:0 0 auto;align-items:center!important;justify-content:flex-end;
+ gap:5px!important;white-space:nowrap;
+}
+.sunny-rain-grid-head-actions button{
+ display:inline-flex!important;align-items:center!important;justify-content:center!important;
+ padding:0!important;width:40px!important;height:40px!important;
+ min-width:40px!important;min-height:40px!important;max-width:40px!important;
+ line-height:1!important;font-size:20px!important;font-weight:600!important;
+ box-sizing:border-box!important;border-radius:10px!important;
+ flex:0 0 40px;cursor:pointer;touch-action:manipulation;
+}
+.sunny-rain-grid-head-actions button span{
+ display:inline-flex;align-items:center;justify-content:center;
+ width:100%;height:100%;line-height:1;transform:translateY(-1px);
+}
+#navRainGridRefresh{color:#146f9b!important;background:#e5f4fe!important}
+#navRainGridReset{color:#36566c!important;background:#f2f5f8!important}
+#navRainGridClose{color:#994542!important;background:#fff1f0!important;border-color:#ebc3c1!important}
+.sunny-rain-grid-timeline{max-height:min(350px,60dvh)!important}
+.sunny-rain-grid-controls button{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:36px!important;min-width:70px;box-sizing:border-box;
+}
+#navWeatherTimeClose{display:inline-flex;align-items:center;justify-content:center;
+ width:40px!important;height:40px!important;min-width:40px!important;
+ min-height:40px!important;max-width:40px!important;flex:0 0 40px!important;
+ box-sizing:border-box;padding:0!important;
+}
+.nav-weather-timehead{min-height:40px!important}
+.nav-weather-timehead strong{min-width:0;white-space:normal!important;line-height:1.3}
+.nav-weather-timehead span{min-width:0;overflow-wrap:anywhere}
+#navSearchClose,#navRouteResultClose{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-width:40px;min-height:40px;box-sizing:border-box;touch-action:manipulation;
+}
+.nav-kma-refresh{display:inline-flex!important;align-items:center;justify-content:center;gap:7px}
+.nav-kma-refresh>span{display:inline-flex;align-items:center;justify-content:center;font-size:17px;line-height:1}
+.nav-layers-close:focus-visible,.sunny-rain-grid-head-actions button:focus-visible,
+#navSearchClose:focus-visible,#navRouteResultClose:focus-visible,
+#navWeatherTimeClose:focus-visible,.nav-kma-refresh:focus-visible{
+ outline:3px solid #1877c9!important;outline-offset:2px!important;
+}
+@media(max-width:650px){
+ .sunny-rain-grid-timeline,
+ body.sunny-rain-grid-active .sunny-rain-grid-timeline,
+ body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
+  max-height:min(355px,60dvh)!important;overflow-y:auto!important;
+ }
+ .sunny-rain-grid-head-actions button{
+  width:38px!important;min-width:38px!important;max-width:38px!important;
+  height:38px!important;min-height:38px!important;flex-basis:38px!important;
+ }
+ .nav-layer-section-title{font-size:12px}
+ .nav-layer-pending small{font-size:9.5px}
+}
+
+/* Environmental settings: source-by-source API reachability (read-only). */
+.sunny-source-settings{margin:12px 0 16px}
+.sunny-source-settings-head{
+ display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;
+}
+.sunny-source-settings-head>div{flex:1 1 205px;min-width:0}
+.sunny-source-settings-head h3{margin:0 0 5px}
+.sunny-source-settings-head p{font-size:12px;line-height:1.45;color:#56708a;margin:0}
+#settingConnectionRefresh{
+ display:inline-flex;align-items:center;justify-content:center;gap:7px;
+ border:1px solid #a6cbdc;border-radius:10px;background:#e7f4fa;
+ color:#145776;font:inherit;font-weight:750;font-size:12px;
+ padding:10px 12px;min-height:42px;cursor:pointer;touch-action:manipulation;
+}
+#settingConnectionRefresh:disabled{opacity:.65;cursor:progress}
+#settingConnectionRefresh:focus-visible{outline:3px solid #1478b6;outline-offset:2px}
+#settingConnectionRefresh span{font-size:19px;line-height:1}
+.sunny-source-summary{
+ padding:8px 11px;border:1px solid #d6e3eb;background:#f5f9fb;
+ border-radius:9px;color:#2b536d;font-weight:700;font-size:12px;line-height:1.45;
+ margin:10px 0;
+}
+.sunny-source-items{display:grid;gap:7px}
+.sunny-source-group{
+ font-size:12px;font-weight:800;color:#2d5068;
+ border-bottom:1px solid #dbe6ed;padding:11px 0 5px;margin:2px 0 0;
+}
+.sunny-source-row{
+ display:grid;grid-template-columns:minmax(0,1fr) auto;
+ grid-template-rows:auto auto;align-items:center;gap:3px 9px;
+ background:#fff;border:1px solid #e1e8ef;border-radius:10px;
+ padding:9px 11px;min-width:0;
+}
+.sunny-source-row-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+.sunny-source-row-copy strong{font-size:12.5px;line-height:1.4;color:#243f56}
+.sunny-source-row-copy small{font-size:10.5px;color:#667b8f;line-height:1.35}
+.sunny-source-state{display:inline-flex;align-items:center;justify-content:center;
+ max-width:135px;padding:5px 8px;border-radius:7px;border:1px solid #dae1e7;
+ background:#f1f3f5;color:#556779;white-space:nowrap;font-size:10.5px;font-weight:800;
+}
+.sunny-source-detail{grid-column:1/-1;font-size:10.8px;color:#5e7183;line-height:1.45}
+.sunny-source-row[data-connection-state="ok"] .sunny-source-state{
+ background:#e7f6ed;border-color:#b7dfc8;color:#196b3e}
+.sunny-source-row[data-connection-state="partial"] .sunny-source-state,
+.sunny-source-row[data-connection-state="configured"] .sunny-source-state{
+ background:#fff4e4;border-color:#f0d6a6;color:#946318}
+.sunny-source-row[data-connection-state="error"] .sunny-source-state,
+.sunny-source-row[data-connection-state="missing"] .sunny-source-state{
+ background:#ffeded;border-color:#f1c7c7;color:#a23b3b}
+.sunny-source-row[data-connection-state="checking"] .sunny-source-state{
+ background:#e7f2ff;border-color:#b8d8f4;color:#1b659b}
+.sunny-source-checked{font-size:11px;color:#536d80;margin:9px 0 5px;line-height:1.5}
+.sunny-source-caution{font-size:10.5px;color:#677688;line-height:1.5;margin:7px 0 2px}
+@media(max-width:650px){
+ .sunny-source-settings-head{flex-direction:column;align-items:stretch;gap:9px}
+ .sunny-source-settings-head>div{flex-basis:auto}
+ #settingConnectionRefresh{width:100%;min-height:44px}
+ .sunny-source-row{padding:9px}
+ .sunny-source-row-copy strong{font-size:12px}
+}
+
+/* The long diagnostics list stays folded until the user explicitly expands it. */
+.sunny-source-fold{border:1px solid #dbe6ed;border-radius:12px;padding:9px 11px;background:#fcfdff}
+.sunny-source-fold>summary{
+ display:flex;align-items:center;gap:10px;cursor:pointer;min-height:35px;
+ color:#243f56;font-size:13px;line-height:1.4;list-style:none;
+}
+.sunny-source-fold>summary::-webkit-details-marker{display:none}
+.sunny-source-fold>summary strong{flex:1 1 auto;min-width:0}
+.sunny-source-fold>summary small{font-size:10px;font-weight:500;color:#6a7e8d;text-align:right}
+.sunny-source-fold>summary:after{content:"▾";font-size:18px;color:#536e83;line-height:1}
+.sunny-source-fold[open]>summary:after{content:"▴"}
+.sunny-source-fold>summary:focus-visible{outline:3px solid #177eb7;outline-offset:3px;border-radius:6px}
+.sunny-source-fold[open]>.sunny-source-settings-head{margin-top:10px}
+@media(max-width:650px){
+ .sunny-source-fold>summary{flex-wrap:wrap}
+ .sunny-source-fold>summary small{flex-basis:100%;text-align:left}
+ .sunny-source-fold>summary:after{margin-left:auto}
+}
+
+
+/* Screenshot remediation: keep mobile nav fixed, preserve unrotated Kakao
+   labels, prevent overlapping driving banners and widen the rainfall sheet. */
+@media(max-width:900px){
+ :root{--sunny-drive-navbar:var(--sunny-bottom-nav-height,68px)}
+ .nav-bottom-bar{
+  display:grid!important;position:fixed!important;
+  bottom:0!important;left:0!important;right:0!important;
+  height:var(--sunny-drive-navbar)!important;min-height:0!important;
+  visibility:visible!important;z-index:1400!important;
+ }
+ body.sunny-guiding .dashboard .map-canvas,
+ body.sunny-guiding.nav-route-open .dashboard .map-canvas{
+  position:fixed!important;top:0!important;left:0!important;right:0!important;
+  width:100vw!important;
+  height:calc(100dvh - var(--sunny-drive-navbar))!important;
+  bottom:var(--sunny-drive-navbar)!important;
+  max-height:none!important;
+ }
+ body.sunny-guiding .sunny-drive-footer{
+  left:7px!important;right:7px!important;width:calc(100% - 14px)!important;
+  bottom:7px!important;min-height:63px!important;
+  border-radius:13px!important;gap:6px!important;
+  padding:7px 8px!important;
+ }
+ body.sunny-guiding .sunny-drive-footer strong{
+  font-size:clamp(11px,3.2vw,14px)!important;white-space:nowrap;
+ }
+ body.sunny-guiding .sunny-drive-footer small{
+  font-size:clamp(8px,2.4vw,10px)!important;white-space:nowrap;
+ }
+ body.sunny-guiding .sunny-drive-footer #sunnyDriveReroute:not([hidden]){
+  display:inline-flex!important;align-items:center;justify-content:center;
+  background:#e6f3ff!important;border-color:#9bbfe2!important;
+  color:#15577f!important;
+  padding:4px 7px!important;min-height:40px!important;
+  min-width:62px!important;font-size:11px!important;
+ }
+ body.sunny-guiding .sunny-drive-progress{
+  max-height:calc(100dvh - var(--sunny-drive-navbar) - 130px)!important;
+ }
+ body.sunny-guiding .sunny-radar-quick:not([hidden]){
+  bottom:calc(var(--sunny-drive-navbar) + 89px)!important;
+ }
+ body.sunny-guiding .nav-layers-sheet:not([hidden]),
+ body.sunny-guiding .nav-search-sheet:not([hidden]){
+  z-index:1200!important;
+  bottom:var(--sunny-drive-navbar)!important;
+ }
+ body.sunny-guiding .nav-route-result:not([hidden]){
+  bottom:var(--sunny-drive-navbar)!important;
+ }
+}
+/* The 5km forecast and 10min radar stay in ONE, wide and shallow panel. */
+@media(max-width:900px){
+ body.sunny-rain-grid-active .sunny-rain-grid-timeline,
+ body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
+  position:fixed!important;
+  left:env(safe-area-inset-left,0px)!important;
+  right:env(safe-area-inset-right,0px)!important;transform:none!important;
+  width:auto!important;max-width:none!important;
+  display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;
+  box-sizing:border-box!important;
+  max-height:min(210px,42dvh)!important;
+  overflow-x:hidden!important;overflow-y:auto!important;
+  padding:7px 9px 8px!important;
+  border-radius:12px!important;z-index:1150!important;
+ }
+ body.sunny-rain-grid-active:not(.sunny-guiding) .sunny-rain-grid-timeline{
+  bottom:calc(var(--sunny-bottom-nav-height,68px) + 8px)!important;
+ }
+ body.sunny-rain-grid-active.sunny-guiding .sunny-rain-grid-timeline{
+  bottom:calc(var(--sunny-drive-navbar) + 83px)!important;
+ }
+ .sunny-rain-grid-timeline > :not(.sunny-rain-grid-valid):not(.sunny-rain-grid-controls){grid-column:1 / -1}
+ .sunny-rain-grid-head{min-height:38px!important;gap:7px!important}
+ .sunny-rain-grid-head strong{font-size:12px!important;line-height:1.2!important}
+ .sunny-rain-grid-head-actions button{
+  width:38px!important;min-width:38px!important;max-width:38px!important;
+  height:38px!important;min-height:38px!important;flex-basis:38px!important;
+ }
+ .sunny-rain-source-mode{margin:3px 0!important;gap:6px!important}
+ .sunny-rain-source-mode button{min-height:32px!important;padding:4px!important}
+ .sunny-rain-grid-valid{align-self:center;font-size:10px!important;margin:0!important}
+ .sunny-rain-grid-controls{margin:1px 0!important}
+ .sunny-rain-grid-controls button{min-height:30px!important;padding:3px 7px!important}
+ #navRainGridLead{height:17px!important;min-height:17px!important;margin:0!important}
+ .sunny-rain-grid-ticks{font-size:9px!important;line-height:1.1!important}
+ .sunny-rain-grid-legend{margin:3px 0!important;gap:6px!important}
+ #navRainGridStatus{margin:1px 0!important;max-height:24px!important;line-height:1.25!important}
+ .sunny-rain-grid-disclaimer{line-height:1.2!important;font-size:9px!important}
+}
+/* Weather card at top-left: compact, no redundant empty/white second alert. */
+body.sunny-guiding .sunny-drive-alerts{
+ left:7px!important;top:calc(7px + env(safe-area-inset-top,0px))!important;
+ width:min(278px,calc(100vw - 75px))!important;
+ height:112px!important;max-height:112px!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(1){
+ width:min(265px,100%)!important;
+ height:60px!important;min-height:60px!important;max-height:60px!important;
+ padding:6px 9px!important;align-items:center!important;top:0!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(1) .sunny-drive-alert-text{
+ gap:3px!important;justify-content:center!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(1) .sunny-drive-alert-text strong{
+ line-height:1.25!important;font-size:12px!important;
+}
+body.sunny-guiding .sunny-drive-alert:nth-child(2){
+ width:min(228px,calc(100% - 13px))!important;
+ top:66px!important;left:9px!important;
+ height:39px!important;min-height:39px!important;max-height:39px!important;
+ padding:5px 8px!important;
+}
+@media(max-width:370px){
+ body.sunny-guiding .sunny-drive-footer{
+  gap:4px!important;padding:7px 5px!important;
+ }
+ body.sunny-guiding .sunny-drive-footer #sunnyDriveReroute:not([hidden]){
+  min-width:48px!important;font-size:10px!important;padding:3px 4px!important;
+ }
+}
+
+#navRainGridStatus{margin:0;font-weight:650}
+#navRainGridStatus::before{content:"●";margin-inline-end:.4em}
+#navRainGridStatus[data-receive-state="loading"]{color:#145daa}
+#navRainGridStatus[data-receive-state="received"]{color:#176743}
+#navRainGridStatus[data-receive-state="failed"]{color:#a62633}
+body.sunny-rain-grid-minimized .sunny-radar-quick:not([hidden]){
+ display:flex!important;visibility:visible!important;
+}
+
+.sunny-rain-grid-head-actions button[hidden]{display:none!important}
+
+#navRainGridTimeBar [hidden]{display:none!important}
+
+#navForecastImageView[hidden],#navForecastImage[hidden]{display:none!important}
+#navForecastImageView{
+ position:absolute;inset:0;z-index:30;background:#edf3f7;
+ display:grid;grid-template-rows:minmax(0,1fr) auto;align-items:center;
+}
+#navForecastImage{grid-row:1;width:100%;height:100%;object-fit:contain}
+#navForecastImageStatus{grid-row:2;margin:0;padding:6px;text-align:center;background:white;color:#17314a}
+#navForecastImageToggle{min-height:34px}
+
+.sunny-forecast-image-controls{grid-row:2;background:#fff;padding:6px 10px;display:grid;gap:4px}
+.sunny-forecast-image-controls button{min-height:36px;margin-inline-end:6px}
+.sunny-forecast-image-controls label{display:grid;grid-template-columns:auto 1fr;gap:4px 8px}
+#navForecastImageLead{grid-column:1 / -1;width:100%}
+#navForecastImageStatus[data-receive-state="loading"]{background:#e1efff;color:#145daa}
+#navForecastImageStatus[data-receive-state="received"]{background:#e2f4e8;color:#176743}
+#navForecastImageStatus[data-receive-state="failed"]{background:#fce5e8;color:#a62633}
+
+#navHsrReception{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:3px}
+#navHsrReception span{padding:3px 0;text-align:center;font-size:9px;background:#eef1f4;color:#31475c;border-radius:3px}
+#navHsrReception [data-state="loading"]{background:#dceeff}
+#navHsrReception [data-state="received"]{background:#cbeed9;color:#145b3c}
+#navHsrReception [data-state="failed"]{background:#f9d6db;color:#932630}
+
+.sunny-rain-mode-buttons{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+
+#navForecastImageView{grid-template-rows:minmax(0,1fr)}
+#navForecastControls{display:grid;gap:4px}
+#navForecastControls .sunny-rain-grid-controls{display:flex;flex-wrap:wrap}
+#navForecastReception{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:3px}
+#navForecastReception span{min-height:8px;border-radius:3px;background:#eef1f4}
+#navForecastReception [data-state="loading"]{background:#92c5ff}
+#navForecastReception [data-state="received"]{background:#70c998}
+#navForecastReception [data-state="failed"]{background:#ef909a}
+.sunny-forecast-active > :is(#navRainGridValid,#navRainGridStatus,.sunny-rain-grid-legend,#navRainGridDisclaimer){display:none!important}
+
+#navForecastImageStatus:empty{display:none}
+.sunny-forecast-active #navRainSourceSub,
+.sunny-hsr-active #navRainSourceSub,
+.sunny-hsr-active #navRainGridDisclaimer,
+.sunny-hsr-active #navRainGridStatus{display:none!important}
+.sunny-hsr-active .sunny-rain-grid-controls{display:flex;flex-wrap:wrap}
+.sunny-qpf-legend{height:8px;min-width:80px;border-radius:4px;background:linear-gradient(to right,#b4efff,#00cfff,#0057ff,#00f700,#008c45,#ffef00,#ff7d00,#cc1500,#d17aff,#160038)}
+
+/* Both radar modes use the same compact control layout. */
+#navRainGridTimeBar .sunny-rain-grid-head{justify-content:flex-end}
+#navRainGridTimeBar .sunny-rain-grid-head strong,
+#navRainGridTimeBar .sunny-rain-grid-ticks,
+#navRainGridTimeBar #navRainGridValid,
+#navRainGridTimeBar #navRainGridStatus,
+#navRainGridTimeBar #navRainGridDisclaimer,
+#navRainGridTimeBar #navRainGridStep,
+#navRainGridTimeBar #navForecastImageTime,
+#navRainGridTimeBar:not(.sunny-hsr-active) > .sunny-rain-grid-legend{display:none!important}
+#navRainGridTimeBar .sunny-rain-grid-controls{justify-content:flex-start;gap:4px}
+#navRainGridTimeBar :is(#navRainGridLead,#navForecastImageLead){width:100%;margin:0}
+#navRainGridTimeBar :is(#navHsrReception,#navForecastReception) span{min-height:8px;padding:0}
+#navRainGridTimeBar .sunny-rain-mode-buttons button{min-height:36px}
+
+.nav-layer-actions{display:flex;align-items:center;gap:5px}
+.nav-layers-head .nav-layer-actions button{min-width:40px;min-height:40px}
+.nav-layer-group{display:block;margin:8px 0 4px;font-size:12px;font-weight:700;color:#475569}
+
+.nav-layers-sheet .nav-layers-head{grid-template-columns:minmax(0,1fr) auto;gap:6px!important}
+.nav-layers-head .nav-layer-actions button,
+.nav-layers-sheet .nav-layer-actions .nav-layers-close{
+ width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;
+ flex:0 0 40px!important;border:1px solid #dbe5ef;border-radius:10px;background:#f1f6fb;color:#183654;
+ display:grid!important;place-items:center;padding:0!important;
+}
+.nav-layer-actions svg,#navLayersRefresh svg{width:18px;height:18px;vertical-align:middle}
+.nav-layers-sheet .nav-layer-actions .nav-layers-close{background:#fff3f2;color:#9f3030;border-color:#f3d4d1}
+#navLayersRefresh{display:flex;align-items:center;justify-content:center;gap:7px}
+@media(max-width:900px){
+ .nav-layers-sheet:not([hidden]){
+  inset-inline: max(8px,env(safe-area-inset-left,0px)) max(8px,env(safe-area-inset-right,0px))!important;
+  width:auto!important;max-width:none!important;margin:0!important;transform:none!important;
+  max-height:min(59dvh,calc(100dvh - var(--sunny-bottom-nav-height,68px) - 16px))!important;
+  padding:8px 12px 10px!important;overflow-x:hidden!important;animation:none!important;
+  border-radius:16px 16px 0 0;
+ }
+ .nav-layers-sheet .nav-layer-row{min-height:40px;padding-block:5px}
+}
+
+#navGridReception{display:none}
+#navRainGridTimeBar.sunny-grid-active .sunny-rain-mode-buttons{display:none}
+#navRainGridTimeBar.sunny-grid-active .sunny-rain-grid-head strong,
+#navRainGridTimeBar.sunny-grid-active #navRainGridStep,
+#navRainGridTimeBar.sunny-grid-active > .sunny-rain-grid-legend{display:flex!important}
+#navRainGridTimeBar.sunny-grid-active #navRainGridRefresh{display:grid!important}
+#navRainGridTimeBar.sunny-grid-active #navGridReception,#navSnowReception{
+ display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;
+}
+:is(#navGridReception,#navSnowReception) span{height:8px;border-radius:3px;background:#e8edf2}
+:is(#navGridReception,#navSnowReception) [data-state="received"]{background:#70c998}
+#navGridReception [data-state="loading"]{background:#92c5ff}
+#navGridReception [data-state="failed"]{background:#ef909a}
+#navWeatherTimeBar{box-sizing:border-box;max-width:calc(100vw - 16px);overflow:auto}
+#navWeatherTimeBar .nav-weather-timehead{display:flex;justify-content:space-between;align-items:center;gap:6px}
+#navWeatherTimeBar button{min-height:36px}
+#navWeatherTimeBar .sunny-rain-grid-controls{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-start}
+
+.sunny-snow-key{color:#8657c4}.sunny-sleet-key{color:#217480}
+
+#navWeatherTimeBar .nav-layer-actions button,
+#navRainGridTimeBar.sunny-grid-active .sunny-rain-grid-head-actions button{
+ display:inline-grid;place-items:center;width:36px!important;height:36px!important;
+ min-width:36px!important;min-height:36px!important;padding:0!important;
+ border:1px solid #d5e2f0;border-radius:9px;background:#edf5fc;color:#184a74;
+ font-size:17px;line-height:1;
+}
+#navWeatherTimeBar #navWeatherTimeClose,
+#navRainGridTimeBar.sunny-grid-active #navRainGridClose{
+ background:#fff3f2;border-color:#f3d4d1;color:#9f3030;
+}
+#navWeatherTimeBar > .sunny-rain-grid-legend,
+#navRainGridTimeBar.sunny-grid-active > .sunny-rain-grid-legend{display:none!important}
+
+#settings > .dialog-head{position:sticky;top:0;z-index:2;background:#fff}
+#settings > .dialog-head button{min-width:40px;min-height:40px;flex-shrink:0}
+#settingVoiceSpeedValue{font-weight:700;color:#1668c8;margin-inline-start:6px}
+
+.sunny-route-map-hazard{
+ width:34px;height:34px;display:grid;place-items:center;padding:0;
+ border:1px solid #b8cde1;border-radius:50%;background:#fff;color:#173b61;
+ font-size:17px;box-shadow:0 2px 6px #173b6133;cursor:pointer;
+}
+
+.sunny-route-icon-legend{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;margin:8px 0}
+.sunny-route-icon-legend dt{font-weight:700}
+.sunny-route-icon-legend dd{margin:0;color:#475569;overflow-wrap:anywhere}
+
+.nav-route-result-head #navRouteRadar {
+ width:auto;height:32px;margin-left:8px;margin-right:auto;padding:0 9px;
+ border:1px solid #d4e0ee;border-radius:8px;color:#223b56;font-size:12px;
+}
+#navRouteRadar span {font-weight:700}
+.nav-route-result-head #navRouteRadar[aria-pressed="true"] {
+ background:#e5f1ff;color:#1458ab;border-color:#96bce9;
+}
+
+body.sunny-guiding .sunny-drive-footer #sunnyDriveRadar {
+ position:absolute;left:0;bottom:calc(100% + 6px);
+ padding:5px 10px;min-height:44px!important;white-space:nowrap;
+ background:#fff;color:#223b56;border:1px solid #b8cde1;border-radius:10px;
+}
+body.sunny-guiding .sunny-drive-footer #sunnyDriveRadar[aria-pressed="true"] {
+ background:#e5f1ff;color:#1458ab;border-color:#96bce9;
+}
+#sunnyDriveRadar span {font-weight:700}
+
+/* Guidance has its own radar control above the footer. */
+body.sunny-guiding #navRadarQuick.sunny-radar-quick {
+ display:none!important;
+}
+
+@media(max-width:900px){
+ /* Keep fixed controls within Safari's visible viewport when the page zooms. */
+ body .nav-bottom-bar{
+  left:var(--sunny-visible-left,0px)!important;right:auto!important;bottom:auto!important;
+  top:calc(var(--sunny-visible-top,0px) + var(--sunny-visible-height,100dvh) - var(--sunny-bottom-nav-height))!important;
+  width:var(--sunny-visible-width,100%)!important;box-sizing:border-box!important;
+ }
+ body.sunny-guiding .dashboard .map-canvas,
+ body.sunny-guiding.nav-route-open .dashboard .map-canvas{
+  left:var(--sunny-visible-left,0px)!important;right:auto!important;bottom:auto!important;
+  top:var(--sunny-visible-top,0px)!important;
+  width:var(--sunny-visible-width,100%)!important;
+  height:calc(var(--sunny-visible-height,100dvh) - var(--sunny-bottom-nav-height))!important;
+ }
+ body.sunny-guiding .sunny-drive-progress{
+  right:max(14px,env(safe-area-inset-right,0px))!important;
+ }
+ body.sunny-guiding .sunny-drive-footer strong,
+ body.sunny-guiding .sunny-drive-footer small{
+  overflow:hidden;text-overflow:ellipsis;
+ }
+ body input:not([type]),body input[type="text"],body input[type="search"],body textarea{
+  font-size:16px!important;
+ }
+}
+
+
+@media(max-width:900px){
+ html.sunny-keyboard-open body .nav-bottom-bar{
+  display:none!important;
+ }
+}
+
+body.sunny-guiding.sunny-heading-up .dashboard .map-canvas > #kakaoMap:not([hidden]){
+ inset:auto!important;left:50%!important;top:50%!important;
+ width:var(--sunny-rotated-map-size)!important;height:var(--sunny-rotated-map-size)!important;
+ max-width:none!important;max-height:none!important;
+ transform:translate(-50%,-50%) rotate(var(--sunny-map-rotation,0deg));
+}
+.sunny-drive-gps-pointer.sunny-bearing-unknown svg{grid-area:1/1;visibility:hidden}
+.sunny-drive-gps-pointer.sunny-bearing-unknown::after{
+ content:"";grid-area:1/1;width:15px;height:15px;border:2px solid white;
+ border-radius:50%;background:#1769ed;
+}
