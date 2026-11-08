@@ -1909,7 +1909,7 @@ body.sunny-rain-grid-minimized .sunny-radar-quick:not([hidden]){
 #navRainGridTimeBar.sunny-grid-active .sunny-rain-grid-head strong,
 #navRainGridTimeBar.sunny-grid-active #navRainGridStep,
 #navRainGridTimeBar.sunny-grid-active > .sunny-rain-grid-legend{display:flex!important}
-#navRainGridTimeBar.sunny-grid-active #navRainGridRefresh{display:grid!important}
+#navRainGridTimeBar.sunny-grid-active #navRainGridRefresh{display:none!important}
 #navRainGridTimeBar.sunny-grid-active #navGridReception,#navSnowReception{
  display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;
 }
@@ -2044,3 +2044,5 @@ body.sunny-guiding.sunny-heading-up .dashboard .map-canvas > #kakaoMap:not([hidd
   overflow-x:hidden;
  }
 }
+
+.nav-layer-reception:is([data-state="empty"],[data-state="disconnected"]){background:#edf2f7;color:#475569}

@@ -46,11 +46,11 @@ export function initWarningOverlay({query,getMap,ensureMap,onChange}){
    const matched=data.warnings.filter(w=>w.points.length).length;
    say('발효 특보 '+data.warnings.length+'건 · 지도 표시 '+matched+'건'+
     (data.stationError?' · 관측지점 조회 실패':' · 관측지점 위치'));
-   setLayerReception('navLayerWarning','received');
+   setLayerReception('navLayerWarning',data.warnings.length?'received':'empty');
    if(matched)await ensureMap();
   }catch(e){
    if(run!==request)return;
-   setLayerReception('navLayerWarning','failed');
+   setLayerReception('navLayerWarning',e.reception||'failed');
    data=null;say('기상특보 수신 실패 · '+e.message);
   }
   if(run===request){repaint();onChange();}

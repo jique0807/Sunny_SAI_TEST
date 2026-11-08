@@ -1,7 +1,9 @@
 const labels = {
  loading:'수신 중',
  received:'수신 완료',
- failed:'수신 실패',
+ failed:'수신오류',
+ empty:'자료없음',
+ disconnected:'미연결',
  waiting:'조회 대기',
 };
 
@@ -10,4 +12,17 @@ export function setLayerReception(id,state){
  if(!badge)return;
  badge.dataset.state=state;
  badge.textContent=labels[state]??'';
+}
+
+export function forecastReception(rows,hasForecast){
+ if(rows?.some(hasForecast))return 'received';
+ for(const state of ['empty','disconnected']){
+  if(rows?.length&&rows.every(row=>row.reception===state))return state;
+ }
+ return 'failed';
+}
+
+export async function fetchWithReception(fetcher,...args){
+ try{return await fetcher(...args);}
+ catch(error){throw Object.assign(new Error('통신 연결 실패',{cause:error}),{reception:'disconnected',name:error?.name||'Error'});}
 }

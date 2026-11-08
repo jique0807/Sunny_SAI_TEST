@@ -1,4 +1,4 @@
-import {setLayerReception} from './layer-reception.mjs';
+import {setLayerReception,forecastReception} from './layer-reception.mjs';
 // KMA genuine 5 km grid forecast mosaic on Kakao / Leaflet maps.
 // Only individually fetched grid cells may be coloured. No weather extrapolation.
 export function isSnowPty(code){return [2,3,6,7].includes(code);}
@@ -59,8 +59,8 @@ export function initKmaMapOverlay({query,getContext,fallback,getActiveMap,format
  function stopPlayback(){clearInterval(playback);playback=null;}
  let configured=false,cache=null,painted=[],timer=null,seq=0,lead=0;
  const enabled=()=>controls.some(c=>c?.checked);
- const snowReception=data=>setLayerReception('navLayersnow',data?.cells?.some(c=>
-  Number.isInteger(c.forecast?.precipitationType)||c.forecasts?.some(f=>Number.isInteger(f?.precipitationType)))?'received':'failed');
+ const snowReception=data=>setLayerReception('navLayersnow',forecastReception(data?.cells,c=>
+  Number.isInteger(c.forecast?.precipitationType)||c.forecasts?.some(f=>Number.isInteger(f?.precipitationType))));
  const message=s=>{if(status)status.textContent='기상청 지도예보: '+s;};
  function clear(){
   for(const o of painted)try{if(o.kakao)o.item.setMap(null);else o.map.removeLayer(o.item);}catch{}
@@ -156,11 +156,10 @@ export function initKmaMapOverlay({query,getContext,fallback,getActiveMap,format
     cache=null;message('조회된 기상청 예보 없음 · 키 권한/발표시각 확인 필요');return;
    }
    cache={data,center,at:Date.now()};draw(data);
-  }catch(e){if(requestId===seq){setLayerReception('navLayersnow','failed');clear();message('강수영역 조회 실패 · '+(e.message||'API 상태를 확인하세요'));}}
+  }catch(e){if(requestId===seq){setLayerReception('navLayersnow',e.reception||'failed');clear();message('강수영역 조회 실패 · '+(e.message||'API 상태를 확인하세요'));}}
   finally{if(requestId===seq)timePanel();}
  }
  function schedule(){if(!enabled())return;clearTimeout(timer);timer=setTimeout(()=>update(),650);}
- document.getElementById('navSnowRefresh')?.addEventListener('click',()=>update(true));
  document.getElementById('navSnowMinimize')?.addEventListener('click',()=>{minimized=true;timePanel();});
  document.getElementById('navSnowPlay')?.addEventListener('click',()=>{
   if(playback!==null)return;

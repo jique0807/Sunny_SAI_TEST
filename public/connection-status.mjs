@@ -1,3 +1,4 @@
+import {fetchWithReception} from './layer-reception.mjs';
 // Connection status displayed INSIDE Sunny SAI environment settings.
 // Uses the existing preview-only, rate-limited real-provider diagnostics.
 // Never display credentials or infer road safety from key presence or raw data.
@@ -17,7 +18,7 @@ export const DATA_CONNECTION_SOURCES=[
 ];
 export const CONNECTION_STATE_TEXT={
  unknown:'검사 전',unverified:'검사 보류',checking:'조회 중',configured:'키 등록',
- ok:'수신 성공',partial:'부분 확인',error:'수신 오류',missing:'키 없음',pending:'미연동'
+ ok:'수신 성공',partial:'부분 확인',error:'수신오류',empty:'자료없음',disconnected:'미연결',missing:'키 없음',pending:'미연동'
 };
 export function initialConnectionResults(){
  return Object.fromEntries(DATA_CONNECTION_SOURCES.map(x=>[x.id,{
@@ -72,9 +73,10 @@ export function mapConnectionProbe(kind,data,previous){
  }
  if(kind==='rain'){
   const found=Array.isArray(data?.results)?data.results:[];
+  const empty=found.length>0&&found.every(x=>x.status==='received'&&x.valid===0);
   const received=found.filter(x=>x.status==='received').length;
-  put('rain',received===4?'ok':received>0?'partial':'error',
-   received>0?'RN1 예보 '+received+'/4개 시간 수신 · 결측은 무강수가 아님':
+  put('rain',empty?'empty':found.length&&found.every(x=>x.reception==='disconnected')?'disconnected':received===4?'ok':received>0?'partial':'error',
+   empty?'유효한 강수 예보 격자 없음':received>0?'RN1 예보 '+received+'/4개 시간 수신 · 결측은 무강수가 아님':
     'RN1 실제 강수 격자 미수신');
  }
  if(kind==='radar'){
@@ -87,12 +89,12 @@ export function mapConnectionProbe(kind,data,previous){
  if(kind==='layers'){
   const road=data?.road,geos=data?.roadSchema?.schemas||[];
   const hasCoords=geos.some(s=>s.hasCoordinateColumns&&s.georeferencedRows>0);
-  put('road',road?.state==='provider_zip_parsed'?'partial':'error',
+  put('road',road?.state==='request_failed'?'disconnected':road?.state==='provider_zip_parsed'&&road.result!=='unsupported_format'?'partial':'error',
    road?.state==='provider_zip_parsed'?
     '도로위험 ZIP 수신'+(hasCoords?'· 좌표 확인':'')+' · 등급/유효시각 미검증':
     '도로위험 공식 자료 수신 미확인');
   const wrn=data?.warning;
-  put('warning',wrn?.state==='text_received'||wrn?.state==='header_or_empty_received'?
+  put('warning',wrn?.state==='request_failed'?'disconnected':['header_or_empty_received','empty_response'].includes(wrn?.state)?'empty':wrn?.state==='text_received'||wrn?.state==='header_or_empty_received'?
    'partial':'error',wrn?.state==='text_received'||wrn?.state==='header_or_empty_received'?
     '공식 텍스트 응답 · 특보내용·구역경계 미검증':
     wrn?.http===403?'기상특보 접근 거절(403)':'기상특보 API 실수신 미확인');
@@ -106,11 +108,11 @@ export function mapConnectionProbe(kind,data,previous){
  return result;
 }
 export function summarizeConnectionResults(results){
- const counts={ok:0,partial:0,error:0,missing:0,pending:0,unknown:0,unverified:0,checking:0,configured:0};
+ const counts={ok:0,partial:0,error:0,empty:0,disconnected:0,missing:0,pending:0,unknown:0,unverified:0,checking:0,configured:0};
  for(const v of Object.values(results))counts[v.state]=(counts[v.state]||0)+1;
  return {counts,text:[
   counts.ok?'수신 성공 '+counts.ok:'',counts.partial?'부분 확인 '+counts.partial:'',
-  counts.error?'오류 '+counts.error:'',counts.missing?'키 없음 '+counts.missing:'',
+  counts.error?'수신오류 '+counts.error:'',counts.empty?'자료없음 '+counts.empty:'',counts.disconnected?'미연결 '+counts.disconnected:'',counts.missing?'키 없음 '+counts.missing:'',
   counts.configured?'키 등록 '+counts.configured:'',counts.pending?'연동 대기 '+counts.pending:'',
   counts.unverified?'검사 보류 '+counts.unverified:'',counts.checking?'검사 중 '+counts.checking:'',
   counts.unknown?'검사 전 '+counts.unknown:''
@@ -163,7 +165,7 @@ export function initConnectionStatusPanel({
  async function requestJSON(path){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
   try{
-   const response=await fetcher(path,{credentials:'same-origin',
+   const response=await fetchWithReception(fetcher,path,{credentials:'same-origin',
     cache:'no-store',signal:controller.signal});
    if(!response.ok){const err=Error(providerFailure(response.status));
     err.http=response.status;throw err;}
@@ -200,13 +202,13 @@ export function initConnectionStatusPanel({
      if(run!==request)return;
      const message=providerFailure(e?.http);
      for(const id of ids)if(values[id]?.state==='checking')
-      values[id]=state([401,404,429].includes(e?.http)||e?.name==='AbortError'?'unverified':'error',message);
+      values[id]=state(e.reception==='disconnected'?'disconnected':[401,404,429].includes(e?.http)?'unverified':'error',message);
      render();
     }
    }));
    lastChecked=now();render();return true;
-  }catch{
-   if(summary)summary.textContent='설정 검사를 시작하지 못했습니다. 세션·네트워크 연결을 확인해주세요.';
+  }catch(e){
+   if(summary)summary.textContent=(e.reception==='disconnected'?'미연결':'수신오류')+' · 세션 확인 필요';
    return false;
   }finally{
    if(run===request){

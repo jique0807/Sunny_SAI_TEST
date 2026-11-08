@@ -109,12 +109,12 @@ export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
    const d=await query('all');
    if(request!==pending)return;
    data=d;
-   for(const id of ['navLayerroad','navLayerfog'])setLayerReception(id,d.receivedRoads>0?'received':'failed');
+   for(const id of ['navLayerroad','navLayerfog'])setLayerReception(id,d.receivedRoads===0||d.status==='unsupported_format'?'failed':d.locations.some(item=>item.kind===(id==='navLayerroad'?'ice':'visibility'))?'received':d.status==='georeferenced'?'empty':'received');
    await ensureMap();
    if(request===pending)repaint();
   }catch(e){
    if(request===pending){
-    for(const id of ['navLayerroad','navLayerfog'])setLayerReception(id,'failed');
+    for(const id of ['navLayerroad','navLayerfog'])setLayerReception(id,e.reception||'failed');
     message('위험정보 조회 불가 · '+String(e?.message||'API 활용신청·자료 제공기간 확인').slice(0,155));
    }
   }finally{if(request===pending){loading=false;if(button)button.disabled=!available;}}

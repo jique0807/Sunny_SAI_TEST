@@ -1,4 +1,4 @@
-import {setLayerReception} from './layer-reception.mjs';
+import {setLayerReception,fetchWithReception} from './layer-reception.mjs';
 import {loadHSRFrame,drawHSROverKakao,HSR_MAX_FRAME} from './kma-hsr-overlay.mjs';
 // Georegistered nationwide KMA 5-km 1-hour rainfall forecast drawn *over* Kakao.
 // No second basemap, invented rain cells or spatial interpolation.
@@ -260,12 +260,13 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    const cached=!force?frameCache.get(lead):null;
    let data=cached&&cached.until>Date.now()?cached.data:null;
    if(!data){
-    const response=await fetch('/api/rain-grid?lead='+lead,{
+    const response=await fetchWithReception(fetch,'/api/rain-grid?lead='+lead,{
      credentials:'same-origin',cache:'no-store',signal:controller.signal});
     if(!response.ok){
      let reason='기상청 응답 HTTP '+response.status;
-     try{const v=await response.json();if(typeof v.error==='string')reason=v.error.slice(0,130);}catch{}
-     throw Error(reason);
+     let reception;
+     try{const v=await response.json();reception=v.reception;if(typeof v.error==='string')reason=v.error.slice(0,130);}catch{}
+     throw Object.assign(Error(reason),{reception});
     }
     data=await response.json();
    }
@@ -288,13 +289,14 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    forecast=data;loadedAt=Date.now();
    if(when)when.textContent='예보 발표 '+fmtTime(data.issuedAt)+' · 유효 '+fmtTime(data.validTime);
    const coverage=data.valid===0?' · 유효 격자 없음':data.cells.length===0?' · 유효 격자에 강수 없음':'';
-   message('수신 완료'+coverage,'received');
+   message(data.valid===0?'자료없음':'수신 완료'+coverage,data.valid===0?'empty':'received');
    paint();
   }catch(e){
    if(run!==requestId||!enabled||e?.name==='AbortError')return;
    if(source==='grid')gridState(lead,'failed');
-   forecast=null;clear();message('수신 실패 · '+(e?.message||'자료 제공 상태 확인 필요'),'failed');
-   if(when)when.textContent='실제 강수격자 수신 실패';
+   forecast=null;clear();const state=e.reception||'failed';
+   message(state==='disconnected'?'미연결':'수신오류',state);
+   if(when)when.textContent='—';
   }finally{if(run===requestId&&refresh)refresh.disabled=false;}
  }
  function stopRefresh(){

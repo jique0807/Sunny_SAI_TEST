@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {ahead,locate,RainGate} from '../public/rain-monitor.mjs';
+import {forecastReception} from '../public/layer-reception.mjs';
 const source=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
 function harness(kma=true){
  const elements=new Map(),events={},calls=[],geo={};let time=Date.parse('2026-11-05T01:00:00Z');
  const $=id=>{if(!elements.has(id))elements.set(id,{textContent:'',hidden:false,disabled:false});return elements.get(id);};
- const context=vm.createContext({stopPreviewPositionWatch(){},drawWeatherOverlays(){},setLayerReception(id,state){$(id+'Reception').state=state;},rainGridOverlay:{disableRouteRadar(){}},$,ahead,locate,RainGate,Math,Number,Date:class extends Date{static now(){return time;}},navigator:{geolocation:{watchPosition(ok,bad){geo.ok=ok;geo.bad=bad;return 7;},clearWatch(){geo.cleared=true;}}},window:{isSecureContext:true},document:{hidden:false,body:{classList:{add(){},remove(){}}},addEventListener(n,fn){events[n]=fn;}},route:{demo:false,rainPath:[{lat:37,lng:127,seconds:0},{lat:37,lng:127.1,seconds:6000}]},weather:null,connections:{kma},appPrefs:{refreshMinutes:1,voiceAlerts:true,followGps:true,headingMode:'course'},fmt:()=> '10:00',toast:()=>{},reply:()=>{},stopVoice:()=>{},kmap:null,lmap:null,gpsNavArrow:null,
+ const context=vm.createContext({forecastReception,stopPreviewPositionWatch(){},drawWeatherOverlays(){},setLayerReception(id,state){$(id+'Reception').state=state;},rainGridOverlay:{disableRouteRadar(){}},$,ahead,locate,RainGate,Math,Number,Date:class extends Date{static now(){return time;}},navigator:{geolocation:{watchPosition(ok,bad){geo.ok=ok;geo.bad=bad;return 7;},clearWatch(){geo.cleared=true;}}},window:{isSecureContext:true},document:{hidden:false,body:{classList:{add(){},remove(){}}},addEventListener(n,fn){events[n]=fn;}},route:{demo:false,rainPath:[{lat:37,lng:127,seconds:0},{lat:37,lng:127.1,seconds:6000}]},weather:null,connections:{kma},appPrefs:{refreshMinutes:1,voiceAlerts:true,followGps:true,headingMode:'course'},fmt:()=> '10:00',toast:()=>{},reply:()=>{},stopVoice:()=>{},kmap:null,lmap:null,gpsNavArrow:null,
   drivingUI:{start(){},stop(){},update(){},setAhead(){},isActive(){return false;}},resetDrivingMapHeading(){},updateDrivingMapHeading(){return '북쪽 기준';},
   setNavTab(){},showMap:async()=>{},followDrivingGps(){},setInterval:fn=>{geo.tick=fn;return 1;},clearInterval:()=>{},api:async(path,data)=>{calls.push({path,data});return {samples:data.samples.map(p=>({...p,status:'forecast',forecast:{provider:'kma',product:'초단기예보',rain:0,precipitationType:0}})),fetchedAt:new Date(time).toISOString()};}});
  vm.runInContext(source.match(/^const routeWeatherEnabled=.*;$/m)[0],context);
@@ -38,7 +39,7 @@ test('disabling route weather preserves GPS and skips weather requests',async()=
 
 test('actual API client renews expired session once and does not repeat key mutations',async()=>{
  let requests=0,renewals=0;
- const ctx=vm.createContext({csrf:'old',advanced:false,sessionPromise:Promise.resolve(),keyStatus:()=>{},session:async()=>{renewals++;ctx.csrf='new';},fetch:async()=>{requests++;return {status:requests===1?401:200,ok:requests!==1,json:async()=>requests===1?{error:'expired'}:{samples:[]}};},Error,JSON});
+ const ctx=vm.createContext({fetchWithReception:(fetcher,...args)=>fetcher(...args),csrf:'old',advanced:false,sessionPromise:Promise.resolve(),keyStatus:()=>{},session:async()=>{renewals++;ctx.csrf='new';},fetch:async()=>{requests++;return {status:requests===1?401:200,ok:requests!==1,json:async()=>requests===1?{error:'expired'}:{samples:[]}};},Error,JSON});
  vm.runInContext(source.slice(source.indexOf('async function api('),source.indexOf('function connectionStatus()')),ctx);
  await vm.runInContext("api('/api/weather',{samples:[]})",ctx);assert.equal(requests,2);assert.equal(renewals,1);
  requests=0;renewals=0;await assert.rejects(vm.runInContext("api('/api/voice/key',{key:'fake'})",ctx),/expired/);assert.equal(requests,1);assert.equal(renewals,0);
