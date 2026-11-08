@@ -106,21 +106,21 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
     if(showWeather)slots.push({title:'전방 기상안내 일시중지',subtitle:'경로 복귀 후 다시 확인',icon:'·',status:true});
    }else if(showWeather){
     for(const item of risks)slots.push({
-      title:item.breaking?'🚨 [가상] 신규 호우특보 발효':
+      title:item.breaking?'🚨 신규 호우특보 발효':
        (item.minutes===0?'현재 부근':item.minutes+'분 후')+' · '+item.title,
-      subtitle:item.label+' · '+(route.demo?'[가상 시연 · 실제 위험 아님]':item.source),
+      subtitle:item.label+' · '+(route.demo?'시연 경로':item.source),
       icon:item.icon,status:false,urgent:!!item.breaking
     });
     if(!slots.length){
       const known=route.demo||combinedSamples().length>0;
-      slots.push({title:route.demo?'이후 가상 위험 이벤트 없음':known?'조회 지점에 추가 비·눈 예보 없음':'전방 기상예보 미확인',
+      slots.push({title:route.demo?'추가 위험 이벤트 없음':known?'조회 지점에 추가 비·눈 예보 없음':'전방 기상예보 미확인',
        subtitle:route.demo?'시연 데이터이며 실제 날씨는 확인하지 않았습니다':known?'미조회 구간은 판단 불가':'실제 기상자료 미수신 · 위험 여부 판단 불가',
        icon:'·',status:true});
     }
     if(slots.length<alertCount){
      const checked=route.demo?(route.demoHazards||[]).filter(h=>h.seconds>=seconds).length:new Set(combinedSamples().filter(sample=>sample.seconds>=seconds).map(sample=>sample.seconds)).size;
      slots.push({title:route.demo?'시연 데이터 안내':'전방 예보 조회 상태',
-      subtitle:route.demo?'모든 위험값은 가상 · 남은 이벤트 '+checked+'개':checked?'조회된 전방 지점 '+checked+'곳':'조회된 전방 지점 없음',
+      subtitle:route.demo?'남은 위험 이벤트 '+checked+'개':checked?'조회된 전방 지점 '+checked+'곳':'조회된 전방 지점 없음',
       icon:'·',status:true});
     }
    }
@@ -147,7 +147,7 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
   route=newRoute;weather=forecast||null;aheadSamples=null;seconds=0;offRoute=false;active=true;
   if(root)root.hidden=false;
   if(reroute)reroute.hidden=true;
-  document.body.classList.add('sunny-guiding');setText(gps,route.demo?'가상 주행 재생 · 실제 GPS 사용 안 함':'GPS 위치 확인 중');render();
+  document.body.classList.add('sunny-guiding');setText(gps,route.demo?'시연 모드 · 실제 특보·위험정보 아님':'GPS 위치 확인 중');render();
  }
  function stop(){
   active=false;route=null;weather=null;aheadSamples=null;seconds=0;offRoute=false;
@@ -160,7 +160,7 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
   if(!active)return;
   offRoute=Boolean(off);
   if(Number.isFinite(routeSeconds)&&!offRoute)seconds=Math.max(0,routeSeconds);
-  if(route?.demo){setText(gps,'가상 이동 중 · 실제 GPS 사용 안 함');render();return;}
+  if(route?.demo){setText(gps,'시연 모드 · 실제 특보·위험정보 아님');render();return;}
   if(position){
    const error=Number.isFinite(position.accuracy)?' · 오차 ±'+Math.round(position.accuracy)+'m':'';
    setText(gps,(offRoute?'경로 이탈':'GPS 추적 중')+error+(position.directionStatus?' · '+position.directionStatus:''));
