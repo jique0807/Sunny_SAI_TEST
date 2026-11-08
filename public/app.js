@@ -67,6 +67,20 @@ function showNavLayers(open){
 }
 // Bottom Home and driving Home both mean a clean initial screen, rather than
 // retaining the previous route, navigation progress or weather overlays.
+// Safari can keep a smaller visual viewport after focusing a search field.
+const mobileViewport=window.visualViewport;
+function syncMobileViewport(){
+ if(!mobileViewport)return;
+ const style=document.documentElement.style;
+ style.setProperty('--sunny-visible-left',mobileViewport.offsetLeft+'px');
+ style.setProperty('--sunny-visible-top',mobileViewport.offsetTop+'px');
+ style.setProperty('--sunny-visible-width',mobileViewport.width+'px');
+ style.setProperty('--sunny-visible-height',mobileViewport.height+'px');
+}
+mobileViewport?.addEventListener('resize',syncMobileViewport);
+mobileViewport?.addEventListener('scroll',syncMobileViewport);
+window.addEventListener('pageshow',syncMobileViewport);
+syncMobileViewport();
 function goToInitialHome(){
  if(drivingUI.isActive())stopRain();
  stopVoice();
@@ -397,7 +411,7 @@ function drawGps(){
     routeCurrentMarker?.setMap(null);routeCurrentMarker=null;
     gpsMarker?.setMap(null);gpsMarker=null;
     if(!gpsNavArrow){
-     const marker=document.createElement('span');marker.className='sunny-drive-gps-pointer';marker.textContent='▲';marker.setAttribute('aria-label','GPS 실시간 차량 위치');
+     const marker=document.createElement('span');marker.className='sunny-drive-gps-pointer';marker.innerHTML='<svg viewBox="0 0 32 36" width="32" height="36" aria-hidden="true"><path d="M16 3 29 31 16 25 3 31Z" fill="#1769ed" stroke="white" stroke-width="3" stroke-linejoin="round"/></svg>';marker.setAttribute('aria-label','GPS 실시간 차량 위치');
      gpsNavArrow=new kakao.maps.CustomOverlay({map:kmap,position:pos,content:marker,xAnchor:.5,yAnchor:.5,zIndex:12});
     }else gpsNavArrow.setPosition(pos);
     const marker=gpsNavArrow.getContent?.();

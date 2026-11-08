@@ -835,9 +835,8 @@ body[data-sunny-nav="settings"] .map-switch {
  background:#edf3fb;font-size:11px;color:#29577b;font-weight:700;cursor:pointer;
 }
 .sunny-drive-gps-pointer{
- display:grid;place-items:center;width:31px;height:31px;border:3px solid #fff;border-radius:50%;
- background:#1676ed;color:white;font-size:16px;font-weight:900;line-height:1;
- box-shadow:0 0 0 3px rgba(23,104,237,.35),0 3px 10px #001c4b6b;
+ display:grid;place-items:center;width:32px;height:36px;
+ filter:drop-shadow(0 2px 3px #16375d80);
  pointer-events:none;transform-origin:center;
 }
 body.sunny-guiding .map-floating,
@@ -1977,4 +1976,30 @@ body.sunny-guiding .sunny-drive-footer #sunnyDriveRadar[aria-pressed="true"] {
 /* Guidance has its own radar control above the footer. */
 body.sunny-guiding #navRadarQuick.sunny-radar-quick {
  display:none!important;
+}
+
+@media(max-width:900px){
+ /* Keep fixed controls within Safari's visible viewport when the page zooms. */
+ body .nav-bottom-bar{
+  left:var(--sunny-visible-left,0px)!important;right:auto!important;bottom:auto!important;
+  top:calc(var(--sunny-visible-top,0px) + var(--sunny-visible-height,100dvh) - var(--sunny-bottom-nav-height))!important;
+  width:var(--sunny-visible-width,100%)!important;box-sizing:border-box!important;
+ }
+ body.sunny-guiding .dashboard .map-canvas,
+ body.sunny-guiding.nav-route-open .dashboard .map-canvas{
+  left:var(--sunny-visible-left,0px)!important;right:auto!important;bottom:auto!important;
+  top:var(--sunny-visible-top,0px)!important;
+  width:var(--sunny-visible-width,100%)!important;
+  height:calc(var(--sunny-visible-height,100dvh) - var(--sunny-bottom-nav-height))!important;
+ }
+ body.sunny-guiding .sunny-drive-progress{
+  right:max(14px,env(safe-area-inset-right,0px))!important;
+ }
+ body.sunny-guiding .sunny-drive-footer strong,
+ body.sunny-guiding .sunny-drive-footer small{
+  overflow:hidden;text-overflow:ellipsis;
+ }
+ body input:not([type]),body input[type="text"],body input[type="search"],body textarea{
+  font-size:16px!important;
+ }
 }
