@@ -68,7 +68,7 @@ test('live GPS tracker pans the Kakao map to the received coordinates and thrott
  assert.ok(start>0&&end>start);
  let now=5000,panCalls=[],zoomCalls=[];
  const ctx=vm.createContext({
-  drivingUI:{isActive:()=>true},appPrefs:{followGps:true},rainPosition:{lat:37.501,lng:127.001},
+  drivingUI:{isActive:()=>true},vectorDriving:{isActive:()=>false},appPrefs:{followGps:true},rainPosition:{lat:37.501,lng:127.001},
   document:{hidden:false},kmap:{panTo(p){panCalls.push(p);},setLevel(x){zoomCalls.push(x);}},
   activeMap:'kakao',lastFollowTime:0,lastFollowPosition:null,
   segmentMeters,Date:class extends Date{static now(){return now;}},
