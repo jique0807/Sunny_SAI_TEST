@@ -103,7 +103,7 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
    alerts.replaceChildren();
    const slots=[];
    if(offRoute){
-    slots.push({title:'경로 이탈 감지',subtitle:'이탈이 계속되면 자동 재탐색 · 정차 후 수동 재탐색 가능',icon:'!',status:true});
+    slots.push({title:'경로 이탈 감지',subtitle:route?.travelMode==='walking'?'이탈이 계속되면 자동 재탐색 · 안전한 장소에서 재탐색 가능':'이탈이 계속되면 자동 재탐색 · 정차 후 수동 재탐색 가능',icon:'!',status:true});
     if(showWeather)slots.push({title:'전방 기상안내 일시중지',subtitle:'경로 복귀 후 다시 확인',icon:'·',status:true});
    }else if(showWeather){
     for(const item of risks)slots.push({
@@ -148,7 +148,7 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
   route=newRoute;weather=forecast||null;aheadSamples=null;seconds=0;offRoute=false;active=true;
   if(root)root.hidden=false;
   if(reroute)reroute.hidden=true;
-  document.body.classList.add('sunny-guiding');setText(gps,route.demo?'시연 모드 · 실제 특보·위험정보 아님':'GPS 위치 확인 중');render();
+  document.body.classList.add('sunny-guiding');setText(gps,route.demo?'시연 모드 · 실제 특보·위험정보 아님':route.travelMode==='walking'?'도보 GPS 위치 확인 중':'GPS 위치 확인 중');render();
  }
  function stop(){
   active=false;route=null;weather=null;aheadSamples=null;seconds=0;offRoute=false;
