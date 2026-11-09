@@ -2245,3 +2245,12 @@ body.sunny-guiding .sunny-demo-detour-popup{
 @media(prefers-reduced-motion:reduce){
  .sunny-travel-modes label{transition:none}
 }
+
+/* Walking-only presentation trigger shares the existing safe-area-aware route sheet. */
+.sunny-walk-demo-launch{margin:7px 0 12px!important;background:#f0f9f6!important;border:1px solid #aadbc8!important;color:#176b52!important}
+.sunny-walk-demo-launch small{color:#327a68!important}
+.sunny-desktop-walk-demo{min-height:44px}
+@media(max-width:900px){
+ .sunny-route-studio .sunny-walk-demo-launch{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;min-height:48px}
+ .sunny-route-studio .sunny-walk-demo-launch small{flex:1 0 100%;text-align:center}
+}
