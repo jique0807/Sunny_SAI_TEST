@@ -2,7 +2,7 @@
 'use strict';
 if(window.sunnyInitialized)return;window.sunnyInitialized=true;
 const {assess,AlertGate}=await import('/rules.mjs');
-const {makeDemoScenario,makeDemoBreakingWarning,shouldTriggerDemoBreakingWarning,DEMO_BREAKING_TRIGGER,DEMO_SEOUL_BUSAN,DEMO_INITIAL_WAYPOINTS,DEMO_DETOUR_WAYPOINTS,demoPointAtSeconds,demoDistanceMeters,demoLeadSeconds,demoSpokenWarning,demoBreakingTiming,demoEventAtPlace,demoClosestRouteDistance}=await import('/demo-scenario.mjs');
+const {makeDemoScenario,makeDemoBreakingWarning,shouldTriggerDemoBreakingWarning,DEMO_BREAKING_TRIGGER,DEMO_SEOUL_BUSAN,DEMO_INITIAL_WAYPOINTS,DEMO_DETOUR_CANDIDATES,selectOptimalDemoDetour,demoPointAtSeconds,demoDistanceMeters,demoLeadSeconds,demoSpokenWarning,demoBreakingTiming,demoEventAtPlace,demoClosestRouteDistance}=await import('/demo-scenario.mjs');
 const {projectRoute,roadSection,kakaoRouteLink}=await import('/map-geometry.mjs');
 const {coordinatePlace,nearestSample,tileHealth}=await import('/map-state.mjs');
 const {voiceCatalog}=await import('/voice-catalog.mjs');
@@ -762,7 +762,7 @@ async function demoRoute(){
   progress=0;gate.reset();renderRoute();renderCards();
   showNavSearch(false);showNavRouteResult();
   await showMap('kakao');
-  reply('이천에 비, 상주에 돌발 호우특보, 밀양에 안개를 배치했습니다. 특보 발생 시 카카오 대체 도로 경로를 탐색합니다.');
+  reply('이천에 비, 구미에 돌발 호우특보, 밀양에 안개를 배치했습니다. 특보 발생 시 짧은 우회경로 후보를 비교합니다.');
  }catch(e){if(run===routeSeq)reply('시연 경로를 불러오지 못했어요. '+e.message);}
  finally{if(run===routeSeq){$('demo').disabled=false;$('routeSearch').disabled=false;}}
 }
@@ -888,21 +888,26 @@ function finishDemoDetourPopup(trip,resumePlayback){
 async function chooseDemoDetourYes(trip,resumePlayback){
  if(demoDetourPending)return;
  clearTimeout(demoDetourAutoTimer);demoDetourPending=true;
- demoDetourStatus('카카오 우회경로 탐색 중…','상주 위험지점에서 벗어난 실제 도로 경로를 다시 조회합니다.');
+ demoDetourStatus('카카오 우회경로 비교 중…','구미 특보지점에서 벗어나는 도로 경로 후보의 거리와 예상 시간을 비교합니다.');
  try{
   const current=demoPointAtSeconds(trip.rainPath,trip.duration*progress/100);
   if(!current)throw Error('현재 시연 차량 위치가 없습니다.');
-  const result=await api('/api/route',{
-   origin:{name:'상주 접근 중 · 시연 차량',lat:current.lat,lng:current.lng},
-   destination:DEMO_SEOUL_BUSAN.destination,
-   waypoints:DEMO_DETOUR_WAYPOINTS,
-   departure:new Date().toISOString()
-  });
+  const departure=new Date().toISOString();
+  // Compare real Kakao routes, do not force distant waypoints regardless of cost.
+  const candidates=await Promise.allSettled(DEMO_DETOUR_CANDIDATES.map(async candidate=>({
+   candidate,route:await api('/api/route',{
+    origin:{name:'구미 접근 중 · 시연 차량',lat:current.lat,lng:current.lng},
+    destination:DEMO_SEOUL_BUSAN.destination,
+    waypoints:candidate.waypoints,
+    departure
+   })
+  })));
   if(route!==trip||!drivingUI.isActive())return;
-  if(!result.rainPath?.length||!result.vertices?.length)throw Error('새 도로 경로 좌표를 받지 못했습니다.');
-  const clearance=demoClosestRouteDistance(result.rainPath,trip.demoBreakingWarning);
-  if(!Number.isFinite(clearance)||clearance<3000)
-   throw Error('새 경로가 특보 지점을 충분히 우회하지 못했습니다. 기존 경로를 유지합니다.');
+  const completed=candidates.filter(item=>item.status==='fulfilled').map(item=>item.value);
+  const chosen=selectOptimalDemoDetour(completed,trip.demoBreakingWarning);
+  if(!chosen)
+   throw Error('특보지점에서 3km 이상 떨어지고 밀양 안개 지점을 지나는 적합한 우회경로를 찾지 못했습니다. 기존 경로를 유지합니다.');
+  const result=chosen.route,clearance=chosen.clearance;
   const fog=demoEventAtPlace(result,'miryang');
   const samples=[{...fog,status:'demo',demoHazard:fog,forecast:null}];
   const updated={...result,demo:true,demoWarningIssued:true,demoDetourSelected:true,
@@ -925,8 +930,8 @@ async function chooseDemoDetourYes(trip,resumePlayback){
   await showMap('kakao',{preserveCamera:true});
   if(route!==updated||!drivingUI.isActive())return;
   drawDemoOverlays();moveCar();
-  demoDetourStatus('우회경로 선택 완료',
-   '카카오 실제 도로 경로 조회 성공 · 남은 '+(updated.distance/1000).toFixed(1)+'km · 특보지점과 약 '+Math.round(clearance/1000)+'km 거리');
+  demoDetourStatus('최적 우회 후보 선택 완료',
+   '카카오 '+candidates.length+'개 후보 비교 · '+chosen.candidate.label+' · 남은 '+(updated.distance/1000).toFixed(1)+'km · 약 '+Math.round(updated.duration/60)+'분 · 특보지점과 약 '+(clearance/1000).toFixed(1)+'km 거리');
   finishDemoDetourPopup(updated,resumePlayback);
  }catch(error){
   if(route!==trip||!drivingUI.isActive())return;
@@ -941,7 +946,7 @@ function simulateDemoDetourSelection(){
  clearDemoDetourPopup();
  const resumePlayback=playing;
  if(resumePlayback)pauseDrive();
- demoDetourStatus('상주 부근 긴급 호우특보 발생',
+ demoDetourStatus('구미 부근 긴급 호우특보 발생',
   '호우특보 구간을 피해 우회경로를 탐색하시겠습니까? (시연에서는 예 자동 선택)',true);
  $('sunnyDemoDetourYes').onclick=()=>{void chooseDemoDetourYes(trip,resumePlayback);};
  $('sunnyDemoDetourNo').onclick=()=>{
@@ -1037,7 +1042,7 @@ function startDemoGuidance(){
  void startVectorGuidance(route.rainPath[0],demoCourseAt(0));
  $('navRouteResult').hidden=true;document.body.classList.remove('nav-route-open');
  setNavTab('navRoute');showNavSearch(false);
- $('sunnyDemoNext').hidden=false;$('sunnyDemoPause').hidden=false;if($('sunnyDemoSoundTest'))$('sunnyDemoSoundTest').hidden=false;
+ $('sunnyDemoNext').hidden=false;$('sunnyDemoPause').hidden=false;
  $('driveControls').hidden=false;
  progress=0;gate.reset();advance(0);
  void showMap('kakao');
@@ -1061,7 +1066,6 @@ $('sunnyDemoNext')?.addEventListener('click',()=>{
   advance(Math.min(100,triggerAt/route.duration*100+0.01));
  else{advance(100);toast('모든 위험 이벤트를 확인했습니다.');}
 });
-$('sunnyDemoSoundTest')?.addEventListener('click',()=>{if(!route?.demo)return;if(!appPrefs.voiceAlerts)appSettings.set({voiceAlerts:true});reply('전방 500미터에 비 100mm 주의입니다.',true);});
 $('sunnyDemoPause')?.addEventListener('click',()=>{
  if(route?.demo)playing?pauseDrive():startDemoPlayback();
 });
@@ -1075,7 +1079,7 @@ $('endDrive').onclick=()=>{
  $('progress').value='0';moveCar();$('driveControls').hidden=true;
  clearDemoDetourPopup();
  vectorDriving.stop();if(drivingUI.isActive())drivingUI.stop();
- $('sunnyDemoNext').hidden=true;$('sunnyDemoPause').hidden=true;if($('sunnyDemoSoundTest'))$('sunnyDemoSoundTest').hidden=true;
+ $('sunnyDemoNext').hidden=true;$('sunnyDemoPause').hidden=true;
  showNavRouteResult();
  reply('주행 시연을 종료했어요.');
 };
