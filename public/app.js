@@ -524,7 +524,7 @@ function drawGps(){
   }
  if(lmap&&window.L){if(!gpsLeaflet)gpsLeaflet=L.circleMarker([p.lat,p.lng],{radius:9,color:'#fff',weight:3,fillColor:'#1769ff',fillOpacity:1}).bindTooltip('실제 GPS 현재 위치').addTo(lmap);else gpsLeaflet.setLatLng([p.lat,p.lng]);}
 }
-function stopRain(){clearDemoDetourPopup();vectorDriving.stop();lastMatchedPoint=null;offRouteFix=null;lastRerouteAt=0;routeAheadWeather=null;rerouteBusy=false;drivingUI.stop();resetDrivingMapHeading();lastFollowTime=0;lastFollowPosition=null;rainRun++;if(rainWatch!==null)navigator.geolocation?.clearWatch(rainWatch);rainWatch=null;clearInterval(rainTimer);rainTimer=null;rainPosition=null;rainProgress=0;rainBusy=null;rainLastFetch=0;rainLastPoint=null;rainGate=new RainGate();clearGpsMarker();$('rainStop').hidden=true;$('rainStart').disabled=false;$('rainStatus').textContent='비 예보 음성 안내 종료';}
+function stopRain(){if(typeof clearDemoDetourPopup==='function')clearDemoDetourPopup();vectorDriving.stop();lastMatchedPoint=null;offRouteFix=null;lastRerouteAt=0;routeAheadWeather=null;rerouteBusy=false;drivingUI.stop();resetDrivingMapHeading();lastFollowTime=0;lastFollowPosition=null;rainRun++;if(rainWatch!==null)navigator.geolocation?.clearWatch(rainWatch);rainWatch=null;clearInterval(rainTimer);rainTimer=null;rainPosition=null;rainProgress=0;rainBusy=null;rainLastFetch=0;rainLastPoint=null;rainGate=new RainGate();clearGpsMarker();$('rainStop').hidden=true;$('rainStart').disabled=false;$('rainStatus').textContent='비 예보 음성 안내 종료';}
 function remainingRoutePoints(){
  if(!drivingUI.isActive()||!lastMatchedPoint)return route?.vertices??[];
  return [lastMatchedPoint,...route.rainPath.filter(p=>p.seconds>lastMatchedPoint.seconds)];
