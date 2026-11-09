@@ -75,6 +75,7 @@ test('all settings presented in modal are functional and bound to navigation',()
  assert.match(app,/rainLastFetch<appPrefs\.refreshMinutes\*60000/);
  assert.match(app,/reply\(text,appPrefs\.voiceAlerts\)/);
  assert.match(app,/appSettings\.set\(\{overlayOpacity:/);
- assert.match(drive,/upcomingRisks\(combinedSamples\(\),seconds,alertCount\)/);
+ assert.match(drive,/prioritizeRouteHazards\(/);
+ assert.match(drive,/getRoadHazards\(route\)/);
  assert.match(drive,/slots\.slice\(0,alertCount\)/);
 });
