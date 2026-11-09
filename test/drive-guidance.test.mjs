@@ -44,7 +44,7 @@ test('GPS look-ahead includes route progress seconds for accurate time-to-risk l
  assert.equal(samples[1].seconds-samples[0].seconds,300);
 });
 test('Start guidance stays inside Sunny SAI and projects GPS onto Kakao map',()=>{
- assert.match(app,/navStartGuidance'\)\?\.addEventListener\('click',startRainGuidance\)/);
+ assert.match(app,/navStartGuidance'\)\?\.addEventListener\('click',\(\)=>route\?\.demo\?startDemoGuidance\(\):startRainGuidance\(\)\)/);
  assert.doesNotMatch(app,/if\(link\?\.href&&link\.href\.startsWith\('http'\)\)/);
  assert.match(app,/navigator\.geolocation\.watchPosition\(/);
  assert.match(app,/kmap\.panTo\(position\)/);
@@ -68,7 +68,7 @@ test('live GPS tracker pans the Kakao map to the received coordinates and thrott
  assert.ok(start>0&&end>start);
  let now=5000,panCalls=[],zoomCalls=[];
  const ctx=vm.createContext({
-  drivingUI:{isActive:()=>true},appPrefs:{followGps:true},rainPosition:{lat:37.501,lng:127.001},
+  drivingUI:{isActive:()=>true},vectorDriving:{isActive:()=>false},appPrefs:{followGps:true},rainPosition:{lat:37.501,lng:127.001},
   document:{hidden:false},kmap:{panTo(p){panCalls.push(p);},setLevel(x){zoomCalls.push(x);}},
   activeMap:'kakao',lastFollowTime:0,lastFollowPosition:null,
   segmentMeters,Date:class extends Date{static now(){return now;}},
