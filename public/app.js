@@ -901,7 +901,7 @@ async function chooseDemoDetourYes(trip,resumePlayback){
   if(route!==trip||!drivingUI.isActive())return;
   if(!result.rainPath?.length||!result.vertices?.length)throw Error('새 도로 경로 좌표를 받지 못했습니다.');
   const clearance=demoClosestRouteDistance(result.rainPath,trip.demoBreakingWarning);
-  if(!Number.isFinite(clearance)||clearance<4000)
+  if(!Number.isFinite(clearance)||clearance<3000)
    throw Error('새 경로가 특보 지점을 충분히 우회하지 못했습니다. 기존 경로를 유지합니다.');
   const fog=demoEventAtPlace(result,'miryang');
   const samples=[{...fog,status:'demo',demoHazard:fog,forecast:null}];
