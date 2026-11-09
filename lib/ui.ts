@@ -34,7 +34,7 @@ export const ui = `
 <div id="sunnyDriveOverlay" class="sunny-drive-overlay" aria-label="Sunny SAI 실시간 주행" hidden>
   <div id="sunnyDriveAlerts" class="sunny-drive-alerts" aria-live="polite"></div>
   <div id="sunnyDemoDetourPopup" class="sunny-demo-detour-popup" role="dialog" aria-modal="false" aria-label="시연용 우회경로 선택" hidden>
-    <div class="sunny-demo-detour-header"><span class="sunny-demo-detour-sign" aria-hidden="true">🚨</span><span id="sunnyDemoDetourTitle">상주 부근 긴급 호우특보 발생</span></div>
+    <div class="sunny-demo-detour-header"><span class="sunny-demo-detour-sign" aria-hidden="true">🚨</span><span id="sunnyDemoDetourTitle">구미 부근 긴급 호우특보 발생</span></div>
     <p id="sunnyDemoDetourDescription">호우특보 구간을 피해 우회경로를 탐색하시겠습니까?</p>
     <div id="sunnyDemoDetourChoices" class="sunny-demo-detour-choices"><button id="sunnyDemoDetourYes" type="button">예 · 우회 탐색</button><button id="sunnyDemoDetourNo" type="button">아니오</button></div>
     <small>시연 전용 · 호우특보는 가상이며, 새 도로 경로는 카카오 API를 통해 조회합니다. 안전성은 보장하지 않습니다.</small>
@@ -54,7 +54,7 @@ export const ui = `
     <button id="sunnyDriveHome" type="button" class="sunny-drive-home" aria-label="초기화면으로 돌아가기">⌂ 홈</button>
     <div><strong id="sunnyDriveSummary">경로 위치 확인 중</strong><small id="sunnyDriveGpsText">GPS 권한 확인 중 · 화면 켜짐 필요</small></div>
     <button id="sunnyDriveReroute" type="button" hidden title="정차 후 현재 GPS 위치에서 경로 재탐색" aria-label="현재 GPS 위치 기준 차량 경로 다시 조회">↻ 재탐색</button>
-    <button id="sunnyDemoNext" type="button" hidden>다음 위험 ▶</button><button id="sunnyDemoPause" type="button" hidden>Ⅱ 일시정지</button><button id="sunnyDemoSoundTest" type="button" hidden aria-label="시연 음성 실제 재생 확인">🔊 소리 확인</button><button id="sunnyDriveStop" type="button" aria-label="Sunny SAI 주행 안내 종료">종료</button>
+    <button id="sunnyDemoNext" type="button" hidden>다음 위험 ▶</button><button id="sunnyDemoPause" type="button" hidden>Ⅱ 일시정지</button><button id="sunnyDriveStop" type="button" aria-label="Sunny SAI 주행 안내 종료">종료</button>
   </div>
  </div><div id="mapNotice" class="map-notice" role="status" aria-live="polite">카카오맵을 불러오는 중입니다.</div><div class="map-floating"><span class="floating-icon">◈</span><div><b id="floatingTitle">날씨를 따라가는 길잡이</b><small id="floatingSub">경로를 선택하면 구간별 정보를 확인할 수 있어요.</small></div></div></div>
 <div class="map-legend"><span id="mapProvider" role="status">Kakao · 카카오맵 연결 중</span><span><i class="legend-route"></i>차량 경로 <i class="legend-section"></i>선택 구간</span></div><div class="map-actions"><button id="fitRoute" type="button">⤢ 전체 경로</button><a id="kakaoDirections" target="_blank" rel="noopener noreferrer" hidden>카카오맵에서 길안내 ↗</a><span>위성 배경은 실시간 기상·공사 영상이 아닙니다.</span></div><div class="route-summary"><div><span class="label">예상 소요시간</span><b id="duration">—<small> 분</small></b></div><div><span class="label">이동 거리</span><b id="distance">—<small> km</small></b></div><div><span class="label">예상 도착</span><b id="arrival">—</b></div><button id="drive" class="drive-btn" disabled>▷ 시연 재생</button></div><div id="driveControls" class="drive-controls" hidden><label for="progress">시연 진행</label><input id="progress" type="range" min="0" max="100" value="0"/><button id="endDrive">시연 종료</button><span id="driveStatus">정지</span></div></div>
