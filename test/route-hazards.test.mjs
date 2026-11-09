@@ -158,6 +158,6 @@ test('mobile UI regression protects the guidance stop button and large close tar
  assert.match(css,/body\.sunny-guiding \.nav-layers-sheet:not\(\[hidden\]\)/);
  assert.match(css,/body\.sunny-guiding #driveControls\{display:none!important;\}/);
  assert.match(css,/min-width:44px!important;max-width:44px!important/);
- assert.match(driving,/title:item\.breaking\?'신규 호우특보 발효'/);
+ assert.match(driving,/title:item\.breaking\?\(route\.demoWalking\?'시연: 보행 중 강수 강화':'신규 호우특보 발효'\)/);
  assert.doesNotMatch(driving,/title:item\.breaking\?'🚨 신규 호우특보 발효'/);
 });
