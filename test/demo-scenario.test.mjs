@@ -7,10 +7,13 @@ const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
 const ui=readFileSync(new URL('../lib/ui.ts',import.meta.url),'utf8');
 
 const route={duration:18000,departure:'2026-11-09T01:00:00.000Z',
- rainPath:[{lat:37.56,lng:126.98,seconds:0,label:'출발'},
- {lat:36.5,lng:127.4,seconds:4500,label:'고속도로'},
- {lat:35.7,lng:128.3,seconds:11000,label:'중간 구간'},
- {lat:35.18,lng:129.08,seconds:18000,label:'도착'}]};
+ rainPath:[{lat:37.566,lng:126.978,seconds:0,label:'서울'},
+ {lat:37.2722676,lng:127.4350893,seconds:2500,label:'이천'},
+ {lat:36.75,lng:127.85,seconds:5300,label:'상주 진입'},
+ {lat:36.4109398,lng:128.1591451,seconds:8000,label:'상주'},
+ {lat:36.1398882,lng:128.1136245,seconds:10200,label:'김천'},
+ {lat:35.5038173,lng:128.7466053,seconds:14500,label:'밀양'},
+ {lat:35.17955,lng:129.07564,seconds:18000,label:'부산'}]};
 test('real Seoul and Busan city hall endpoints are predefined and not user GPS',()=>{
  assert.equal(DEMO_SEOUL_BUSAN.origin.name,'서울시청');
  assert.equal(DEMO_SEOUL_BUSAN.destination.name,'부산시청');
@@ -64,7 +67,7 @@ test('fictional warning adds one nearby NEW geolocated point, never a KMA claim'
  assert.equal(warning.id,'breaking-warning');
  assert.equal(warning.kind,'warning');
  assert.ok(warning.breaking&&warning.demo);
- assert.equal(warning.seconds,Math.round(route.duration*.43));
+ assert.ok(warning.seconds>=7900&&warning.seconds<=8100);
  assert.equal(warning.issuedAt,'2026-11-09T02:15:00.000Z');
  assert.match(warning.measure,/호우주의보 발효/);
  assert.match(warning.provider,/시연/);
@@ -130,6 +133,6 @@ test('detour notice makes no claims of verified road safety or real reroute',()=
  assert.match(app,/trip\.demoDetourSelected=true/);
  assert.match(app,/clearDemoDetourPopup\(\)/);
  assert.match(app,/const resumePlayback=playing/);
- assert.match(app,/if\(resumePlayback&&progress<100\)startDemoPlayback\(\)/);
- assert.match(ui,/실제 우회경로 검색이나 안전성 검증 결과가 아닙니다/);
+ assert.match(app,/if\(resumePlayback&&route\?\.demo&&progress<100&&drivingUI\.isActive\(\)\)startDemoPlayback\(\)/);
+ assert.match(ui,/새 도로 경로는 카카오 API를 통해 조회합니다/);
 });
