@@ -38,6 +38,10 @@ function updateTravelModeUI(){
 document.querySelectorAll('input[name="travelMode"]').forEach(input=>input.addEventListener('change',()=>{
  if(playing||drivingUI.isActive()){input.checked=route?.travelMode===input.value;return;}
  updateTravelModeUI();
+ if(route&&!route.demo&&route.travelMode!==selectedTravelMode()){
+  if($('navStartGuidance'))$('navStartGuidance').disabled=true;
+  reply('이동수단을 변경했습니다. 새 경로를 탐색해야 안내할 수 있습니다.');
+ }
 }));
 
 /* Navigation-first mobile shell. Existing services remain available behind search. */
@@ -589,6 +593,7 @@ async function checkRain(){
  }catch(e){if(run===rainRun&&route===currentRoute){setLayerReception('navLayerWeather',e.reception||'failed');$('rainStatus').textContent='GPS와 별도: '+e.message;}}finally{if(rainBusy===run)rainBusy=null;}
 }
 function startRainGuidance(){
+ if(!route?.demo&&route?.travelMode!==selectedTravelMode()){toast('이동수단 변경 후 새 경로를 탐색해주세요.');return;}
  if(!route||route.demo||!route.rainPath?.length){toast('먼저 실제 차량 경로를 조회해주세요.');return;}
  if(!window.isSecureContext){toast('GPS는 HTTPS 주소에서 사용해주세요.');return;}
  if(!navigator.geolocation){toast('이 기기는 GPS 위치를 지원하지 않는 환경입니다.');return;}
@@ -830,13 +835,14 @@ function showNavRouteResult(){
  const disclaimer=$('navDemoDisclaimer');
  if(disclaimer)disclaimer.hidden=!route.demo;
  $('navRouteDescription').textContent=route.demo?'시연용 경로 · 특보 발생 시 가상 우회 선택 화면 표시':route.travelMode==='walking'?'카카오 보행로 1개 경로 · 보도·횡단보도 상태와 안전은 미검증':'조회된 차량 경로 1개 · 다른 경로 대안은 아직 제공하지 않습니다.';
- $('navStartGuidance').textContent=route.demo?'▶ 주행 시연 시작':'Sunny SAI 안내 시작 ▶';
+ $('navStartGuidance').textContent=route.demo?'▶ 주행 시연 시작':route.travelMode==='walking'?'Sunny SAI 도보 안내 시작 ▶':'Sunny SAI 차량 안내 시작 ▶';
+ $('navStartGuidance').disabled=false;
  renderRouteHazards();sheet.hidden=false;document.body.classList.add('nav-route-open');
  setNavTab('navRoute');ensureNavigationKakao();
  if(!route.demo)watchPreviewPosition();
 }
 $('navRouteResultClose')?.addEventListener('click',goToInitialHome);
-$('navStartGuidance')?.addEventListener('click',()=>route?.demo?startDemoGuidance():startRainGuidance());
+$('navStartGuidance')?.addEventListener('click',()=>{if(!route?.demo&&route?.travelMode!==selectedTravelMode()){toast('이동수단에 맞는 새 경로를 먼저 탐색해주세요.');return;}route?.demo?startDemoGuidance():startRainGuidance();});
 async function loadWeather(){if(!route||route.demo)return;const current=route;const run=routeSeq;const weatherRun=++weatherSeq;$('refresh').disabled=true;$('weatherDetail').textContent='예보 확인 중';setLayerReception('navLayerWeather','loading');try{const d=await api('/api/weather',{samples:route.samples,provider:$('weatherProvider').value});if(route!==current||run!==routeSeq||weatherRun!==weatherSeq)return;weather=d;setLayerReception('navLayerWeather',forecastReception(d.samples,p=>p.forecast));renderCards();drivingUI.setWeather(weather);reply(d.samples.some(p=>p.forecast)?d.source+'를 확인했어요. 공사·통제는 별도 확인이 필요합니다.':'기상 예보를 확인하지 못했어요. '+(d.samples.find(p=>p.error)?.error||'자료 제공 범위를 확인해주세요.'));}catch(e){if(route!==current||run!==routeSeq||weatherRun!==weatherSeq)return;weather={provider:$('weatherProvider').value==='kma'?'kma':'open-meteo',samples:route.samples.map(p=>({...p,forecast:null,error:e.message})),source:'조회 실패',fetchedAt:new Date().toISOString()};setLayerReception('navLayerWeather',e.reception||'failed');renderCards();drivingUI.setWeather(weather);reply(e.message);}finally{if(route===current&&run===routeSeq&&weatherRun===weatherSeq)$('refresh').disabled=false;}}
 $('refresh').onclick=loadWeather;$('weatherProvider').onchange=()=>{if(route&&!route.demo)loadWeather();};
 function renderCards(){drawWeatherOverlays();renderRouteHazards();const list=weather?.samples||[];$('cardCount').textContent=list.length+'개 구간';$('cards').innerHTML=list.map((p,i)=>{const a=route?.demo&&p.demoHazard?{kind:'attention',icon:p.demoHazard.icon,title:p.demoHazard.title,text:p.demoHazard.measure+' · '+p.demoHazard.description}:p.event?{kind:'attention',icon:'⚒',title:'공사 안내 시연',text:p.event}:assess(p.forecast);return `<article class="weather-card ${a.kind}"><div class="card-top"><span>${escape(p.label)}</span><span class="weather-icon">${a.icon}</span></div><h3>${fmt(p.eta)} 예상 통과 · ${escape(a.title)}</h3><p>${escape(a.text)}</p><div class="source">${escape(weather.source)}${route.demo?' · 실제 자료 아님':''}<br>조회 ${fmt(weather.fetchedAt)}${p.forecast?.time?' · 예보 유효 '+fmt(p.forecast.time):''}${p.forecast?.issuedAt?' · 발표 '+escape(p.forecast.issuedAt.slice(4,6)+'/'+p.forecast.issuedAt.slice(6,8)+' '+p.forecast.issuedAt.slice(8,10)+':'+p.forecast.issuedAt.slice(10,12))+' KST':''}${p.grid?' · 격자 '+p.grid.nx+','+p.grid.ny:''}${p.error?'<br>'+escape(p.error):''}</div>${route.demo?'':`<button type="button" class="road-button" data-road="${i}" aria-pressed="false">도로 구간 살펴보기 ↗</button>`}<button type="button" class="detail-button" data-card="${i}">이 구간 안내 듣기 ↗</button></article>`;}).join('');document.querySelectorAll('[data-road]').forEach(b=>b.onclick=()=>selectRoad(Number(b.dataset.road)));document.querySelectorAll('[data-card]').forEach(b=>b.onclick=()=>{const p=list[Number(b.dataset.card)];const a=p.demoHazard?{text:p.demoHazard.measure+' · '+p.demoHazard.description}:p.event?{text:p.event}:assess(p.forecast);reply(p.label+', '+fmt(p.eta)+' 예상 통과. '+a.text,true);});$('weatherStatus').textContent=route.demo?'시연 기상정보':!list.some(p=>p.forecast)?'기상 자료 조회 실패':weather.provider==='kma'?'기상청 격자 예보':'Open-Meteo 예보';$('weatherDetail').textContent=route.demo?'실제 기상자료 아님':list.some(p=>p.forecast)?'모델 예보 · 조회 '+fmt(weather.fetchedAt):'조회 실패 · 추가 확인 필요';}
