@@ -80,3 +80,14 @@ test('Scenario 12: UI never labels inferred facility as measured flood or closur
  assert.match(a,/시설물 위치 및 침수·결빙 현장 관측은 미연결/);
  assert.match(a,/TMAP 제공 경로 시설 정보/);
 });
+
+test('Scenario 13: temperature-only forecast cannot imply no precipitation',()=>{
+ const weather=Array.from({length:6},(_,i)=>p(37,127+i/1000,{temperature:16,windSpeed:3}));
+ const x=assessPedestrianWeather(weather);
+ assert.equal(x.level,'unknown');assert.equal(x.score,null);assert.equal(x.coverage,0);
+});
+test('Scenario 14: incomplete route comparison does not falsely recommend faster unknown path',()=>{
+ const known=assessPedestrianWeather(Array.from({length:6},(_,i)=>p(37,127+i/1000,{rain:2,precipitationType:1,temperature:10})));
+ const missing=assessPedestrianWeather(Array.from({length:6},(_,i)=>i===0?p(37,127,{rain:0,precipitationType:0,temperature:10}):p(37,127,null)));
+ assert.equal(comparePedestrianCandidates([{id:'fast',durationSeconds:300,assessment:missing},{id:'checked',durationSeconds:440,assessment:known}]).recommendedId,'checked');
+});
