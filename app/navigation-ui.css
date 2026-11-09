@@ -2042,3 +2042,68 @@ body.sunny-guiding #navRadarQuick.sunny-radar-quick {
 }
 
 .nav-layer-reception[data-state="empty"]{background:#edf2f7;color:#475569}
+
+/* Seoul–Busan DEMO controls: all weather/hazard values are explicitly fictional. */
+.sunny-demo-launch{
+ display:flex;align-items:center;justify-content:space-between;gap:8px;
+ width:100%;min-height:46px;margin:0 0 12px;padding:8px 14px;
+ border:1px solid #e4b65c;border-radius:12px;background:#fff4df;
+ color:#6e3e0c;font-size:14px;font-weight:800;cursor:pointer;
+}
+.sunny-demo-launch small{font-size:11px;font-weight:650;color:#8b541b;}
+.sunny-demo-notice{margin:8px 0;padding:9px 11px;border:1px solid #f3c77a;
+ background:#fff5df;color:#714809;border-radius:9px;font-size:12px;line-height:1.45;}
+.sunny-rail-hazard[data-demo="true"]{outline:2px solid #e69b24;outline-offset:1px;}
+#sunnyDemoNext:not([hidden]),#sunnyDemoPause:not([hidden]){
+ border:1px solid #edbf67;border-radius:10px;background:#fff2d7;color:#633e13;
+ min-height:38px;padding:4px 8px;cursor:pointer;font-size:12px;font-weight:750;
+}
+.hazard-pin.sunny-demo-pin{border:2px solid #e8aa42;border-radius:999px;
+ background:#fff7e4;padding:4px 7px;cursor:pointer;font-size:16px;box-shadow:0 3px 9px #0003;}
+.hazard-pin.sunny-demo-pin small{display:block;font-size:9px;font-weight:850;}
+@media(max-width:650px){
+ .sunny-demo-launch{font-size:13px;flex-wrap:wrap;justify-content:center;text-align:center;}
+ .sunny-demo-launch small{width:100%;}
+}
+
+body.sunny-guiding .sunny-drive-alert-urgent{
+ border-left:4px solid #e24435!important;
+ background:#fff1e9!important;
+}
+.sunny-rail-hazard[data-demo="true"][data-risk="warning"]{
+ outline:3px solid #eb4938;outline-offset:2px;
+}
+.hazard-pin.sunny-demo-pin.sunny-demo-breaking-pin{
+ border-color:#e23e35;background:#fff0e9;
+}
+
+/* MapLibre renders moving road geometry independently of upright OSM labels. */
+#sunnyVectorMap[hidden]{display:none!important;}
+#sunnyVectorMap.sunny-vector-map{
+ position:absolute;inset:0;width:100%;height:100%;
+ z-index:500;overflow:hidden;background:transparent;
+}
+body:not(.sunny-guiding) #sunnyVectorMap{display:none!important;}
+#sunnyVectorMap .maplibregl-canvas{outline:none;}
+#sunnyVectorMap .maplibregl-control-container .maplibregl-ctrl-attrib{
+ font-size:9px;opacity:.83;max-width:145px;
+}
+#sunnyVectorMap .maplibregl-ctrl-bottom-left{
+ bottom:calc(var(--sunny-bottom-nav-height,68px) + 72px)!important;
+ left:8px!important;z-index:3;
+}
+.sunny-vector-vehicle{
+ display:grid;place-items:center;width:48px;height:54px;pointer-events:none;
+ filter:drop-shadow(0 3px 3px #1e305c8c);will-change:rotate;
+}
+.sunny-vector-risk{
+ display:grid;place-items:center;width:36px;height:36px;border:2px solid #fff;
+ border-radius:50%;background:#fdf8e9;color:#15233b;font-size:18px;
+ box-shadow:0 3px 10px #142b5073;cursor:pointer;transform:none!important;
+}
+.sunny-vector-risk-new{background:#ffe0d4;border:3px solid #e54c37;}
+@media(max-width:900px){
+ #sunnyVectorMap .maplibregl-ctrl-bottom-left{
+  bottom:calc(var(--sunny-bottom-nav-height,68px) + 78px)!important;
+ }
+}
