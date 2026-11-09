@@ -66,10 +66,11 @@ function symbolLabelsUpright(map){
  }
  return count;
 }
-function arrowElement(){
+function arrowElement(travelMode='driving'){
  const el=document.createElement('span');
- el.className='sunny-vector-vehicle';el.setAttribute('aria-label','현재 차량 위치');
- el.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 50" width="44" height="50" aria-hidden="true"><path d="M22 3 41 46 22 36 3 46Z" stroke="#fff" stroke-width="5" stroke-linejoin="round" fill="#1769ec"/><path d="M22 13v19" stroke="#b7e0ff" stroke-width="3" stroke-linecap="round"/></svg>';
+ el.className='sunny-vector-vehicle';el.setAttribute('aria-label',travelMode==='walking'?'현재 보행자 위치':'현재 차량 위치');
+ if(travelMode==='walking'){el.textContent='🚶';el.classList.add('sunny-vector-pedestrian');}
+ else el.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 50" width="44" height="50" aria-hidden="true"><path d="M22 3 41 46 22 36 3 46Z" stroke="#fff" stroke-width="5" stroke-linejoin="round" fill="#1769ec"/><path d="M22 13v19" stroke="#b7e0ff" stroke-width="3" stroke-linecap="round"/></svg>';
  return el;
 }
 export function initVectorDriving({element,onSelect=()=>{},onFailure=()=>{}}){
@@ -151,7 +152,7 @@ export function initVectorDriving({element,onSelect=()=>{},onFailure=()=>{}}){
    map.addLayer({id:'sunny-vector-path',type:'line',source:'sunny-vector-route',
     layout:{'line-join':'round','line-cap':'round'},
     paint:{'line-color':'#1769f1','line-width':8,'line-opacity':.96}},before);
-   vehicle=new lib.Marker({element:arrowElement(),anchor:'center',rotationAlignment:'viewport'})
+   vehicle=new lib.Marker({element:arrowElement(route?.travelMode),anchor:'center',rotationAlignment:'viewport'})
      .setLngLat([point.lng,point.lat]).addTo(map);
    ready=true;map.resize();
    applyCamera(point,bearing,mode,false);
