@@ -11,7 +11,7 @@ const vector=readFileSync(new URL('../public/vector-driving.mjs',import.meta.url
 test('heading-up mode renders a separate MapLibre vector layer without changing Kakao routing',()=>{
  assert.match(html,/id="sunnyVectorMap"/);
  assert.match(html,/진행방향 위로 · 글자 고정/);
- assert.match(vector,/maplibregl@5\.11\.0/);
+ assert.match(vector,/maplibre-gl@5\.11\.0/);
  assert.equal(VECTOR_STYLE,'https://tiles.openfreemap.org/styles/liberty');
  assert.match(app,/initVectorDriving\(/);
  assert.match(app,/startVectorGuidance\(/);
