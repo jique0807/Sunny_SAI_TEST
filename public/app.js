@@ -785,7 +785,7 @@ function renderRouteHazards(){
  });
  if(!routeWeatherEnabled())status.textContent='';
  else if(isDemo)status.textContent='시연 위험지점 '+count+'개 · 🌧️ 강수 / 🌫️ 안개'+(route.demoBreakingWarning?' / 🚨 긴급특보':' · 주행 중 🚨 특보 추가')+' · 아이콘 선택';
- else if(count)status.textContent='기상청 위험지점 '+count+'개 · 아이콘을 눌러 상세정보 확인';
+ else if(count)status.textContent='Sunny 규칙형 위험판정 · 실제 자료 '+count+'건 · 아이콘에서 판정 근거 확인';
  else if(!weather)status.textContent='경로 기상예보 조회 중 · 실제 위험예보만 표시';
  else if(!weather.samples?.some(p=>p.status==='forecast'&&p.forecast?.provider==='kma'))
   status.textContent='기상청 예보 미수신 · 위험 여부 판단 불가';
