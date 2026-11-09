@@ -4,7 +4,7 @@ import {setLayerReception} from './layer-reception.mjs';
 export const RISK_COLOR=Object.freeze({1:'#eab432',2:'#ee851b',3:'#d52d36'});
 export function displayableRisks(locations,showIce,showVisibility){
  if(!Array.isArray(locations))return [];
- return locations.filter(x=>x&&[1,2,3].includes(x.risk)&&
+ return locations.filter(x=>x&&x.gradeMeaningVerified===true&&[1,2,3].includes(x.risk)&&
   ((showIce&&x.kind==='ice')||(showVisibility&&x.kind==='visibility'))&&
   Array.isArray(x.geometry?.points)&&x.geometry.points.length>0&&
   x.geometry.points.every(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng)&&p.lat>=32&&p.lat<=40&&p.lng>=123&&p.lng<=133));
@@ -32,7 +32,7 @@ export function matchRouteRoadRisks(records,path,departure,now=Date.now()){
  return records.flatMap(record=>{
   const age=now-Date.parse(record.dataTime);
   const points=record.geometry.points;
-  if(!record.linkId||!Number.isFinite(age)||age<0||age>15*60000||points.length!==2)return [];
+  if(record.gradeMeaningVerified!==true||!record.linkId||!Number.isFinite(age)||age<0||age>15*60000||points.length!==2)return [];
   const from=project(points[0]),to=project(points[1]);
   if(!from||!to||!(to.seconds>from.seconds))return [];
   const eta=Date.parse(departure)+from.seconds*1000;
@@ -40,7 +40,7 @@ export function matchRouteRoadRisks(records,path,departure,now=Date.now()){
   return [{...from,kind:record.kind,icon:ice?'🧊':'🌫️',
    title:ice?'도로 살얼음 위험':'도로 안개 위험',
    label:'도로 링크 '+record.linkId,eta:Number.isFinite(eta)?new Date(eta).toISOString():null,
-   validTime:record.dataTime,roadRisk:record.risk,provider:'기상청 도로위험기상'}];
+   validTime:record.dataTime,roadRisk:record.risk,riskGradeVerified:true,provider:'기상청 도로위험기상'}];
  }).sort((a,b)=>a.seconds-b.seconds);
 }
 
