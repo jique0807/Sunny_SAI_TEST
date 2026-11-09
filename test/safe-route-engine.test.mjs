@@ -61,11 +61,11 @@ test('extra provider hazards require validated source, timestamps and location',
  const r=route(),weatherSamples=r.samples.map(s=>forecast(s,0));
  const official={kind:'ice',lat:36.7,lng:127.9,seconds:1150,
   eta:r.samples[1].eta,validTime:'2026-11-09T10:57:00Z',
-  provider:'기상청 도로위험기상',roadRisk:3};
- const a=evaluateRouteRisk(r,{weatherSamples,extraHazards:[official,{...official,lat:null}],now});
+  provider:'기상청 도로위험기상',roadRisk:3,riskGradeVerified:true};
+ const a=evaluateRouteRisk(r,{weatherSamples,extraHazards:[official,{...official,lat:null},{...official,riskGradeVerified:false}],now});
  assert.equal(a.state,'evaluated');
  assert.equal(a.signalCount,1);
- assert.equal(a.unknownSignals,1);
+ assert.equal(a.unknownSignals,2);
  assert.equal(a.riskLevel,'high');
  const walking=evaluateRouteRisk(route(1800,'walking'),{weatherSamples,extraHazards:[official],mode:'walking',now});
  assert.equal(walking.state,'evaluated');
