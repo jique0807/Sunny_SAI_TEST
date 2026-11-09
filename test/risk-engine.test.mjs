@@ -29,13 +29,14 @@ test('snow/PT Y does not authorize claiming verified road ice or unknown snowfal
 });
 test('official road-risk severity uses only georeferenced fresh approved records',()=>{
  const item={...routeSample,kind:'ice',provider:'기상청 도로위험기상',
-  validTime:'2026-11-09T09:55:00Z',roadRisk:3};
+  validTime:'2026-11-09T09:55:00Z',roadRisk:3,riskGradeVerified:true};
  const a=assessRouteHazard(item,{now});
  assert.equal(a.level,'high');assert.equal(a.score,95);
  assert.equal(assessRouteHazard({...item,roadRisk:2},{now}).level,'caution');
  assert.equal(assessRouteHazard({...item,roadRisk:1},{now}).level,'notice');
  assert.equal(assessRouteHazard({...item,validTime:'2026-11-09T09:40:00Z'},{now}).level,'unknown');
  assert.equal(assessRouteHazard({...item,roadRisk:4},{now}).score,0);
+ assert.equal(assessRouteHazard({...item,riskGradeVerified:false},{now}).score,0);
  assert.equal(assessRouteHazard({...item,lat:undefined},{now}).score,0);
 });
 test('official warnings require verified point proximity and time but never claim polygon intersection',()=>{
