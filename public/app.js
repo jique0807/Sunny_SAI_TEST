@@ -2,7 +2,7 @@
 'use strict';
 if(window.sunnyInitialized)return;window.sunnyInitialized=true;
 const {assess,AlertGate}=await import('/rules.mjs');
-const {makeDemoScenario,makeDemoBreakingWarning,shouldTriggerDemoBreakingWarning,DEMO_BREAKING_TRIGGER,DEMO_SEOUL_BUSAN,demoPointAtSeconds}=await import('/demo-scenario.mjs');
+const {makeDemoScenario,makeDemoBreakingWarning,shouldTriggerDemoBreakingWarning,DEMO_BREAKING_TRIGGER,DEMO_SEOUL_BUSAN,demoPointAtSeconds,demoDistanceMeters,demoLeadSeconds,demoSpokenWarning}=await import('/demo-scenario.mjs');
 const {projectRoute,roadSection,kakaoRouteLink}=await import('/map-geometry.mjs');
 const {coordinatePlace,nearestSample,tileHealth}=await import('/map-state.mjs');
 const {voiceCatalog}=await import('/voice-catalog.mjs');
@@ -524,7 +524,7 @@ function drawGps(){
   }
  if(lmap&&window.L){if(!gpsLeaflet)gpsLeaflet=L.circleMarker([p.lat,p.lng],{radius:9,color:'#fff',weight:3,fillColor:'#1769ff',fillOpacity:1}).bindTooltip('실제 GPS 현재 위치').addTo(lmap);else gpsLeaflet.setLatLng([p.lat,p.lng]);}
 }
-function stopRain(){vectorDriving.stop();lastMatchedPoint=null;offRouteFix=null;lastRerouteAt=0;routeAheadWeather=null;rerouteBusy=false;drivingUI.stop();resetDrivingMapHeading();lastFollowTime=0;lastFollowPosition=null;rainRun++;if(rainWatch!==null)navigator.geolocation?.clearWatch(rainWatch);rainWatch=null;clearInterval(rainTimer);rainTimer=null;rainPosition=null;rainProgress=0;rainBusy=null;rainLastFetch=0;rainLastPoint=null;rainGate=new RainGate();clearGpsMarker();$('rainStop').hidden=true;$('rainStart').disabled=false;$('rainStatus').textContent='비 예보 음성 안내 종료';}
+function stopRain(){clearDemoDetourPopup();vectorDriving.stop();lastMatchedPoint=null;offRouteFix=null;lastRerouteAt=0;routeAheadWeather=null;rerouteBusy=false;drivingUI.stop();resetDrivingMapHeading();lastFollowTime=0;lastFollowPosition=null;rainRun++;if(rainWatch!==null)navigator.geolocation?.clearWatch(rainWatch);rainWatch=null;clearInterval(rainTimer);rainTimer=null;rainPosition=null;rainProgress=0;rainBusy=null;rainLastFetch=0;rainLastPoint=null;rainGate=new RainGate();clearGpsMarker();$('rainStop').hidden=true;$('rainStart').disabled=false;$('rainStatus').textContent='비 예보 음성 안내 종료';}
 function remainingRoutePoints(){
  if(!drivingUI.isActive()||!lastMatchedPoint)return route?.vertices??[];
  return [lastMatchedPoint,...route.rainPath.filter(p=>p.seconds>lastMatchedPoint.seconds)];
@@ -762,7 +762,7 @@ async function demoRoute(){
   progress=0;gate.reset();renderRoute();renderCards();
   showNavSearch(false);showNavRouteResult();
   await showMap('kakao');
-  reply('서울에서 부산까지 강수·안개·침수 위험지점을 배치했습니다. 아이콘을 누르거나 주행 시연을 시작해 보세요.');
+  reply('서울에서 부산까지 강수·안개 이벤트 2개를 배치했습니다. 주행 중 긴급특보와 우회경로 선택을 시연합니다.');
  }catch(e){if(run===routeSeq)reply('시연 경로를 불러오지 못했어요. '+e.message);}
  finally{if(run===routeSeq){$('demo').disabled=false;$('routeSearch').disabled=false;}}
 }
@@ -784,7 +784,7 @@ function renderRouteHazards(){
   onSelect:h=>showHazardDetail(detail,h,fmt)
  });
  if(!routeWeatherEnabled())status.textContent='';
- else if(isDemo)status.textContent='위험지점 '+count+'개 · 🌧️ 강수 / 🌫️ 안개 / 🌊 침수 · 아이콘 선택';
+ else if(isDemo)status.textContent='시연 위험지점 '+count+'개 · 🌧️ 강수 / 🌫️ 안개'+(route.demoBreakingWarning?' / 🚨 긴급특보':' · 주행 중 🚨 특보 추가')+' · 아이콘 선택';
  else if(count)status.textContent='기상청 위험지점 '+count+'개 · 아이콘을 눌러 상세정보 확인';
  else if(!weather)status.textContent='경로 기상예보 조회 중 · 실제 위험예보만 표시';
  else if(!weather.samples?.some(p=>p.status==='forecast'&&p.forecast?.provider==='kma'))
@@ -799,6 +799,7 @@ function showNavRouteResult(){
  $('navRouteArrival').textContent='도착 '+fmt(new Date(Date.parse(route.departure)+route.duration*1000));
  const disclaimer=$('navDemoDisclaimer');
  if(disclaimer)disclaimer.hidden=!route.demo;
+ $('navRouteDescription').textContent=route.demo?'시연용 경로 · 특보 발생 시 가상 우회 선택 화면 표시':'조회된 차량 경로 1개 · 다른 경로 대안은 아직 제공하지 않습니다.';
  $('navStartGuidance').textContent=route.demo?'▶ 주행 시연 시작':'Sunny SAI 안내 시작 ▶';
  renderRouteHazards();sheet.hidden=false;document.body.classList.add('nav-route-open');
  setNavTab('navRoute');ensureNavigationKakao();
@@ -859,6 +860,36 @@ function drawDemoOverlays(){
 function moveCar(){if(route?.vertices?.length){const p=route.demo?demoPointAtSeconds(route.rainPath,route.duration*progress/100):pointAlong(route.vertices,progress/100);if(carOverlay?.setPosition)carOverlay.setPosition(new kakao.maps.LatLng(p.lat,p.lng));else if(carOverlay?.setLatLng)carOverlay.setLatLng([p.lat,p.lng]);if(activeMap==='schematic'){let car=$('vectorCar');if(!car){car=document.createElementNS('http://www.w3.org/2000/svg','text');car.id='vectorCar';car.textContent='🚙';car.setAttribute('font-size','30');$('actualRoute').append(car);}const points=projectRoute(route.vertices),nearest=route.vertices.reduce((best,v,i)=>Math.hypot(v.lat-p.lat,v.lng-p.lng)<Math.hypot(route.vertices[best].lat-p.lat,route.vertices[best].lng-p.lng)?i:best,0);car.setAttribute('x',points[nearest].x-15);car.setAttribute('y',points[nearest].y+10);}return;}const path=$('routeLine'),point=path.getPointAtLength(path.getTotalLength()*progress/100);$('carMarker').setAttribute('transform',`translate(${point.x},${point.y})`);}
 // Inject an entirely new event into an already running fictional journey.
 // No remote weather-warning request or actual public alert is generated.
+// Explicitly fictional reroute UI. Do not substitute an unverified road
+// geometry or claim a real safe alternative was calculated by Kakao.
+let demoDetourSearchTimer=null,demoDetourHideTimer=null;
+const demoAnnounced=new Set();
+function clearDemoDetourPopup(){
+ clearTimeout(demoDetourSearchTimer);clearTimeout(demoDetourHideTimer);
+ demoDetourSearchTimer=null;demoDetourHideTimer=null;
+ if($('sunnyDemoDetourPopup'))$('sunnyDemoDetourPopup').hidden=true;
+}
+function simulateDemoDetourSelection(){
+ const trip=route,popup=$('sunnyDemoDetourPopup');
+ if(!trip?.demo||!popup||!drivingUI.isActive())return;
+ clearDemoDetourPopup();
+ const resumePlayback=playing;
+ if(resumePlayback)pauseDrive();
+ popup.hidden=false;
+ $('sunnyDemoDetourTitle').textContent='우회경로 탐색 중…';
+ $('sunnyDemoDetourDescription').textContent='호우특보 위험지점을 피하는 시연용 대체 경로를 확인합니다.';
+ demoDetourSearchTimer=setTimeout(()=>{
+  if(route!==trip||!drivingUI.isActive())return;
+  trip.demoDetourSelected=true;
+  $('sunnyDemoDetourTitle').textContent='우회경로 선택 완료';
+  $('sunnyDemoDetourDescription').textContent='시연용 우회경로가 선택되었습니다. 변경된 경로로 안내합니다.';
+  demoDetourHideTimer=setTimeout(()=>{
+   if(route!==trip||!drivingUI.isActive())return;
+   popup.hidden=true;
+   if(resumePlayback&&progress<100)startDemoPlayback();
+  },3000);
+ },700);
+}
 function injectDemoBreakingWarning(){
  if(!route?.demo||route.demoBreakingWarning||!drivingUI.isActive())return false;
  const hazard=makeDemoBreakingWarning(route);
@@ -870,12 +901,16 @@ function injectDemoBreakingWarning(){
  renderCards();
  drawDemoOverlays();moveCar();
  drivingUI.render();
- reply('긴급 기상특보가 발효됐습니다. 전방 '+hazard.label+
-  '에 호우 위험정보가 추가됐습니다. 속도를 줄이고 주의하세요.',appPrefs.voiceAlerts);
+ const aheadMeters=demoDistanceMeters(route.rainPath,route.duration*progress/100,hazard.seconds);
+ reply(demoSpokenWarning(hazard,aheadMeters??0)||'전방에 강한 비 주의입니다.',appPrefs.voiceAlerts);
+ simulateDemoDetourSelection();
  return true;
 }
 function resetDemoBreakingWarning(){
+ clearDemoDetourPopup();
+ demoAnnounced.clear();
  if(!route?.demo)return;
+ route.demoDetourSelected=false;
  route.demoBreakingWarning=null;
  route.demoHazards=(route.demoHazards||[]).filter(h=>!h.breaking);
  route.samples=(route.samples||[]).filter(s=>!s.breaking);
@@ -898,13 +933,19 @@ function advance(value){
  const justIssued=shouldTriggerDemoBreakingWarning(previous,progress,!!route.demoBreakingWarning)
   &&injectDemoBreakingWarning();
  for(const h of route.demoHazards||[]){
-  if(previous*route.duration/100<h.seconds&&elapsed>=h.seconds&&gate.take('demo:'+h.id) &&
-    !justIssued)
-   reply('전방 '+h.title+'. '+h.measure+'. '+h.description,appPrefs.voiceAlerts);
+  if(h.breaking||demoAnnounced.has(h.id))continue;
+  const warnAt=demoLeadSeconds(route.rainPath,h.seconds,500);
+  if(previous*route.duration/100<=warnAt&&elapsed>=warnAt&&gate.take('demo:'+h.id) &&
+    !justIssued){
+   demoAnnounced.add(h.id);
+   const aheadMeters=demoDistanceMeters(route.rainPath,elapsed,h.seconds);
+   const speech=demoSpokenWarning(h,aheadMeters??500);
+   if(speech)reply(speech,appPrefs.voiceAlerts);
+  }
  }
  if(progress>=100){
   pauseDrive();$('driveStatus').textContent='시연 완료';
-  reply('부산시청에 도착했습니다. 주행 안내를 종료합니다.',appPrefs.voiceAlerts);
+  reply('부산시청에 도착했습니다. 주행 안내를 종료합니다.');
  }
 }
 function pauseDrive(){
@@ -934,19 +975,24 @@ function startDemoGuidance(){
  $('driveControls').hidden=false;
  progress=0;gate.reset();advance(0);
  void showMap('kakao');
- reply('서울에서 부산까지 주행 안내를 시작합니다. 강수·안개·침수 위험 구간을 확인합니다.',appPrefs.voiceAlerts);
+ reply('서울에서 부산까지 강수·안개·긴급 호우특보를 시연합니다.');
  startDemoPlayback();
 }
 $('sunnyDemoNext')?.addEventListener('click',()=>{
  if(!route?.demo)return;
  pauseDrive();
+ if(!$('sunnyDemoDetourPopup').hidden)return;
  const elapsed=route.duration*progress/100;
- const next=(route.demoHazards||[]).find(h=>h.seconds>elapsed+1);
+ const next=(route.demoHazards||[]).find(h=>!h.breaking&&!demoAnnounced.has(h.id));
+ const nextNotice=next?demoLeadSeconds(route.rainPath,next.seconds,500):Infinity;
  const triggerAt=route.duration*DEMO_BREAKING_TRIGGER;
- // Step-by-step playback also automatically injects a new warning after fog.
- if(!route.demoBreakingWarning&&triggerAt>elapsed+1&&(!next||triggerAt<next.seconds))
+ // The third and final demo event is the surprise warning and scripted detour.
+ if(!route.demoBreakingWarning&&triggerAt>elapsed+1&&triggerAt<nextNotice)
   advance(DEMO_BREAKING_TRIGGER*100+0.01);
- else if(next)advance(Math.min(100,(next.seconds/route.duration)*100+0.01));
+ else if(next&&nextNotice>=elapsed)
+  advance(Math.min(100,(nextNotice+.01)/route.duration*100));
+ else if(!route.demoBreakingWarning)
+  advance(DEMO_BREAKING_TRIGGER*100+0.01);
  else{advance(100);toast('모든 위험 이벤트를 확인했습니다.');}
 });
 $('sunnyDemoPause')?.addEventListener('click',()=>{
@@ -960,6 +1006,7 @@ $('progress').oninput=e=>advance(Number(e.target.value));
 $('endDrive').onclick=()=>{
  pauseDrive();stopVoice();progress=0;gate.reset();
  $('progress').value='0';moveCar();$('driveControls').hidden=true;
+ clearDemoDetourPopup();
  vectorDriving.stop();if(drivingUI.isActive())drivingUI.stop();
  $('sunnyDemoNext').hidden=true;$('sunnyDemoPause').hidden=true;
  showNavRouteResult();
