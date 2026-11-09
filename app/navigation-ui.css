@@ -2096,6 +2096,7 @@ body:not(.sunny-guiding) #sunnyVectorMap{display:none!important;}
  display:grid;place-items:center;width:48px;height:54px;pointer-events:none;
  filter:drop-shadow(0 3px 3px #1e305c8c);will-change:rotate;
 }
+.sunny-vector-pedestrian{font-size:32px;line-height:1;background:#fff;border-radius:50%;border:2px solid #1769dd;width:48px;height:48px;box-shadow:0 2px 8px #1233}
 .sunny-vector-risk{
  display:grid;place-items:center;width:36px;height:36px;border:2px solid #fff;
  border-radius:50%;background:#fdf8e9;color:#15233b;font-size:18px;
