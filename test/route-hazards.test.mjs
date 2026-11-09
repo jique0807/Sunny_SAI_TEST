@@ -107,10 +107,11 @@ test('road risk icons require fresh link coordinates in the route direction', as
  const now=Date.parse('2026-11-08T03:30:00Z');
  const from={lat:36.8,lng:127.1,seconds:0};
  const to={lat:36.81,lng:127.1,seconds:70};
- const event={kind:'ice',risk:2,linkId:'1234',dataTime:new Date(now-300000).toISOString(),
+ const event={kind:'ice',risk:2,gradeMeaningVerified:true,linkId:'1234',dataTime:new Date(now-300000).toISOString(),
   geometry:{points:[from,to]}};
  const match=(points,records=[event])=>matchRouteRoadRisks(records,points,event.dataTime,now);
  assert.equal(match([from,to])[0].icon,'🧊');
+ assert.equal(match([from,to],[{...event,gradeMeaningVerified:false}]).length,0);
  assert.equal(match([{...to,seconds:0},{...from,seconds:70}]).length,0);
  assert.equal(match([from,to],[{...event,dataTime:new Date(now-960000).toISOString()}]).length,0);
 });
