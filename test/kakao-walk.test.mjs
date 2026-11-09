@@ -32,7 +32,7 @@ test('Kakao public walking route uses the official WGS84 coordinates, not car ro
  assert.throws(()=>walkingQuery(origin,destination,Array(6).fill(origin)),/옵션/);
 });
 test('pedestrian returned steps are normalized into ETA-aligned true walking path',()=>{
- const r=normalizeWalkingRoute(example,depart);
+ const r=normalizeWalkingRoute(example,depart,{origin,destination});
  assert.equal(r.travelMode,'walking');
  assert.equal(r.mode,'walking');
  assert.equal(r.source,'Kakao Maps Walking');
@@ -48,6 +48,11 @@ test('pedestrian returned steps are normalized into ETA-aligned true walking pat
  const risk=evaluateRouteRisk(r,{mode:'walking'});
  assert.equal(risk.state,'insufficient-data'); // no fetched KMA forecast is not safe
  assert.notEqual(risk.state,'unsupported');
+});
+test('pedestrian route must originate and terminate near the requested positions',()=>{
+ const remote={...destination,lat:35.0,lng:128.0};
+ assert.throws(()=>normalizeWalkingRoute(example,depart,{origin,destination:remote}),/종료점/);
+ assert.throws(()=>normalizeWalkingRoute(example,depart,{origin:remote,destination}),/시작점/);
 });
 test('fail closed: do not draw car roads or fake pedestrian geometry on missing results',()=>{
  for(const bad of [{status:'NO_RESULTS'},{status:'OK',route:{legs:[],properties:{}}},{...example,route:{...example.route,legs:[{steps:[{path:{points:[[0,0],[1,1]]}}]}]}}])
