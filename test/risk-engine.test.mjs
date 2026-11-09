@@ -49,7 +49,7 @@ test('prioritization considers verified official risk, forecast time, and dedupl
  const rain={...routeSample,seconds:1000,rainMm:3};
  const rainNearby={...rain,seconds:1080};
  const official={...routeSample,kind:'ice',provider:'기상청 도로위험기상',
-  validTime:'2026-11-09T09:55:00Z',roadRisk:3,seconds:1200};
+  validTime:'2026-11-09T09:55:00Z',roadRisk:3,riskGradeVerified:true,seconds:1200};
  const items=prioritizeRouteHazards([rain,rainNearby,official,{...rain,kind:'flood'}],800,2,{now});
  assert.equal(items.length,2);
  assert.equal(items[0].kind,'ice');
