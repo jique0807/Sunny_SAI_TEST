@@ -12,6 +12,24 @@ const validRoute=r=>Array.isArray(r?.rainPath)&&r.rainPath.length>1&&
  Number.isFinite(r.duration)&&r.duration>0&&Number.isFinite(r.distance)&&r.distance>0&&
  r.rainPath.every(p=>geo(p)&&Number.isFinite(p.seconds))&&
  r.rainPath[0].seconds>=0&&r.rainPath.at(-1).seconds>0;
+const distanceMeters=(a,b)=>{
+ const lat=(a.lat+b.lat)*Math.PI/360;
+ return Math.hypot((a.lat-b.lat)*111195,(a.lng-b.lng)*111195*Math.cos(lat));
+};
+function onRoute(path,point,limit=1000){
+ if(!geo(point)||!Array.isArray(path)||path.length<2)return false;
+ const lat=point.lat*Math.PI/180,sx=111195*Math.cos(lat),sy=111195;
+ let nearest=Infinity;
+ for(let i=1;i<path.length;i++){
+  const a=path[i-1],b=path[i];if(!geo(a)||!geo(b))continue;
+  const ax=(a.lng-point.lng)*sx,ay=(a.lat-point.lat)*sy;
+  const dx=(b.lng-a.lng)*sx,dy=(b.lat-a.lat)*sy;
+  const t=dx*dx+dy*dy?clamp(-(ax*dx+ay*dy)/(dx*dx+dy*dy),0,1):0;
+  nearest=Math.min(nearest,Math.hypot(ax+t*dx,ay+t*dy));
+  if(nearest<=limit)return true;
+ }
+ return false;
+}
 const validForecastSample=s=>s?.status==='forecast'&&s.forecast?.provider==='kma'&&
  geo(s)&&time(s.eta)&&time(s.forecast.time)&&Number.isFinite(s.seconds)&&
  Math.abs(Date.parse(s.eta)-Date.parse(s.forecast.time))<=90*60000;
@@ -33,7 +51,8 @@ export function evaluateRouteRisk(route,{weatherSamples=[],extraHazards=[],mode=
  const incoming=Array.isArray(weatherSamples)?weatherSamples:[];
  // Only known route sample locations count towards forecast coverage.
  const expectedSeconds=new Set(expected.map(x=>Math.round(x.seconds)));
- const receivedSeconds=new Set(incoming.filter(validForecastSample)
+ const receivedSeconds=new Set(incoming.filter(s=>validForecastSample(s)&&
+  expected.some(p=>Math.abs(p.seconds-s.seconds)<1&&distanceMeters(p,s)<=1500))
   .map(x=>Math.round(x.seconds)).filter(s=>expectedSeconds.has(s)));
  const covered=receivedSeconds.size,total=expectedSeconds.size,coverage=total?covered/total:0;
  // Extra hazards may be supplied by verified route-matching adapters. Unknown
@@ -45,7 +64,8 @@ export function evaluateRouteRisk(route,{weatherSamples=[],extraHazards=[],mode=
  const accepted=[],unknown=[];
  for(const h of candidates){
   if(!h||h.demo)continue;
-  if(!geo(h)||!Number.isFinite(h.seconds)||h.seconds<0||h.seconds>route.duration){unknown.push(h);continue;}
+  if(!geo(h)||!Number.isFinite(h.seconds)||h.seconds<0||h.seconds>route.duration||
+     !onRoute(route.rainPath,h,h.kind==='warning'?600:1500)){unknown.push(h);continue;}
   const a=assessRouteHazard(h,{now});
   if(!a.score||a.level==='unknown'){unknown.push(h);continue;}
   if(mode==='walking'&&h.roadRisk!==undefined){
