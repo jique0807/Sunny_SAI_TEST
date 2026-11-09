@@ -16,6 +16,7 @@ const {initWarningOverlay}=await import('/kma-warning-overlay.mjs');
 const {initRoadRiskOverlay}=await import('/road-risk-overlay.mjs');
 const {initDriveGuidance,segmentMeters,routeFraction}=await import('/drive-guidance.mjs');
 const {buildRouteHazards,renderHazardRail,showHazardDetail}=await import('/route-hazards.mjs');
+const {evaluateRouteRisk,formatRouteRiskSummary}=await import('/safe-route-engine.mjs');
 const {resolveDrivingHeading,angleStep,compassBearing}=await import('/heading-up.mjs');
 const {initVectorDriving}=await import('/vector-driving.mjs');
 const {DEFAULT_APP_SETTINGS,initAppSettings}=await import('/app-settings.mjs');
@@ -783,13 +784,19 @@ function renderRouteHazards(){
   fractionAt:routeFraction,max:isDemo?hazards.length:appPrefs.alertCount,
   onSelect:h=>showHazardDetail(detail,h,fmt)
  });
- if(!routeWeatherEnabled())status.textContent='';
- else if(isDemo)status.textContent='시연 위험지점 '+count+'개 · 🌧️ 강수 / 🌫️ 안개'+(route.demoBreakingWarning?' / 🚨 긴급특보':' · 주행 중 🚨 특보 추가')+' · 아이콘 선택';
- else if(count)status.textContent='Sunny 규칙형 위험판정 · 실제 자료 '+count+'건 · 아이콘에서 판정 근거 확인';
- else if(!weather)status.textContent='경로 기상예보 조회 중 · 실제 위험예보만 표시';
- else if(!weather.samples?.some(p=>p.status==='forecast'&&p.forecast?.provider==='kma'))
-  status.textContent='기상청 예보 미수신 · 위험 여부 판단 불가';
- else status.textContent='조회된 기상청 예보 지점에 비·눈 위험 표시 없음 · 미조회 구간은 판단 불가';
+ // Risk assessment reads the received provider samples regardless of whether
+ // the user hides hazard icons. Sources not yet collected still remain unknown.
+ const riskProfile=isDemo?null:evaluateRouteRisk(route,{
+  weatherSamples:weather?.samples||[],
+  extraHazards:routeExtraHazards(route),
+  mode:'driving'
+ });
+ if(isDemo)status.textContent='시연 위험지점 '+count+'개 · 🌧️ 강수 / 🌫️ 안개'+(route.demoBreakingWarning?' / 🚨 긴급특보':' · 주행 중 🚨 특보 추가')+' · 아이콘 선택';
+ else{
+  const summary=formatRouteRiskSummary(riskProfile);
+  status.textContent=summary+(routeWeatherEnabled()&&count?' · 아이콘에서 판정 근거 확인':
+   routeWeatherEnabled()?'':' · 지도 표시 OFF, 위험평가는 유지');
+ }
  if(detail)detail.hidden=true;
 }
 function showNavRouteResult(){
