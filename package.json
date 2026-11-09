@@ -13,7 +13,7 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "test": "node --test test/*.test.mjs",
-    "check": "node --check public/app.js && node --check public/rules.mjs && node --check lib/api.mjs",
+    "check": "node --check public/app.js && node --check public/rules.mjs && node --check public/risk-engine.mjs && node --check lib/api.mjs",
     "build:vercel": "node scripts/build-vercel.mjs",
     "dev:vercel": "next dev"
   },
