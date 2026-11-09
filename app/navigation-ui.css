@@ -2107,3 +2107,42 @@ body:not(.sunny-guiding) #sunnyVectorMap{display:none!important;}
   bottom:calc(var(--sunny-bottom-nav-height,68px) + 78px)!important;
  }
 }
+
+
+/* Final touch QA: prevent safety controls being covered by layer panel. */
+@media(max-width:900px){
+ body.sunny-guiding .nav-layers-sheet:not([hidden]){
+  bottom:calc(var(--sunny-bottom-nav-height,64px) + 72px)!important;
+  max-height:min(54dvh,calc(100dvh - var(--sunny-bottom-nav-height,64px) - 85px))!important;
+  overflow-y:auto!important;
+ }
+}
+/* The footer is the sole control surface while guiding; hide the old
+   desktop/legacy demo slider, which sits under the map and can't be tapped. */
+body.sunny-guiding #driveControls{display:none!important;}
+/* Individual risk icons stay at legible, separated display locations. */
+.sunny-rail-hazard[data-cluster="true"]{
+ border-color:#d07e25!important;
+ background:#fff5df!important;
+ isolation:isolate;
+}
+.sunny-rail-hazard[data-cluster="true"]::after{
+ content:attr(data-count);
+ position:absolute;right:-10px;top:-10px;
+ display:grid;place-items:center;
+ min-width:17px;height:17px;padding:0 3px;border-radius:10px;
+ background:#f17a27;color:white;font-size:10px;font-weight:850;
+ border:1px solid white;box-shadow:0 1px 3px #26354b55;
+}
+.sunny-rail-hazard:active{outline:2px solid #1769ed;outline-offset:1px;}
+@media(max-width:650px){
+ .sunny-rain-grid-head-actions button{
+  width:44px!important;min-width:44px!important;max-width:44px!important;
+  height:44px!important;min-height:44px!important;flex-basis:44px!important;
+ }
+ #navRainGridClose,#navWeatherTimeClose,#navSearchClose,#navRouteResultClose,
+ .nav-layers-close,.sunny-hazard-detail-heading button{
+  min-width:44px!important;min-height:44px!important;
+ }
+ .sunny-rain-grid-head strong{font-size:11px;gap:2px 4px!important;}
+}
