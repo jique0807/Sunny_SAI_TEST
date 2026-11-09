@@ -127,7 +127,7 @@ test('demo warnings are short, fictional, and based on along-route distance',()=
  assert.ok(Math.abs(demoDistanceMeters(route.rainPath,lead,demo.hazards[0].seconds)-500)<12);
 });
 test('detour notice makes no claims of verified road safety or real reroute',()=>{
- assert.match(app,/route\.demoDetourSelected=true/);
+ assert.match(app,/trip\.demoDetourSelected=true/);
  assert.match(app,/clearDemoDetourPopup\(\)/);
  assert.match(app,/const resumePlayback=playing/);
  assert.match(app,/if\(resumePlayback&&progress<100\)startDemoPlayback\(\)/);
