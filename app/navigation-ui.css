@@ -2261,3 +2261,13 @@ body.sunny-guiding .sunny-demo-detour-popup{
 #settings .sunny-source-guide strong{font-weight:800}
 #settings .sunny-source-guide code{font-family:ui-monospace,Consolas,monospace;
  font-size:11px;padding:1px 4px;border-radius:4px;background:#fff}
+
+/* TMAP walking facility location markers; informational, never live hazard marks. */
+.sunny-optional-layer-status{display:block;padding:5px 4px 11px;color:#52677f;font-size:11px;line-height:1.5}
+.sunny-optional-layer-note{margin:8px 0 12px;color:#60758a;font-size:11px;line-height:1.5}
+.sunny-walk-facility-pin,.sunny-walk-facility-emoji{display:flex;align-items:center;justify-content:center;
+ width:34px;height:34px;box-sizing:border-box;border:2px solid #fff;border-radius:50%;background:#eaf8ef;box-shadow:0 2px 8px #174d3940;font-size:17px;line-height:1}
+.sunny-walk-facility-pin{cursor:pointer;touch-action:manipulation}
+.sunny-walk-facility-pin:focus-visible{outline:3px solid #1768ed;outline-offset:3px}
+.nav-layers-sheet .nav-layer-unavailable{opacity:.66}
+.nav-layers-sheet .nav-layer-unavailable input{cursor:not-allowed}

@@ -14,7 +14,9 @@ export const DATA_CONNECTION_SOURCES=[
  {id:'warning',group:'기상특보',name:'기상특보 현황',description:'발효지역·특보등급 검증 필요'},
  {id:'floodNational',group:'침수',name:'국가하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 아님'},
  {id:'floodLocal',group:'침수',name:'지방하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 아님'},
- {id:'walkSurface',group:'보행 안전',name:'보행로 침수·결빙·통행 제한',description:'현장 관측자료 API 미연결 · 기상예보 기반 위험 주의만 제공'}
+ {id:'walkSurface',group:'보행 안전',name:'보행로 침수·결빙·통행 제한',description:'현장 관측자료 API 미연결 · 기상예보 기반 위험 주의만 제공'},
+ {id:'trafficIncident',group:'교통·보행 정보',name:'UTIC 사고·공사·통제',description:'인증·서버 연동 전 · 실제 자료 미수신'},
+ {id:'pedestrianHotspots',group:'교통·보행 정보',name:'보행자 사고다발지역',description:'인증·서버 연동 전 · 과거 사고 통계 미수신'}
 ];
 export const CONNECTION_STATE_TEXT={
  unknown:'검사 전',unverified:'검사 보류',checking:'조회 중',configured:'검사 전',
@@ -46,6 +48,8 @@ export function applySessionConfiguration(current,session){
   copy[id]={...(yes?state('configured','실제 API 응답 검사 전'):state('missing',id==='walk'?'TMAP_API_KEY 미등록 · 카카오 대체 도보 제공자 실수신 별도 확인':'서버 인증키 미설정')),keyRegistered:Boolean(yes)};
  }
  copy.walkSurface={...state('unverified','실제 보행로 침수·결빙·통제 관측 API 미연결 · Risk Engine은 기상예보로 주의를 판단'),keyRegistered:null};
+ copy.trafficIncident={...state('unverified','UTIC 인증키·IP 등록 및 실수신 서버 연동 필요'),keyRegistered:null};
+ copy.pedestrianHotspots={...state('unverified','한국도로교통공단 인증 및 좌표 검증 필요 · 과거 사고통계'),keyRegistered:null};
  return copy;
 }
 export function mapConnectionProbe(kind,data,previous){
@@ -162,7 +166,7 @@ export function initConnectionStatusPanel({
    const entry=values[id]||state('unknown','검사 전');
    refs.row.dataset.connectionState=entry.state;
    refs.badge.textContent=CONNECTION_STATE_TEXT[entry.state]||'확인 불가';
-   refs.keyStatus.textContent=id==='walkSurface'?'현장 관측 연계 · 미연결':'API 키 · '+(entry.keyRegistered===true?'등록됨':entry.keyRegistered===false?'미등록':'확인 불가');
+   refs.keyStatus.textContent=['walkSurface','trafficIncident','pedestrianHotspots'].includes(id)?'실제 데이터 연계 · 미완료':'API 키 · '+(entry.keyRegistered===true?'등록됨':entry.keyRegistered===false?'미등록':'확인 불가');
    refs.explanation.textContent=entry.state==='empty'?'자료없음 · '+entry.detail:entry.detail||'';
   }
   if(summary)summary.textContent=summarizeConnectionResults(values).text;

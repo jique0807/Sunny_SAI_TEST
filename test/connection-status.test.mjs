@@ -47,8 +47,9 @@ test('source inventory covers all agreed menu sources but excludes CCTV and ordi
  const ids=DATA_CONNECTION_SOURCES.map(x=>x.id);
  assert.equal(new Set(ids).size,ids.length);
  assert.ok(ids.includes('map')&&ids.includes('rain')&&ids.includes('radar'));
- assert.equal(ids.length,12);
+ assert.equal(ids.length,14);
  assert.ok(ids.includes('walk')&&ids.includes('walkSurface'));
+ assert.ok(ids.includes('trafficIncident')&&ids.includes('pedestrianHotspots'));
  assert.ok(ids.includes('road')&&ids.includes('warning'));
  assert.ok(ids.includes('floodNational')&&ids.includes('floodLocal'));
  assert.ok(!ids.includes('riverLevel'));
@@ -64,6 +65,8 @@ test('key presence never equals a verified provider response',()=>{
  assert.equal(configured.rain.state,'configured');
  assert.equal(configured.walk.state,'configured');
  assert.equal(configured.walkSurface.state,'unverified');
+ assert.equal(configured.trafficIncident.state,'unverified');
+ assert.equal(configured.pedestrianHotspots.state,'unverified');
  assert.equal(configured.walkSurface.keyRegistered,null);
  assert.equal(configured.map.state,'configured');
  assert.equal(configured.vworld,undefined);
