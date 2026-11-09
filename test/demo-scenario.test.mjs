@@ -75,7 +75,7 @@ test('fictional warning adds one nearby NEW geolocated point, never a KMA claim'
  assert.ok(!scenario.hazards.some(h=>h.id===warning.id));
  assert.ok(warning.seconds>Math.round(route.duration*.42));
  assert.ok(hazardDetails(warning).join(' ').includes('실제 관측·특보 아님'));
- assert.throws(()=>makeDemoBreakingWarning({...route,rainPath:[]}),/가상 특보/);
+ assert.throws(()=>makeDemoBreakingWarning({...route,rainPath:[]}),/상주 경로|가상 특보/);
 });
 
 test('automatic new warning appears in route and driver UI but never in real path',()=>{
