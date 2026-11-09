@@ -2188,3 +2188,12 @@ body.sunny-guiding .sunny-demo-detour-popup{
   transform:translateX(-50%)!important;
  }
 }
+
+
+/* Car and pedestrian route choice; keeps the same navigation-first layout. */
+.sunny-travel-modes{display:flex;align-items:center;gap:8px;border:0;padding:0;margin:0 0 12px;flex-wrap:wrap;min-width:0}
+.sunny-travel-modes legend{width:100%;font-size:13px;font-weight:800;color:var(--sunny-ink,#294155);margin:0 0 6px;padding:0}
+.sunny-travel-modes label{display:inline-flex;align-items:center;gap:7px;padding:10px 12px;min-height:44px;border:1px solid #b8cbd7;border-radius:11px;background:#fff;font-weight:700;font-size:14px;cursor:pointer}
+.sunny-travel-modes label:has(input:checked){background:#e8f3ff;border-color:#1870c8;color:#115796}
+.sunny-travel-modes input{accent-color:#1769dd;width:16px;height:16px;cursor:pointer}
+#walkExternalLink:not([hidden]){display:block;margin:5px 0 12px;font-size:13px;font-weight:700;color:#1365c8;text-decoration:underline}
