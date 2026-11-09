@@ -125,7 +125,7 @@ export function demoBreakingTiming(route){
  if(!route?.rainPath?.length||!Number.isFinite(route.duration))throw Error('시연용 상주 경로가 없습니다.');
  const p=demoNearPlace(route.rainPath,DEMO_PLACES.sangju);
  if(!p||p.distanceFromPlace>12000)throw Error('상주 부근의 실제 도로 경로를 찾지 못했습니다.');
- const seconds=Math.round(p.seconds),triggerSeconds=demoLeadSeconds(route.rainPath,seconds,15000);
+ const seconds=Math.round(p.seconds),triggerSeconds=demoLeadSeconds(route.rainPath,seconds,25000);
  return{seconds,triggerSeconds,triggerPercent:100*triggerSeconds/route.duration,
   point:p,cityDistanceMeters:p.distanceFromPlace};
 }
