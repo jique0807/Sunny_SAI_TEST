@@ -30,7 +30,7 @@ function updateTravelModeUI(){
  if($('walkModeNotice'))$('walkModeNotice').hidden=!walking;
  const notice=$('walkExternalLink');
  if(notice){
-  notice.hidden=!walking;
+  notice.hidden=!(walking&&originPlace&&destPlace);
   if(walking&&originPlace&&destPlace)notice.href=kakaoRouteLink(originPlace,destPlace,'walking');
   else notice.removeAttribute('href');
  }
@@ -767,6 +767,7 @@ $('searchForm').onsubmit=async e=>{e.preventDefault();stopRain();if(playing)retu
  }finally{if(run===routeSeq)$('routeSearch').disabled=false;}};
 $('locate').onclick=()=>{if(!navigator.geolocation){toast('위치를 지원하지 않는 기기입니다. 출발지를 입력해주세요.');return;}$('locate').disabled=true;navigator.geolocation.getCurrentPosition(p=>{originPlace={lat:p.coords.latitude,lng:p.coords.longitude,name:'현재 위치'};homePosition={lat:p.coords.latitude,lng:p.coords.longitude};updateRouteCurrentMarker();$('origin').value='현재 위치';$('origin').readOnly=true;$('locate').disabled=false;toast('현재 위치를 출발지로 설정했어요. 검색 시 지도·기상 제공자에게 전달됩니다.');},()=>{$('locate').disabled=false;$('origin').value='위치 확인 실패 · 검색 버튼 사용';toast('위치를 확인하지 못했습니다. 출발지를 검색해주세요.');},{timeout:12000,maximumAge:30000,enableHighAccuracy:true});};
 async function demoRoute(){
+ const drivingRadio=document.querySelector('input[name="travelMode"][value="driving"]');if(drivingRadio)drivingRadio.checked=true;updateTravelModeUI();
  stopRain();const run=++routeSeq;searchSeq++;pauseDrive();stopVoice();
  $('demo').disabled=true;$('routeSearch').disabled=true;$('places').replaceChildren();
  reply('서울시청에서 부산시청까지 주행 시연 경로를 준비하고 있어요.');
