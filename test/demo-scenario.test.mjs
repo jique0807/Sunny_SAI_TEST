@@ -69,7 +69,7 @@ test('fictional warning adds one nearby NEW geolocated point, never a KMA claim'
  assert.ok(warning.breaking&&warning.demo);
  assert.ok(warning.seconds>=7900&&warning.seconds<=8100);
  assert.equal(warning.issuedAt,'2026-11-09T02:15:00.000Z');
- assert.match(warning.measure,/호우주의보 발효/);
+ assert.match(warning.measure,/호우특보/);
  assert.match(warning.provider,/시연/);
  assert.ok(Number.isFinite(warning.lat)&&Number.isFinite(warning.lng));
  assert.ok(!scenario.hazards.some(h=>h.id===warning.id));
@@ -83,7 +83,7 @@ test('automatic new warning appears in route and driver UI but never in real pat
  const drive=readFileSync(new URL('../public/drive-guidance.mjs',import.meta.url),'utf8');
  assert.doesNotMatch(ui,/id="sunnyDemoBreaking"/);
  assert.match(app,/function injectDemoBreakingWarning\(\)/);
- assert.match(app,/shouldTriggerDemoBreakingWarning\(previous,progress,!!route\.demoBreakingWarning\)/);
+ assert.match(app,/shouldTriggerDemoBreakingWarning\(previous,progress,false,demoBreakingTiming\(route\)\.triggerPercent\)/);
  assert.match(app,/route\.demoHazards=\[\.\.\.route\.demoHazards,hazard\]/);
  assert.match(app,/drawDemoOverlays\(\);moveCar\(\)/);
  assert.doesNotMatch(app,/sunnyDemoBreaking/);
@@ -130,7 +130,7 @@ test('demo warnings are short, fictional, and based on along-route distance',()=
  assert.ok(Math.abs(demoDistanceMeters(route.rainPath,lead,demo.hazards[0].seconds)-500)<12);
 });
 test('detour notice makes no claims of verified road safety or real reroute',()=>{
- assert.match(app,/trip\.demoDetourSelected=true/);
+ assert.match(app,/demoDetourSelected:true/);
  assert.match(app,/clearDemoDetourPopup\(\)/);
  assert.match(app,/const resumePlayback=playing/);
  assert.match(app,/if\(resumePlayback&&route\?\.demo&&progress<100&&drivingUI\.isActive\(\)\)startDemoPlayback\(\)/);
