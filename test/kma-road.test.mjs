@@ -22,7 +22,7 @@ test('KMA road risk official route codes and archive parser handle known text co
  assert.equal(ROAD_NAMES['001'],'경부');
  const zip=makeZip('risk.csv',csv),files=extractZipFiles(zip),x=geolocatedRisks(files,'001');
  assert.equal(files.length,1);assert.equal(x.locations.length,2);
- assert.equal(x.locations[0].kind,'ice');assert.equal(x.locations[0].risk,2);
+ assert.equal(x.locations[0].kind,'ice');assert.equal(x.locations[0].risk,2);assert.equal(x.locations[0].gradeMeaningVerified,true);
  assert.deepEqual(x.locations[0].geometry.points,[{lat:37.501,lng:127.001}]);
  assert.equal(x.locations[1].kind,'visibility');assert.equal(x.locations[1].risk,3);
  assert.equal(displayableRisks(x.locations,true,false).length,1);
@@ -89,6 +89,8 @@ test('official KMA road link files supply risk grades, directed coordinates and 
  const data=geolocatedRisks(files,'045');
  assert.equal(data.dataTime,'2025-12-15T23:55:00.000Z');
  assert.deepEqual(data.locations.map(({kind,risk})=>[kind,risk]),[['ice',3],['visibility',2]]);
+ assert.ok(data.locations.every(x=>x.gradeMeaningVerified===false));
+ assert.equal(displayableRisks(data.locations,true,true).length,0);
  assert.deepEqual(data.locations[0].geometry.points,[{lat:35.673519,lng:128.438248},{lat:35.671051,lng:128.439667}]);
  assert.equal(geolocatedRisks(files,'001').locations.length,0);
 });
