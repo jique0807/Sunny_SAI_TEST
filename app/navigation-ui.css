@@ -2157,7 +2157,7 @@ body.sunny-guiding .sunny-demo-detour-popup{
  width:min(330px,calc(100% - 36px));box-sizing:border-box;
  padding:16px 17px 14px;border:2px solid #faac54;border-radius:17px;
  background:#fffdf7;color:#23394d;box-shadow:0 12px 32px #182e4973;
- pointer-events:none;text-align:left;
+ pointer-events:auto;text-align:left;
 }
 .sunny-demo-detour-header{display:flex;align-items:center;gap:9px;
  color:#93450f;font-size:16px;font-weight:850;line-height:1.3;}
@@ -2171,3 +2171,14 @@ body.sunny-guiding .sunny-demo-detour-popup{
  .sunny-demo-detour-header{font-size:14px;}
  .sunny-demo-detour-popup p{font-size:12px;}
 }
+
+/* Demo-only route-choice dialog with real reroute request on 'Yes'. */
+.sunny-demo-detour-choices{display:flex;gap:10px;justify-content:stretch;margin:11px 0 10px;}
+.sunny-demo-detour-choices[hidden]{display:none!important;}
+.sunny-demo-detour-choices button{flex:1;min-width:0;min-height:44px;
+ border-radius:10px;border:1px solid #b6bdc6;background:#f6f8fa;
+ color:#20394d;font-weight:800;font-size:14px;touch-action:manipulation;}
+#sunnyDemoDetourYes{color:white;background:#1769dd;border-color:#1769dd;}
+.sunny-demo-detour-choices button:focus-visible{outline:3px solid #d4822e;outline-offset:2px;}
+#sunnyDemoSoundTest:not([hidden]){min-height:40px;touch-action:manipulation;white-space:nowrap;}
+@media(max-width:420px){#sunnyDemoSoundTest:not([hidden]){font-size:11px;padding:5px 7px;}}
