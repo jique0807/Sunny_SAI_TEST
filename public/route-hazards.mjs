@@ -80,23 +80,60 @@ export function showHazardDetail(panel,hazard,formatTime){
  }
  panel.hidden=false;
 }
+// Cluster marks that would land on top of each other in the narrow route rail.
+// Route position is kept as metadata; display locations can spread slightly for touch access.
+export function layoutHazardRail(hazards,routePath,fractionAt,{max=10,clusterThreshold=.09}={}){
+ if(typeof fractionAt!=='function'||!Array.isArray(routePath)||routePath.length<2)return [];
+ const points=[];
+ for(const hazard of (Array.isArray(hazards)?hazards:[]).slice(0,max)){
+  const fraction=fractionAt(routePath,hazard.seconds);
+  if(Number.isFinite(fraction)&&fraction>=0&&fraction<=1)points.push({hazard,fraction});
+ }
+ points.sort((a,b)=>a.fraction-b.fraction);
+ const groups=[];
+ for(const point of points){
+  const last=groups.at(-1);
+  if(last&&point.fraction-last.members.at(-1).fraction<=clusterThreshold){
+   last.members.push(point);
+   last.fraction=last.members.reduce((sum,p)=>sum+p.fraction,0)/last.members.length;
+  }else groups.push({fraction:point.fraction,members:[point]});
+ }
+ // Preserve order and leave room for a 28px touch icon at both ends.
+ const min=.13,maxPos=.87;
+ const separation=groups.length>1?Math.min(.27,(maxPos-min)/(groups.length-1)):0;
+ const positions=groups.map(g=>Math.max(min,Math.min(maxPos,g.fraction)));
+ for(let i=1;i<positions.length;i++)positions[i]=Math.max(positions[i],positions[i-1]+separation);
+ if(positions.length&&positions.at(-1)>maxPos){
+  const overflow=positions.at(-1)-maxPos;
+  for(let i=0;i<positions.length;i++)positions[i]-=overflow;
+  for(let i=positions.length-2;i>=0;i--)positions[i]=Math.min(positions[i],positions[i+1]-separation);
+ }
+ return groups.map((g,i)=>({...g,displayFraction:positions[i]}));
+}
 export function renderHazardRail(container,hazards,routePath,{fractionAt,onSelect,max=10}={}){
  if(!container)return 0;
  container.replaceChildren();
- if(typeof fractionAt!=='function'||!Array.isArray(routePath)||routePath.length<2)return 0;
+ const groups=layoutHazardRail(hazards,routePath,fractionAt,{max});
  let count=0;
- for(const hazard of hazards.slice(0,max)){
-  const fraction=fractionAt(routePath,hazard.seconds);
-  if(!Number.isFinite(fraction)||fraction<0||fraction>1)continue;
-  const btn=document.createElement('button');btn.type='button';
-  btn.className='sunny-rail-hazard';btn.dataset.risk=hazard.kind;
+ for(const group of groups){
+  const list=group.members.map(p=>p.hazard),hazard=list[0];
+  const btn=document.createElement('button');
+  btn.type='button';btn.className='sunny-rail-hazard';
+  btn.dataset.risk=hazard.kind;
   if(hazard.demo)btn.dataset.demo='true';
-  btn.style.bottom=(fraction*100).toFixed(2)+'%';
+  btn.style.bottom=(group.displayFraction*100).toFixed(2)+'%';
+  btn.dataset.routeFraction=(group.fraction*100).toFixed(2);
   btn.textContent=hazard.icon;
-  btn.title=hazard.title+' · '+hazard.label+' · 세부정보 보기';
-  btn.setAttribute('aria-label',hazard.title+' · '+hazard.label+' 상세정보 열기');
-  btn.addEventListener('click',e=>{e.stopPropagation();onSelect?.(hazard);});
-  container.append(btn);count++;
+  const label=list.length>1?
+   '위험정보 '+list.length+'건 · '+list.map(h=>h.title+' '+h.label).join(' / ')+' · 누를 때마다 상세정보 전환':
+   hazard.title+' · '+hazard.label+' · 세부정보 보기';
+  btn.title=label;
+  btn.setAttribute('aria-label',label);
+  if(list.length>1){btn.dataset.count=String(list.length);btn.dataset.cluster='true';}
+  let selected=0;
+  btn.addEventListener('click',e=>{e.stopPropagation();onSelect?.(list[selected%list.length]);selected++;});
+  container.append(btn);
+  count+=list.length;
  }
  return count;
 }
