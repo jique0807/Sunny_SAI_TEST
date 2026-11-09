@@ -593,7 +593,7 @@ async function checkRain(){
  }catch(e){if(run===rainRun&&route===currentRoute){setLayerReception('navLayerWeather',e.reception||'failed');$('rainStatus').textContent='GPS와 별도: '+e.message;}}finally{if(rainBusy===run)rainBusy=null;}
 }
 function startRainGuidance(){
- if(!route?.demo&&route?.travelMode!==selectedTravelMode()){toast('이동수단 변경 후 새 경로를 탐색해주세요.');return;}
+ if(route&&!route.demo&&route.travelMode!==selectedTravelMode()){toast('이동수단 변경 후 새 경로를 탐색해주세요.');return;}
  if(!route||route.demo||!route.rainPath?.length){toast('먼저 실제 차량 경로를 조회해주세요.');return;}
  if(!window.isSecureContext){toast('GPS는 HTTPS 주소에서 사용해주세요.');return;}
  if(!navigator.geolocation){toast('이 기기는 GPS 위치를 지원하지 않는 환경입니다.');return;}
