@@ -2198,3 +2198,50 @@ body.sunny-guiding .sunny-demo-detour-popup{
 .sunny-travel-modes label:has(input:checked){background:#e8f3ff;border-color:#1870c8;color:#115796}
 .sunny-travel-modes input{accent-color:#1769dd;width:16px;height:16px;cursor:pointer}
 #walkExternalLink:not([hidden]){display:block;margin:5px 0 12px;font-size:13px;font-weight:700;color:#1365c8;text-decoration:underline}
+
+
+/* Integrated Sunny SAI mobility UX: progressive enhancement, one map and one route form.
+   Keep the legacy vehicle demo and fixed navigation footer untouched. */
+.sunny-mobile-mobility,.sunny-mobile-mobility-hint{display:none}
+.sunny-travel-modes{box-sizing:border-box;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0;margin:0 0 14px}
+.sunny-travel-modes legend{margin-bottom:8px}
+.sunny-travel-modes label{box-sizing:border-box;display:flex;align-items:center;justify-content:center;min-width:0;min-height:48px;
+ padding:10px 12px;border-radius:13px;font-size:14px;font-weight:750;transition:background-color .15s,border-color .15s}
+.sunny-travel-modes label:focus-within{outline:3px solid rgba(23,104,237,.37);outline-offset:2px}
+.sunny-route-mode-badge{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;
+ padding:5px 9px;border:1px solid #cfe2f9;background:#eef5ff;border-radius:999px;color:#195d9e;font-size:12px;font-weight:800}
+.sunny-walk-facilities:not([hidden]){display:block;padding:9px 11px;margin:8px 0;
+ background:#f0f8f7;border:1px solid #c7e7e3;border-radius:11px;color:#1f625d;
+ font-size:12px;font-weight:650;line-height:1.5}
+#navRouteDescription{overflow-wrap:anywhere}
+#navRouteModeBadge[hidden],#navRouteFacilitySummary[hidden]{display:none!important}
+@media(max-width:900px){
+ .nav-search-sheet:not([hidden]){padding-top:10px}
+ .nav-search-sheet .sunny-travel-modes{display:none!important}
+ .sunny-mobile-mobility{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;
+  box-sizing:border-box;background:#edf3fa;border:1px solid #d9e6f5;border-radius:16px;padding:5px;margin:2px 0 0}
+ .sunny-mobile-mobility button{display:flex;align-items:center;justify-content:center;gap:9px;
+  min-width:0;min-height:49px;border:1px solid transparent;border-radius:12px;padding:10px 12px;
+  background:transparent;color:#51687f;font-weight:800;font-size:15px;touch-action:manipulation;cursor:pointer}
+ .sunny-mobile-mobility button[aria-pressed="true"]{background:#fff;border-color:#a9cbf7;color:#145db2;
+  box-shadow:0 2px 9px rgba(18,68,123,.12)}
+ .sunny-mobile-mobility button:focus-visible{outline:3px solid #1768ed;outline-offset:2px}
+ .sunny-mobile-mobility-hint{display:block;min-height:18px;margin:8px 2px 15px;
+  color:#536c83;font-size:12px;line-height:1.5}
+ .nav-route-result:not([hidden]){box-sizing:border-box;max-height:calc(100dvh - 142px);
+  overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+ .nav-route-result-head{gap:8px}
+ #navRouteModeBadge{margin-left:auto}
+ .sunny-walk-facilities:not([hidden]){margin:6px 0;font-size:11.5px}
+ .nav-search-sheet #walkModeNotice:not([hidden]){display:block;padding:10px 12px;margin:10px 0;
+  border-radius:11px;background:#eff7ff;border:1px solid #d1e4fc;color:#365c83;line-height:1.5}
+ #navStartGuidance:focus-visible{outline:3px solid #ffbb54;outline-offset:3px}
+}
+@media(max-width:370px){
+ .nav-route-result-head{flex-wrap:wrap}
+ #navRouteModeBadge{margin-left:0}
+ .sunny-mobile-mobility button{font-size:14px;padding:9px 5px}
+}
+@media(prefers-reduced-motion:reduce){
+ .sunny-travel-modes label{transition:none}
+}
