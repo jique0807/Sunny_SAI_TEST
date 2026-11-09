@@ -12,7 +12,7 @@ const timeline=[
 const route=(duration=1800,mode='driving')=>({
  duration,distance:95000,travelMode:mode,departure,
  rainPath:timeline.map(x=>({...x,seconds:x.seconds*duration/1800})),
- samples:[300,900,1500].map(s=>({lat:36.7,lng:127.9,seconds:s*duration/1800,eta:new Date(Date.parse(departure)+s*duration/1800*1000).toISOString()}))
+ samples:[300,900,1500].map((s,i)=>({...([{lat:37.438,lng:127.134},{lat:37.08,lng:127.545},{lat:36.485,lng:128.07}][i]),seconds:s*duration/1800,eta:new Date(Date.parse(departure)+s*duration/1800*1000).toISOString()}))
 });
 const forecast=(sample,amount=10)=>({...sample,status:'forecast',forecast:{
  provider:'kma',precipitationType:amount>0?1:0,rain:amount,
@@ -59,7 +59,7 @@ test('real rain is only a weather forecast signal; flooding and icing are not in
 });
 test('extra provider hazards require validated source, timestamps and location',()=>{
  const r=route(),weatherSamples=r.samples.map(s=>forecast(s,0));
- const official={kind:'ice',lat:36.7,lng:127.9,seconds:1150,
+ const official={kind:'ice',lat:36.85,lng:127.80,seconds:1150,
   eta:r.samples[1].eta,validTime:'2026-11-09T10:57:00Z',
   provider:'기상청 도로위험기상',roadRisk:3,riskGradeVerified:true};
  const a=evaluateRouteRisk(r,{weatherSamples,extraHazards:[official,{...official,lat:null},{...official,riskGradeVerified:false}],now});
@@ -71,9 +71,25 @@ test('extra provider hazards require validated source, timestamps and location',
  assert.equal(walking.state,'evaluated');
  assert.equal(walking.signalCount,0);
 });
+test('received forecast with matching seconds but a different location cannot count as coverage',()=>{
+ const r=route();
+ const foreign=r.samples.map(s=>forecast({...s,lat:38.8,lng:129.5},12));
+ const a=evaluateRouteRisk(r,{weatherSamples:foreign,now});
+ assert.equal(a.coverage,0);
+ assert.equal(a.state,'insufficient-data');
+ assert.equal(a.signalCount,0);
+});
+test('off-route injected warning cannot be scored as route exposure',()=>{
+ const r=route(),weatherSamples=r.samples.map(s=>forecast(s,0));
+ const bogus={kind:'warning',lat:38.5,lng:129.0,seconds:900,
+  eta:r.samples[1].eta,validTime:r.samples[1].eta,
+  provider:'기상청 특보현황 · 경로 500m 이내 관측지점 기준'};
+ const a=evaluateRouteRisk(r,{weatherSamples,extraHazards:[bogus],now});
+ assert.equal(a.signalCount,0);assert.equal(a.unknownSignals,1);
+});
 test('a reported station warning is advisory, not verified road intersection',()=>{
  const r=route(),weatherSamples=r.samples.map(s=>forecast(s,0));
- const warning={kind:'warning',lat:36.7,lng:127.9,seconds:950,
+ const warning={kind:'warning',lat:37.08,lng:127.545,seconds:950,
   eta:r.samples[1].eta,validTime:r.samples[1].eta,
   provider:'기상청 특보현황 · 경로 500m 이내 관측지점 기준'};
  const a=evaluateRouteRisk(r,{weatherSamples,extraHazards:[warning],now});
