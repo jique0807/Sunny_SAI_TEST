@@ -1,3 +1,4 @@
+import {assessRouteHazard,withRiskAssessment} from './risk-engine.mjs';
 // Real geolocated KMA forecast risks, shared between route search and live driving.
 // Do not infer flood/ice/fog or snowfall depth from precipitation type.
 const ICONS=Object.freeze({rain:'🌧️',snow:'❄️',mixed:'🌨️'});
@@ -21,9 +22,9 @@ export function buildRouteHazards(samples,{limit=12}={}){
   const exactSnow=safeValue(f.snowfall);
   const snowLabel=typeof f.snowfallLabel==='string'&&f.snowfallLabel.trim()?f.snowfallLabel.trim():
     exactSnow!==null?exactSnow+'cm':null;
-  events.push({kind,icon:ICONS[kind],title:TITLE[kind],seconds:s.seconds,label,lat:safeValue(s.lat),lng:safeValue(s.lng),
+  events.push(withRiskAssessment({kind,icon:ICONS[kind],title:TITLE[kind],seconds:s.seconds,label,lat:safeValue(s.lat),lng:safeValue(s.lng),
    eta:typeof s.eta==='string'?s.eta:null,validTime:f.time||null,
-   rainLabel,snowLabel,provider:'기상청 격자예보',grid:s.grid||null});
+   rainLabel,rainMm:exactRain,rainMin:safeValue(f.rainMin),snowLabel,provider:'기상청 격자예보',grid:s.grid||null}));
  }
  events.sort((a,b)=>a.seconds-b.seconds);
  const dedup=[];
@@ -37,33 +38,33 @@ export function buildRouteHazards(samples,{limit=12}={}){
 export function hazardDetails(hazard,formatTime){
  const format=t=>t&&formatTime?formatTime(t):t||'시간정보 미제공';
  if(hazard.demo)return [
-  hazard.title,
-  '⚠️ 시연 데이터 · 실제 관측·특보 아님',
-  '경로 구간: '+hazard.label,
-  '예상 통과 시각: '+format(hazard.eta),
-  '위험정보: '+hazard.measure,
-  hazard.description,
-  '출처: '+hazard.provider
+  hazard.title,'⚠️ 시연 데이터 · 실제 관측·특보 아님',
+  '경로 구간: '+hazard.label,'예상 통과 시각: '+format(hazard.eta),
+  '위험정보: '+hazard.measure,hazard.description,'출처: '+hazard.provider
  ];
- if(hazard.kind==='warning')return [
-  hazard.title,'특보구역: '+hazard.label,'발효 시각: '+format(hazard.validTime),'자료: '+hazard.provider
+ let details;
+ if(hazard.kind==='warning')details=[
+  hazard.title,'특보구역: '+hazard.label,'발효 시각: '+format(hazard.validTime),
+  '자료: '+hazard.provider
  ];
- if(hazard.roadRisk)return [
-  hazard.title,
-  '위험 단계: '+({1:'관심',2:'주의',3:'위험'}[hazard.roadRisk]),
-  '예상 통과: '+format(hazard.eta),
-  '위치: '+hazard.label,
+ else if(hazard.roadRisk)details=[
+  hazard.title,'위험 단계: '+({1:'관심',2:'주의',3:'위험'}[hazard.roadRisk]),
+  '예상 통과: '+format(hazard.eta),'위치: '+hazard.label,
   '자료 시각: '+format(hazard.validTime),
   '자료: '+hazard.provider+' · 도로 위험 예측'
  ];
- return [
-  hazard.title,
-  '예상 통과: '+format(hazard.eta),
-  '위치: '+hazard.label,
+ else details=[
+  hazard.title,'예상 통과: '+format(hazard.eta),'위치: '+hazard.label,
   '1시간 강수량: '+(hazard.rainLabel||'자료 없음'),
   '1시간 신적설: '+(hazard.snowLabel||'자료 없음 · 눈 강수형태만 확인'),
   '예보 유효시각: '+format(hazard.validTime),
   '자료: '+hazard.provider+' · 실제 노면 결빙·침수 관측 아님'
+ ];
+ const verdict=hazard.assessment||assessRouteHazard(hazard);
+ return [...details,
+  'Sunny 규칙형 판정: '+verdict.label+(verdict.level==='unknown'?' (검증 보류)':''),
+  '판정 근거: '+verdict.evidence,
+  '주의: '+verdict.caution
  ];
 }
 export function showHazardDetail(panel,hazard,formatTime){
