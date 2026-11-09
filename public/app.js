@@ -1054,7 +1054,7 @@ $('sunnyDemoNext')?.addEventListener('click',()=>{
  const triggerAt=route.demoWarningIssued?Infinity:demoBreakingTiming(route).triggerSeconds;
  // The third and final demo event is the surprise warning and scripted detour.
  if(!route.demoWarningIssued&&triggerAt>elapsed+1&&triggerAt<nextNotice)
-  advance(DEMO_BREAKING_TRIGGER*100+0.01);
+  advance(Math.min(100,triggerAt/route.duration*100+0.01));
  else if(next&&nextNotice>=elapsed)
   advance(Math.min(100,(nextNotice+.01)/route.duration*100));
  else if(!route.demoWarningIssued)
