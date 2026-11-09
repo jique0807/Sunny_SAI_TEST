@@ -39,7 +39,9 @@ test('Kakao raster street labels stay upright while the vehicle direction rotate
  assert.match(app,/classList\.remove\('sunny-heading-up'\)/);
  assert.match(app,/marker\.style\.rotate=/);
  assert.match(app,/resetDrivingMapHeading\(\)/);
- assert.match(ui,/차량 방향 표시 · 글자 고정/);
+ assert.match(ui,/진행방향 위로 · 글자 고정/);
+ assert.match(ui,/id="sunnyVectorMap"/);
+ assert.match(app,/startVectorGuidance\(route\.rainPath\[0\],/);
 });
 test('screenshot: four bottom tabs are fixed and accessible even during active guidance',()=>{
  for(const id of ['navHome','navRoute','navLayers','navSettings'])
