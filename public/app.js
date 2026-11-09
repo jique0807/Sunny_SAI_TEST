@@ -862,12 +862,78 @@ function moveCar(){if(route?.vertices?.length){const p=route.demo?demoPointAtSec
 // No remote weather-warning request or actual public alert is generated.
 // Explicitly fictional reroute UI. Do not substitute an unverified road
 // geometry or claim a real safe alternative was calculated by Kakao.
-let demoDetourSearchTimer=null,demoDetourHideTimer=null;
+let demoDetourAutoTimer=null,demoDetourHideTimer=null,demoDetourPending=false;
 const demoAnnounced=new Set();
 function clearDemoDetourPopup(){
- clearTimeout(demoDetourSearchTimer);clearTimeout(demoDetourHideTimer);
- demoDetourSearchTimer=null;demoDetourHideTimer=null;
+ clearTimeout(demoDetourAutoTimer);clearTimeout(demoDetourHideTimer);
+ demoDetourAutoTimer=null;demoDetourHideTimer=null;demoDetourPending=false;
  if($('sunnyDemoDetourPopup'))$('sunnyDemoDetourPopup').hidden=true;
+ if($('sunnyDemoDetourYes'))$('sunnyDemoDetourYes').onclick=null;
+ if($('sunnyDemoDetourNo'))$('sunnyDemoDetourNo').onclick=null;
+}
+function demoDetourStatus(title,description,showChoices=false){
+ $('sunnyDemoDetourPopup').hidden=false;
+ $('sunnyDemoDetourTitle').textContent=title;
+ $('sunnyDemoDetourDescription').textContent=description;
+ $('sunnyDemoDetourChoices').hidden=!showChoices;
+}
+function finishDemoDetourPopup(trip,resumePlayback){
+ demoDetourHideTimer=setTimeout(()=>{
+  if(route!==trip&&!route?.demoDetourSelected)return;
+  $('sunnyDemoDetourPopup').hidden=true;
+  demoDetourPending=false;
+  if(resumePlayback&&route?.demo&&progress<100&&drivingUI.isActive())startDemoPlayback();
+ },3000);
+}
+async function chooseDemoDetourYes(trip,resumePlayback){
+ if(demoDetourPending)return;
+ clearTimeout(demoDetourAutoTimer);demoDetourPending=true;
+ demoDetourStatus('카카오 우회경로 탐색 중…','상주 위험지점에서 벗어난 실제 도로 경로를 다시 조회합니다.');
+ try{
+  const current=demoPointAtSeconds(trip.rainPath,trip.duration*progress/100);
+  if(!current)throw Error('현재 시연 차량 위치가 없습니다.');
+  const result=await api('/api/route',{
+   origin:{name:'상주 접근 중 · 시연 차량',lat:current.lat,lng:current.lng},
+   destination:DEMO_SEOUL_BUSAN.destination,
+   waypoints:DEMO_DETOUR_WAYPOINTS,
+   departure:new Date().toISOString()
+  });
+  if(route!==trip||!drivingUI.isActive())return;
+  if(!result.rainPath?.length||!result.vertices?.length)throw Error('새 도로 경로 좌표를 받지 못했습니다.');
+  const clearance=demoClosestRouteDistance(result.rainPath,trip.demoBreakingWarning);
+  if(!Number.isFinite(clearance)||clearance<4000)
+   throw Error('새 경로가 특보 지점을 충분히 우회하지 못했습니다. 기존 경로를 유지합니다.');
+  const fog=demoEventAtPlace(result,'miryang');
+  const samples=[{...fog,status:'demo',demoHazard:fog,forecast:null}];
+  const updated={...result,demo:true,demoWarningIssued:true,demoDetourSelected:true,
+   demoHazards:[fog],samples,demoDetourClearanceMeters:Math.round(clearance),
+   demoArchivedHazards:trip.demoHazards||[],demoBreakingWarning:trip.demoBreakingWarning};
+  // Replace the actual provider polyline, timeline, vehicle path and map line.
+  route=updated;weather={samples,source:'우회경로 시연 · 가상 기상 이벤트',fetchedAt:new Date().toISOString()};
+  progress=0;gate.reset();demoAnnounced.add('rain');demoAnnounced.add('breaking-warning');
+  $('progress').value='0';$('driveStatus').textContent='0%';
+  $('distance').innerHTML=(updated.distance/1000).toFixed(1)+'<small> km</small>';
+  $('duration').innerHTML=Math.round(updated.duration/60)+'<small> 분</small>';
+  $('arrival').textContent=fmt(new Date(Date.parse(updated.departure)+updated.duration*1000));
+  $('mapTitle').textContent='카카오 조회 우회경로 · 시연';
+  renderActualRoute();renderCards();
+  drivingUI.start(route,weather);drivingUI.update(0,null,false);
+  if(vectorDriving.isActive()){
+   vectorDriving.setRoute(route);vectorDriving.refreshHazards(route.demoHazards);
+   demoVectorCourse=null;vectorDriving.update(route.rainPath[0],demoCourseAt(0),appPrefs.headingMode,false);
+  }
+  await showMap('kakao',{preserveCamera:true});
+  if(route!==updated||!drivingUI.isActive())return;
+  drawDemoOverlays();moveCar();
+  demoDetourStatus('우회경로 선택 완료',
+   '카카오 실제 도로 경로 조회 성공 · 남은 '+(updated.distance/1000).toFixed(1)+'km · 특보지점과 약 '+Math.round(clearance/1000)+'km 거리');
+  finishDemoDetourPopup(updated,resumePlayback);
+ }catch(error){
+  if(route!==trip||!drivingUI.isActive())return;
+  demoDetourStatus('우회경로 탐색 실패',
+   '기존 경로를 유지합니다. '+String(error?.message||'도로 경로 정보를 확인할 수 없습니다.'));
+  finishDemoDetourPopup(trip,resumePlayback);
+ }
 }
 function simulateDemoDetourSelection(){
  const trip=route,popup=$('sunnyDemoDetourPopup');
@@ -875,25 +941,23 @@ function simulateDemoDetourSelection(){
  clearDemoDetourPopup();
  const resumePlayback=playing;
  if(resumePlayback)pauseDrive();
- popup.hidden=false;
- $('sunnyDemoDetourTitle').textContent='우회경로 탐색 중…';
- $('sunnyDemoDetourDescription').textContent='호우특보 위험지점을 피하는 시연용 대체 경로를 확인합니다.';
- demoDetourSearchTimer=setTimeout(()=>{
-  if(route!==trip||!drivingUI.isActive())return;
-  trip.demoDetourSelected=true;
-  $('sunnyDemoDetourTitle').textContent='우회경로 선택 완료';
-  $('sunnyDemoDetourDescription').textContent='시연용 우회경로가 선택되었습니다. 변경된 경로로 안내합니다.';
-  demoDetourHideTimer=setTimeout(()=>{
-   if(route!==trip||!drivingUI.isActive())return;
-   popup.hidden=true;
-   if(resumePlayback&&progress<100)startDemoPlayback();
-  },3000);
- },700);
+ demoDetourStatus('상주 부근 긴급 호우특보 발생',
+  '호우특보 구간을 피해 우회경로를 탐색하시겠습니까? (시연에서는 예 자동 선택)',true);
+ $('sunnyDemoDetourYes').onclick=()=>{void chooseDemoDetourYes(trip,resumePlayback);};
+ $('sunnyDemoDetourNo').onclick=()=>{
+  clearTimeout(demoDetourAutoTimer);
+  demoDetourStatus('우회경로를 선택하지 않았습니다','기존 도로 경로를 유지합니다. 실제 도로 위험은 별도로 확인하세요.');
+  finishDemoDetourPopup(trip,resumePlayback);
+ };
+ // Show both choices to the presenter, then simulate tapping 'Yes'.
+ demoDetourAutoTimer=setTimeout(()=>{
+  if(route===trip&&drivingUI.isActive()&&!popup.hidden)$('sunnyDemoDetourYes')?.click();
+ },1600);
 }
 function injectDemoBreakingWarning(){
  if(!route?.demo||route.demoBreakingWarning||!drivingUI.isActive())return false;
  const hazard=makeDemoBreakingWarning(route);
- route.demoBreakingWarning=hazard;
+ route.demoBreakingWarning=hazard;route.demoWarningIssued=true;
  route.demoHazards=[...route.demoHazards,hazard].sort((a,b)=>a.seconds-b.seconds);
  const sample={...hazard,status:'demo',demoHazard:hazard,forecast:null};
  route.samples=[...(route.samples||[]),sample].sort((a,b)=>a.seconds-b.seconds);
@@ -910,7 +974,7 @@ function resetDemoBreakingWarning(){
  clearDemoDetourPopup();
  demoAnnounced.clear();
  if(!route?.demo)return;
- route.demoDetourSelected=false;
+ route.demoDetourSelected=false;route.demoWarningIssued=false;
  route.demoBreakingWarning=null;
  route.demoHazards=(route.demoHazards||[]).filter(h=>!h.breaking);
  route.samples=(route.samples||[]).filter(s=>!s.breaking);
