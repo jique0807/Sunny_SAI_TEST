@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {DEMO_SEOUL_BUSAN,DEMO_SCENES,DEMO_BREAKING_TRIGGER,DEMO_BREAKING_POSITION,demoPointAtSeconds,makeDemoScenario,makeDemoBreakingWarning,shouldTriggerDemoBreakingWarning} from '../public/demo-scenario.mjs';
+import {DEMO_SEOUL_BUSAN,DEMO_SCENES,DEMO_BREAKING_TRIGGER,DEMO_BREAKING_POSITION,demoPointAtSeconds,makeDemoScenario,makeDemoBreakingWarning,shouldTriggerDemoBreakingWarning,demoDistanceMeters,demoLeadSeconds,demoSpokenWarning} from '../public/demo-scenario.mjs';
 import {buildRouteHazards,hazardDetails} from '../public/route-hazards.mjs';
 const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
 const ui=readFileSync(new URL('../lib/ui.ts',import.meta.url),'utf8');
@@ -16,15 +16,15 @@ test('real Seoul and Busan city hall endpoints are predefined and not user GPS',
  assert.equal(DEMO_SEOUL_BUSAN.destination.name,'부산시청');
  assert.ok(DEMO_SEOUL_BUSAN.origin.lat>37&&DEMO_SEOUL_BUSAN.destination.lat<36);
 });
-test('three clearly identified demo hazards follow route time and stay separate from KMA forecasts',()=>{
+test('two clearly identified demo hazards follow route time and stay separate from KMA forecasts',()=>{
  const x=makeDemoScenario(route);
- assert.deepEqual(x.hazards.map(h=>h.kind),['rain','fog','flood']);
+ assert.deepEqual(x.hazards.map(h=>h.kind),['rain','fog']);
  assert.equal(x.hazards.length,DEMO_SCENES.length);
  assert.ok(x.hazards.every(h=>h.demo&&/시연/.test(h.provider)&&Number.isFinite(h.lat)&&Number.isFinite(h.lng)));
  assert.ok(x.hazards.every((h,i)=>i===0||h.seconds>x.hazards[i-1].seconds));
  assert.ok(x.samples.every(s=>s.status==='demo'&&s.forecast===null));
  assert.deepEqual(buildRouteHazards(x.samples),[]);
- assert.ok(hazardDetails(x.hazards[2]).join(' ').includes('실제 관측·특보 아님'));
+ assert.ok(hazardDetails(x.hazards[1]).join(' ').includes('실제 관측·특보 아님'));
 });
 test('event locations interpolate through Kakao route timestamps',()=>{
  const p=demoPointAtSeconds(route.rainPath,9000);
@@ -33,7 +33,7 @@ test('event locations interpolate through Kakao route timestamps',()=>{
  assert.equal(demoPointAtSeconds([],100),null);
  assert.throws(()=>makeDemoScenario({...route,rainPath:[]}),/시연 경로/);
 });
-test('demo route and three initial markers are wired into navigation rail, map, and simulated playback',()=>{
+test('demo route and two initial markers are wired into navigation rail, map, and simulated playback',()=>{
  assert.match(ui,/id="navDemoSeoulBusan"/);
  assert.match(ui,/id="navDemoDisclaimer"/);
  assert.match(ui,/id="sunnyDemoNext"/);
@@ -48,9 +48,9 @@ test('demo route and three initial markers are wired into navigation rail, map, 
 test('no newly issued warning is present before the surprise mid-drive trigger',()=>{
  const x=makeDemoScenario(route);
  assert.equal(x.hazards.some(h=>h.breaking),false);
- assert.equal(x.hazards.length,3);
+ assert.equal(x.hazards.length,2);
  assert.equal(DEMO_BREAKING_TRIGGER,0.42);
- assert.equal(DEMO_BREAKING_POSITION,0.68);
+ assert.equal(DEMO_BREAKING_POSITION,0.43);
  assert.equal(shouldTriggerDemoBreakingWarning(40,41,false),false);
  assert.equal(shouldTriggerDemoBreakingWarning(41,42,false),true);
  assert.equal(shouldTriggerDemoBreakingWarning(35,75,false),true);
@@ -58,13 +58,13 @@ test('no newly issued warning is present before the surprise mid-drive trigger',
  assert.equal(shouldTriggerDemoBreakingWarning(43,44,false),false);
 });
 
-test('fictional warning adds one NEW geolocated point 26 percent ahead, never a KMA claim',()=>{
+test('fictional warning adds one nearby NEW geolocated point, never a KMA claim',()=>{
  const scenario=makeDemoScenario(route);
  const warning=makeDemoBreakingWarning(route,'2026-11-09T02:15:00.000Z');
  assert.equal(warning.id,'breaking-warning');
  assert.equal(warning.kind,'warning');
  assert.ok(warning.breaking&&warning.demo);
- assert.equal(warning.seconds,Math.round(route.duration*.68));
+ assert.equal(warning.seconds,Math.round(route.duration*.43));
  assert.equal(warning.issuedAt,'2026-11-09T02:15:00.000Z');
  assert.match(warning.measure,/호우주의보 발효/);
  assert.match(warning.provider,/시연/);
@@ -87,7 +87,10 @@ test('automatic new warning appears in route and driver UI but never in real pat
  assert.match(app,/function resetDemoBreakingWarning\(\)/);
  assert.match(drive,/const breaking=upcoming\.find\(h=>h\.breaking\)/);
  assert.match(drive,/sunny-drive-alert-urgent/);
- assert.match(app,/긴급 기상특보가 발효됐습니다/);
+ assert.match(app,/simulateDemoDetourSelection\(\)/);
+ assert.match(app,/demoDetourHideTimer=setTimeout\(/);
+ assert.match(ui,/id="sunnyDemoDetourPopup"/);
+ assert.match(app,/\},3000\);/);
 });
 
 test('demo screen avoids repetitive synthetic labels but keeps a clear presentation-only disclosure',()=>{
@@ -95,8 +98,8 @@ test('demo screen avoids repetitive synthetic labels but keeps a clear presentat
  const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
  const drive=readFileSync(new URL('../public/drive-guidance.mjs',import.meta.url),'utf8');
  const scenario=makeDemoScenario(route);
- assert.equal(scenario.hazards.length,3);
- assert.deepEqual(scenario.hazards.map(h=>h.title),['강한 비','짙은 안개','도로 침수 위험']);
+ assert.equal(scenario.hazards.length,2);
+ assert.deepEqual(scenario.hazards.map(h=>h.title),['강한 비','짙은 안개']);
  assert.ok(scenario.hazards.every(h=>!/가상/.test(h.title+h.measure+h.description)));
  assert.match(ui,/id="navDemoDisclaimer"[^>]*>.*시연 모드.*실제 관측/);
  assert.doesNotMatch(ui,/sunny-demo-breaking-trigger|id="sunnyDemoBreaking"/);
@@ -106,4 +109,27 @@ test('demo screen avoids repetitive synthetic labels but keeps a clear presentat
  const displayed=demo.split('\n').filter(line=>/reply\(|marker\.title|marker\.setAttribute\('aria-label'|label\.textContent/.test(line));
  assert.ok(displayed.length>8);
  assert.ok(displayed.every(line=>!line.includes('가상')),'demo narration and visible map pins should have no repeated virtual label');
+});
+
+test('demo warnings are short, fictional, and based on along-route distance',()=>{
+ const demo=makeDemoScenario(route),warning=makeDemoBreakingWarning(route);
+ assert.equal(DEMO_SCENES.length,2);
+ assert.equal(demo.hazards.length+1,3);
+ assert.match(demo.hazards[0].measure,/100mm/);
+ assert.equal(demoSpokenWarning(demo.hazards[0],512),'전방 500미터에 비 100mm 주의입니다.');
+ assert.equal(demoSpokenWarning(demo.hazards[1],499),'전방 500미터에 안개 주의입니다.');
+ assert.equal(demoSpokenWarning(warning,1902),'전방 1900미터에 비 100mm 주의입니다.');
+ assert.equal(demoSpokenWarning({...warning,demo:false},500),null);
+ assert.equal(demoSpokenWarning(warning,null),null);
+ assert.ok(demoDistanceMeters(route.rainPath,0,600)>0);
+ const lead=demoLeadSeconds(route.rainPath,demo.hazards[0].seconds,500);
+ assert.ok(lead>0&&lead<demo.hazards[0].seconds);
+ assert.ok(Math.abs(demoDistanceMeters(route.rainPath,lead,demo.hazards[0].seconds)-500)<12);
+});
+test('detour notice makes no claims of verified road safety or real reroute',()=>{
+ assert.match(app,/route\.demoDetourSelected=true/);
+ assert.match(app,/clearDemoDetourPopup\(\)/);
+ assert.match(app,/const resumePlayback=playing/);
+ assert.match(app,/if\(resumePlayback&&progress<100\)startDemoPlayback\(\)/);
+ assert.match(ui,/실제 우회경로 검색이나 안전성 검증 결과가 아닙니다/);
 });
