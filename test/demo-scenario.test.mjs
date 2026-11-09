@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {DEMO_SEOUL_BUSAN,DEMO_SCENES,DEMO_BREAKING_TRIGGER,DEMO_BREAKING_POSITION,demoPointAtSeconds,makeDemoScenario,makeDemoBreakingWarning,shouldTriggerDemoBreakingWarning,demoDistanceMeters,demoLeadSeconds,demoSpokenWarning} from '../public/demo-scenario.mjs';
+import {DEMO_SEOUL_BUSAN,DEMO_SCENES,DEMO_INITIAL_WAYPOINTS,DEMO_DETOUR_CANDIDATES,DEMO_MIN_CLEARANCE_METERS,DEMO_BREAKING_TRIGGER,DEMO_BREAKING_POSITION,selectOptimalDemoDetour,demoBreakingTiming,demoPointAtSeconds,makeDemoScenario,makeDemoBreakingWarning,shouldTriggerDemoBreakingWarning,demoDistanceMeters,demoLeadSeconds,demoSpokenWarning} from '../public/demo-scenario.mjs';
 import {buildRouteHazards,hazardDetails} from '../public/route-hazards.mjs';
 const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
 const ui=readFileSync(new URL('../lib/ui.ts',import.meta.url),'utf8');
@@ -9,9 +9,9 @@ const ui=readFileSync(new URL('../lib/ui.ts',import.meta.url),'utf8');
 const route={duration:18000,departure:'2026-11-09T01:00:00.000Z',
  rainPath:[{lat:37.566,lng:126.978,seconds:0,label:'서울'},
  {lat:37.2722676,lng:127.4350893,seconds:2500,label:'이천'},
- {lat:36.75,lng:127.85,seconds:5300,label:'상주 진입'},
- {lat:36.4109398,lng:128.1591451,seconds:8000,label:'상주'},
- {lat:36.1398882,lng:128.1136245,seconds:10200,label:'김천'},
+ {lat:36.75,lng:127.85,seconds:5300,label:'중부 경로'},
+ {lat:36.4109398,lng:128.1591451,seconds:8000,label:'구미 접근'},
+ {lat:36.1195708,lng:128.3442464,seconds:10500,label:'구미'},
  {lat:35.5038173,lng:128.7466053,seconds:14500,label:'밀양'},
  {lat:35.17955,lng:129.07564,seconds:18000,label:'부산'}]};
 test('real Seoul and Busan city hall endpoints are predefined and not user GPS',()=>{
@@ -52,13 +52,13 @@ test('no newly issued warning is present before the surprise mid-drive trigger',
  const x=makeDemoScenario(route);
  assert.equal(x.hazards.some(h=>h.breaking),false);
  assert.equal(x.hazards.length,2);
- assert.equal(DEMO_BREAKING_TRIGGER,0.42);
- assert.equal(DEMO_BREAKING_POSITION,0.43);
- assert.equal(shouldTriggerDemoBreakingWarning(40,41,false),false);
- assert.equal(shouldTriggerDemoBreakingWarning(41,42,false),true);
+ assert.equal(DEMO_BREAKING_TRIGGER,0.58);
+ assert.equal(DEMO_BREAKING_POSITION,0.65);
+ assert.equal(shouldTriggerDemoBreakingWarning(56,57,false),false);
+ assert.equal(shouldTriggerDemoBreakingWarning(57,58,false),true);
  assert.equal(shouldTriggerDemoBreakingWarning(35,75,false),true);
- assert.equal(shouldTriggerDemoBreakingWarning(41,42,true),false);
- assert.equal(shouldTriggerDemoBreakingWarning(43,44,false),false);
+ assert.equal(shouldTriggerDemoBreakingWarning(57,58,true),false);
+ assert.equal(shouldTriggerDemoBreakingWarning(59,60,false),false);
 });
 
 test('fictional warning adds one nearby NEW geolocated point, never a KMA claim',()=>{
@@ -67,7 +67,7 @@ test('fictional warning adds one nearby NEW geolocated point, never a KMA claim'
  assert.equal(warning.id,'breaking-warning');
  assert.equal(warning.kind,'warning');
  assert.ok(warning.breaking&&warning.demo);
- assert.ok(warning.seconds>=7900&&warning.seconds<=8100);
+ assert.ok(warning.seconds>=10450&&warning.seconds<=10550);
  assert.equal(warning.issuedAt,'2026-11-09T02:15:00.000Z');
  assert.match(warning.measure,/호우특보/);
  assert.match(warning.provider,/시연/);
@@ -75,7 +75,7 @@ test('fictional warning adds one nearby NEW geolocated point, never a KMA claim'
  assert.ok(!scenario.hazards.some(h=>h.id===warning.id));
  assert.ok(warning.seconds>Math.round(route.duration*.42));
  assert.ok(hazardDetails(warning).join(' ').includes('실제 관측·특보 아님'));
- assert.throws(()=>makeDemoBreakingWarning({...route,rainPath:[]}),/상주 경로|가상 특보/);
+ assert.throws(()=>makeDemoBreakingWarning({...route,rainPath:[]}),/구미 경로|가상 특보/);
 });
 
 test('automatic new warning appears in route and driver UI but never in real path',()=>{
@@ -135,4 +135,46 @@ test('detour notice makes no claims of verified road safety or real reroute',()=
  assert.match(app,/const resumePlayback=playing/);
  assert.match(app,/if\(resumePlayback&&route\?\.demo&&progress<100&&drivingUI\.isActive\(\)\)startDemoPlayback\(\)/);
  assert.match(ui,/새 도로 경로는 카카오 API를 통해 조회합니다/);
+});
+
+
+test('Gumi warning and two regular events are geographically separate',()=>{
+ const places=DEMO_INITIAL_WAYPOINTS.map(p=>p.name);
+ assert.match(places[0],/이천/);
+ assert.match(places[1],/구미/);
+ assert.match(places[2],/밀양/);
+ const sequence=makeDemoScenario(route).hazards;
+ const warning=makeDemoBreakingWarning(route);
+ assert.equal(sequence[0].kind,'rain');
+ assert.equal(warning.label,'구미시청 부근');
+ assert.equal(sequence[1].kind,'fog');
+ assert.ok(sequence[0].seconds<warning.seconds&&warning.seconds<sequence[1].seconds);
+ const timing=demoBreakingTiming(route);
+ assert.ok(timing.triggerSeconds<warning.seconds);
+ assert.ok(timing.cityDistanceMeters<100);
+});
+test('fastest safe Kakao result is selected, not the fastest route through the warning',()=>{
+ const hazard={lat:36.11957,lng:128.34425};
+ const safePath=[{lat:36.16,lng:128.43,seconds:0},{lat:35.503817,lng:128.746605,seconds:9900},{lat:35.17955,lng:129.07564,seconds:11000}];
+ const unsafePath=[{...hazard,seconds:0},{lat:35.503817,lng:128.746605,seconds:8500},{lat:35.17955,lng:129.07564,seconds:9000}];
+ const option=(id,secs,points)=>({candidate:{id,label:id},route:{
+  duration:secs,distance:200000,vertices:points,rainPath:points}});
+ const cases=[option('unsafe-fast',9000,unsafePath),option('safe-slow',12500,safePath),option('safe-fast',10500,safePath)];
+ const choice=selectOptimalDemoDetour(cases,hazard);
+ assert.equal(choice.candidate.id,'safe-fast');
+ assert.ok(choice.clearance>=DEMO_MIN_CLEARANCE_METERS);
+ assert.ok(choice.fogDistance<12000);
+ assert.equal(selectOptimalDemoDetour([cases[0]],hazard),null);
+ assert.equal(selectOptimalDemoDetour([{candidate:{id:'invalid'},route:{duration:0,rainPath:[]}}],hazard),null);
+ assert.equal(DEMO_DETOUR_CANDIDATES.length,5);
+ assert.ok(DEMO_DETOUR_CANDIDATES.some(c=>c.id==='direct'&&c.waypoints.length===0));
+});
+test('simulator compares routes and does not show an extra sound-check button',()=>{
+ assert.match(app,/Promise\.allSettled\(DEMO_DETOUR_CANDIDATES\.map/);
+ assert.match(app,/selectOptimalDemoDetour\(completed,trip\.demoBreakingWarning\)/);
+ assert.match(app,/chosen\.candidate\.label/);
+ assert.match(app,/clearance/);
+ assert.doesNotMatch(app,/sunnyDemoSoundTest|소리 확인/);
+ assert.doesNotMatch(ui,/id="sunnyDemoSoundTest"|🔊 소리 확인/);
+ assert.match(app,/appPrefs\.voiceAlerts/);
 });
