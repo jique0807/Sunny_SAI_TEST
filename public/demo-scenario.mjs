@@ -6,17 +6,41 @@ export const DEMO_SEOUL_BUSAN=Object.freeze({
 });
 export const DEMO_PLACES=Object.freeze({
  icheon:Object.freeze({name:'이천시청 부근',lat:37.272267590188,lng:127.435089282741}),
- sangju:Object.freeze({name:'상주시청 부근',lat:36.41093980020886,lng:128.15914507699947}),
+ gumi:Object.freeze({name:'구미시청 부근',lat:36.1195708487424,lng:128.34424636107}),
  miryang:Object.freeze({name:'밀양시청 부근',lat:35.503817302675294,lng:128.74660534479577}),
- boeun:Object.freeze({name:'보은군청 부근',lat:36.4894353521523,lng:127.729498803343}),
- gimcheon:Object.freeze({name:'김천시청 부근',lat:36.1398881671927,lng:128.113624475917})
+ sandong:Object.freeze({name:'구미 산동읍 부근',lat:36.1696571391396,lng:128.4341450532684}),
+ jangcheon:Object.freeze({name:'구미 장천면 부근',lat:36.1259075819979,lng:128.49507975254}),
+ haepyeong:Object.freeze({name:'구미 해평면 부근',lat:36.1998395641148,lng:128.391295145168}),
+ buksam:Object.freeze({name:'칠곡 북삼읍 부근',lat:36.06291941719512,lng:128.34297332038372})
 });
 export const DEMO_INITIAL_WAYPOINTS=Object.freeze([
- DEMO_PLACES.icheon,DEMO_PLACES.sangju,DEMO_PLACES.miryang
+ DEMO_PLACES.icheon,DEMO_PLACES.gumi,DEMO_PLACES.miryang
 ]);
-export const DEMO_DETOUR_WAYPOINTS=Object.freeze([
- DEMO_PLACES.boeun,DEMO_PLACES.gimcheon,DEMO_PLACES.miryang
+// These are genuine Kakao road-route queries, rather than drawn detour lines.
+export const DEMO_DETOUR_CANDIDATES=Object.freeze([
+ Object.freeze({id:'direct',label:'카카오 추천',waypoints:Object.freeze([])}),
+ Object.freeze({id:'sandong',label:'산동읍 경유',waypoints:Object.freeze([DEMO_PLACES.sandong])}),
+ Object.freeze({id:'jangcheon',label:'장천면 경유',waypoints:Object.freeze([DEMO_PLACES.jangcheon])}),
+ Object.freeze({id:'haepyeong',label:'해평면 경유',waypoints:Object.freeze([DEMO_PLACES.haepyeong])}),
+ Object.freeze({id:'buksam',label:'북삼읍 경유',waypoints:Object.freeze([DEMO_PLACES.buksam])})
 ]);
+export const DEMO_MIN_CLEARANCE_METERS=3000;
+export function selectOptimalDemoDetour(options,hazard,{minClearanceMeters=DEMO_MIN_CLEARANCE_METERS,maxFogDistanceMeters=12000}={}){
+ if(!Array.isArray(options)||!hazard)return null;
+ const feasible=[];
+ for(const option of options){
+  if(!option?.route||!Array.isArray(option.route.rainPath)||option.route.rainPath.length<2||
+     !Array.isArray(option.route.vertices)||option.route.vertices.length<2||
+     !Number.isFinite(option.route.duration)||option.route.duration<=0||
+     !Number.isFinite(option.route.distance)||option.route.distance<=0)continue;
+  const clearance=demoClosestRouteDistance(option.route.rainPath,hazard);
+  const fogDistance=demoClosestRouteDistance(option.route.rainPath,DEMO_PLACES.miryang);
+  if(clearance<minClearanceMeters||fogDistance>maxFogDistanceMeters)continue;
+  feasible.push({...option,clearance,fogDistance});
+ }
+ feasible.sort((a,b)=>a.route.duration-b.route.duration||a.route.distance-b.route.distance);
+ return feasible[0]||null;
+}
 export const DEMO_SCENES=Object.freeze([
  {id:'rain',place:'icheon',kind:'rain',icon:'🌧️',title:'강한 비',measure:'1시간 강수량 100mm',
   description:'이천 부근에 강한 비가 예상됩니다. 실제 관측이 아닌 시연 수치입니다.'},
@@ -119,12 +143,12 @@ export function makeDemoScenario(route){
   throw Error('이천과 밀양 이벤트의 경로상 간격이 충분하지 않습니다.');
  return{hazards,samples:hazards.map(h=>({...h,status:'demo',demoHazard:h,forecast:null}))};
 }
-export const DEMO_BREAKING_TRIGGER=.42; // legacy fallback for callers without a loaded route
-export const DEMO_BREAKING_POSITION=.43;
+export const DEMO_BREAKING_TRIGGER=.58; // fallback only; actual trigger follows Gumi distance
+export const DEMO_BREAKING_POSITION=.65;
 export function demoBreakingTiming(route){
- if(!route?.rainPath?.length||!Number.isFinite(route.duration))throw Error('시연용 상주 경로가 없습니다.');
- const p=demoNearPlace(route.rainPath,DEMO_PLACES.sangju);
- if(!p||p.distanceFromPlace>12000)throw Error('상주 부근의 실제 도로 경로를 찾지 못했습니다.');
+ if(!route?.rainPath?.length||!Number.isFinite(route.duration))throw Error('시연용 구미 경로가 없습니다.');
+ const p=demoNearPlace(route.rainPath,DEMO_PLACES.gumi);
+ if(!p||p.distanceFromPlace>12000)throw Error('구미 부근의 실제 도로 경로를 찾지 못했습니다.');
  const seconds=Math.round(p.seconds),triggerSeconds=demoLeadSeconds(route.rainPath,seconds,25000);
  return{seconds,triggerSeconds,triggerPercent:100*triggerSeconds/route.duration,
   point:p,cityDistanceMeters:p.distanceFromPlace};
@@ -137,10 +161,10 @@ export function makeDemoBreakingWarning(route,issuedAt=new Date().toISOString())
  if(!route||!Array.isArray(route.rainPath)||!Number.isFinite(route.duration)||
   !Number.isFinite(Date.parse(route.departure)))throw Error('가상 특보를 표시할 차량 경로가 없습니다.');
  const {seconds,point}=demoBreakingTiming(route);
- return{id:'breaking-warning',kind:'warning',icon:'🚨',title:'상주 부근 긴급 호우특보',
-  description:'시연 중 상주 부근에 호우특보가 발표됐다고 가정합니다. 실제 특보가 아닙니다.',
+ return{id:'breaking-warning',kind:'warning',icon:'🚨',title:'구미 부근 긴급 호우특보',
+  description:'시연 중 구미 부근에 호우특보가 발표됐다고 가정합니다. 실제 특보가 아닙니다.',
   measure:'호우특보 · 1시간 강수량 100mm',
-  lat:point.lat,lng:point.lng,seconds,label:DEMO_PLACES.sangju.name,
+  lat:point.lat,lng:point.lng,seconds,label:DEMO_PLACES.gumi.name,
   eta:new Date(Date.parse(route.departure)+seconds*1000).toISOString(),issuedAt,
   demo:true,breaking:true,provider:'시연 모드 · 실제 기상청 특보 아님'};
 }
