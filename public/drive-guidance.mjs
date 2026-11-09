@@ -106,7 +106,7 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
     if(showWeather)slots.push({title:'전방 기상안내 일시중지',subtitle:'경로 복귀 후 다시 확인',icon:'·',status:true});
    }else if(showWeather){
     for(const item of risks)slots.push({
-      title:item.breaking?'🚨 신규 호우특보 발효':
+      title:item.breaking?'신규 호우특보 발효':
        (item.minutes===0?'현재 부근':item.minutes+'분 후')+' · '+item.title,
       subtitle:item.label+' · '+(route.demo?'시연 경로':item.source),
       icon:item.icon,status:false,urgent:!!item.breaking
