@@ -63,13 +63,13 @@ export const ui = `
 <footer><span>sunnySAI <span class="footer-dot">/</span> 날씨를 아는 여정</span><span>차량 경로 · 기상 브리핑 · 음성 동승자</span><button id="share">앱 링크 공유</button><button id="install">홈 화면에 추가</button></footer>
 <dialog id="settings"><form method="dialog" class="dialog-head"><div><span class="eyebrow">MAKE IT YOURS</span><h2>Sunny SAI 환경설정</h2></div><button aria-label="설정 닫기">✕</button></form>
 <section class="sunny-settings-section" aria-labelledby="drivePreferencesHeading">
- <h3 id="drivePreferencesHeading">주행 지도</h3>
- <label class="sunny-setting-option"><span><b>주행 중 지도 자동 따라가기</b><small>안내 중 차량을 따라 지도가 자동으로 이동합니다.</small></span><input id="settingFollowGps" type="checkbox" checked/></label>
+ <h3 id="drivePreferencesHeading">차량·도보 지도</h3>
+ <label class="sunny-setting-option"><span><b>이동 중 지도 자동 따라가기</b><small>차량·도보 안내 중 현재 위치를 따라 지도가 이동합니다.</small></span><input id="settingFollowGps" type="checkbox" checked/></label>
  <label class="sunny-setting-option"><span><b>지도 방향</b><small>주행 중 진행방향 지도를 사용합니다. 글자는 바르게 유지됩니다.</small></span><select id="settingHeadingMode"><option value="course">진행방향 위로 · 글자 고정</option><option value="north">북쪽 위로 · 글자 고정</option></select></label>
 </section>
 <section class="sunny-settings-section" aria-labelledby="weatherPreferencesHeading">
  <h3 id="weatherPreferencesHeading">전방 기상안내</h3>
- <label class="sunny-setting-option"><span><b>경로·주행 기상 알림 개수</b><small>경로 결과와 주행 화면에서 표시할 기상 알림 수입니다.</small></span><select id="settingAlertCount"><option value="2">최대 2개</option><option value="1">최대 1개</option></select></label>
+ <label class="sunny-setting-option"><span><b>차량·도보 기상 알림 개수</b><small>경로 결과와 이동 안내 화면에서 표시할 기상 알림 수입니다.</small></span><select id="settingAlertCount"><option value="2">최대 2개</option><option value="1">최대 1개</option></select></label>
  <label class="sunny-setting-option"><span><b>이동 중 예보 재조회 최소 간격</b><small>너무 자주 조회하면 API 사용량이 증가합니다. 정지·느린 이동 시에는 최소 5분 간격을 적용합니다.</small></span><select id="settingRefreshMinutes"><option value="1">1분 (기본)</option><option value="3">3분</option><option value="5">5분</option><option value="10">10분</option></select></label>
  <label class="sunny-setting-option sunny-setting-slider"><span><b>지도 기상영역 투명도</b><small>표출 메뉴와 같은 투명도 설정입니다.</small></span><output id="settingOverlayOpacityValue" for="settingOverlayOpacity">45%</output><input id="settingOverlayOpacity" type="range" min="0" max="100" step="5" value="45"/></label>
 </section>
@@ -90,12 +90,13 @@ export const ui = `
  <details class="sunny-source-fold">
   <summary id="settingsDataConnectionsHeading"><strong>데이터 연결 상태</strong><small>API 키 등록 및 연결 결과</small></summary>
  <div class="sunny-source-settings-head">
-  <div><p>지도·경로·기상·도로위험 자료의 서버 연결 및 수신 여부를 확인합니다.</p></div>
+  <div><p>카카오 지도·자동차, TMAP 도보, 기상·도로위험의 API 등록 여부와 실제 응답을 구분해 확인합니다.</p></div>
   <button id="settingConnectionRefresh" type="button" aria-label="전체 데이터 연결 상태 다시 검사"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2 5"/></svg><span id="settingConnectionRefreshLabel">상태 새로고침</span></button>
  </div>
  <p id="settingConnectionSummary" class="sunny-source-summary" role="status" aria-live="polite">검사 전 · 자료별 상태를 조회해주세요.</p>
  <div id="settingConnectionItems" class="sunny-source-items" role="list" aria-label="API 데이터 종류별 연결 상태"></div>
  <p id="settingConnectionCheckedAt" class="sunny-source-checked">최종 검사: 없음</p>
+ <p class="sunny-source-guide"><strong>도보:</strong> TMAP 보행자 길찾기는 서버의 <code>TMAP_API_KEY</code>를 우선 사용합니다. 인증키는 Vercel 환경변수에서만 등록·수정합니다. TMAP 미등록 시 카카오 도보 대체 제공자의 실제 이용 가능 여부는 별도 확인이 필요합니다. <strong>위험 판단:</strong> Risk Engine 2.0은 기상예보를 분석하며, 현장 보행로 침수·결빙·통행 제한 자료는 아직 미연결입니다.</p>
  <p class="sunny-source-caution">인증키 등록 ≠ 실제 수신 성공. 자료를 받더라도 위험등급·위치·유효시각이 검증되기 전에는 운전 경보로 사용하지 않습니다. API 키나 GPS 위치는 표시하지 않습니다.</p>
  </details>
 </section>

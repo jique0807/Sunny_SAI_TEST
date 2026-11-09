@@ -10,7 +10,7 @@ const ui=readFileSync(new URL('../lib/ui.ts',import.meta.url),'utf8');
 const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
 const css=readFileSync(new URL('../app/navigation-ui.css',import.meta.url),'utf8');
 const session={mapConfig:{kakao:'public-js-app-id',vworld:'public-vworld-id'},
- connections:{route:true,kma:true,roadRisk:true,safemap:true}};
+ connections:{route:true,tmap:true,walking:true,walkingProvider:'tmap',kma:true,roadRisk:true,safemap:true}};
 const journey={
  mapSdk:{fixedPreviewAlias:{status:'received',http:200}},
  search:{status:'received',matchCount:5},
@@ -47,7 +47,8 @@ test('source inventory covers all agreed menu sources but excludes CCTV and ordi
  const ids=DATA_CONNECTION_SOURCES.map(x=>x.id);
  assert.equal(new Set(ids).size,ids.length);
  assert.ok(ids.includes('map')&&ids.includes('rain')&&ids.includes('radar'));
- assert.equal(ids.length,10);
+ assert.equal(ids.length,12);
+ assert.ok(ids.includes('walk')&&ids.includes('walkSurface'));
  assert.ok(ids.includes('road')&&ids.includes('warning'));
  assert.ok(ids.includes('floodNational')&&ids.includes('floodLocal'));
  assert.ok(!ids.includes('riverLevel'));
@@ -61,12 +62,16 @@ test('key presence never equals a verified provider response',()=>{
  assert.equal(empty.floodLocal.state,'unknown');
  const configured=applySessionConfiguration(empty,session);
  assert.equal(configured.rain.state,'configured');
+ assert.equal(configured.walk.state,'configured');
+ assert.equal(configured.walkSurface.state,'unverified');
+ assert.equal(configured.walkSurface.keyRegistered,null);
  assert.equal(configured.map.state,'configured');
  assert.equal(configured.vworld,undefined);
  assert.equal(configured.floodNational.state,'configured');
  assert.equal(configured.rain.keyRegistered,true);
  const missing=applySessionConfiguration(empty,{mapConfig:{},connections:{}});
  assert.equal(missing.route.state,'missing');
+ assert.equal(missing.walk.state,'missing');
  assert.equal(missing.rain.state,'missing');
  assert.equal(missing.floodLocal.state,'missing');
 });
@@ -88,6 +93,7 @@ test('live forecast/radar/route success never mislabels unverified road risk or 
  assert.equal(values.floodLocal.state,'error');
  assert.equal(values.floodNational.keyRegistered,true);
  assert.equal(summarizeConnectionResults(values).counts.ok,6);
+ assert.equal(values.walk.state,'configured');
  assert.doesNotMatch(JSON.stringify(values),/모든 도로 안전|침수 없음/);
 });
 test('missing credential cannot be changed to success by a provider probe',()=>{
@@ -116,6 +122,7 @@ test('settings refresh makes real diagnostic requests and maps results to honest
  const response={
   '/api/session':session,
   '/api/preview-journey-smoke':journey,
+  '/api/pedestrian-route-diagnostic':{provider:'tmap',status:'received',geometryValid:true,distanceMeters:1540,durationSeconds:1080},
   '/api/rain-grid-diagnostic':rain,
   '/api/radar-latest-diagnostic':radar,
   '/api/route-layer-feasibility':layers
@@ -131,13 +138,15 @@ test('settings refresh makes real diagnostic requests and maps results to honest
  assert.ok(nodes.get('settingConnectionItems').children.length>11);
  assert.equal(await panel.refresh(),true);
  assert.deepEqual(calls,[
-  '/api/session','/api/preview-journey-smoke','/api/rain-grid-diagnostic',
+  '/api/session','/api/preview-journey-smoke','/api/pedestrian-route-diagnostic','/api/rain-grid-diagnostic',
   '/api/radar-latest-diagnostic','/api/route-layer-feasibility'
  ]);
  assert.equal(panel.getStatus().rain.state,'ok');
+ assert.equal(panel.getStatus().walk.state,'ok');
+ assert.equal(panel.getStatus().walkSurface.state,'unverified');
  assert.equal(panel.getStatus().road.state,'partial');
  assert.equal(panel.getStatus().floodNational.state,'error');
- assert.match(nodes.get('settingConnectionSummary').textContent,/연결 8/);
+ assert.match(nodes.get('settingConnectionSummary').textContent,/연결 9/);
  assert.match(nodes.get('settingConnectionCheckedAt').textContent,/2026/);
  assert.equal(nodes.get('settingConnectionRefresh').disabled,false);
  assert.equal(panel.isChecking(),false);
@@ -154,4 +163,15 @@ test('rate-limit response is not treated as successful data and unmapped sources
  assert.equal(panel.getStatus().rain.state,'unverified');
  assert.match(panel.getStatus().rain.detail,/검사 횟수 제한/);
  assert.equal(panel.getStatus().floodLocal.state,'error');
+});
+
+test('walking diagnostic never claims road or sidewalk observations are measured',()=>{
+ let results=applySessionConfiguration(initialConnectionResults(),session);
+ results=mapConnectionProbe('walk',{provider:'tmap',status:'received',geometryValid:false},results);
+ assert.equal(results.walk.state,'error');
+ results=mapConnectionProbe('walk',{provider:'tmap',status:'received',geometryValid:true,distanceMeters:1540,durationSeconds:1050},results);
+ assert.equal(results.walk.state,'ok');
+ assert.equal(results.walkSurface.state,'unverified');
+ assert.match(results.walkSurface.detail,/미연결/);
+ assert.match(results.walk.detail,/현장 위험 미검증/);
 });

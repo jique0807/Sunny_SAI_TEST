@@ -6,13 +6,15 @@ export const DATA_CONNECTION_SOURCES=[
  {id:'map',group:'지도·길찾기',name:'카카오맵 지도',description:'JavaScript SDK · 프리뷰 허용 도메인'},
  {id:'search',group:'지도·길찾기',name:'카카오 장소검색',description:'장소명·주소 찾기'},
  {id:'route',group:'지도·길찾기',name:'카카오 자동차 길찾기',description:'도로 경로·거리·예상 통과시각'},
+ {id:'walk',group:'지도·길찾기',name:'TMAP 도보 길찾기',description:'서울역 → 서울시청 실제 보행 경로 응답 검사'},
  {id:'forecast',group:'강수·눈',name:'경로별 기상예보',description:'예상 통과시각의 기상청 예보'},
  {id:'rain',group:'강수·눈',name:'전국 강수량 격자 예보',description:'RN1 5km 격자 · 가장 가까운 정시의 1시간 강수량'},
  {id:'radar',group:'강수·눈',name:'HSR 레이더 실황',description:'실제 관측영상 · 10분 간격 표출'},
  {id:'road',group:'도로위험',name:'도로살얼음·안개',description:'도로 링크별 공식 위험기상정보'},
  {id:'warning',group:'기상특보',name:'기상특보 현황',description:'발효지역·특보등급 검증 필요'},
  {id:'floodNational',group:'침수',name:'국가하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 아님'},
- {id:'floodLocal',group:'침수',name:'지방하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 아님'}
+ {id:'floodLocal',group:'침수',name:'지방하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 아님'},
+ {id:'walkSurface',group:'보행 안전',name:'보행로 침수·결빙·통행 제한',description:'현장 관측자료 API 미연결 · 기상예보 기반 위험 주의만 제공'}
 ];
 export const CONNECTION_STATE_TEXT={
  unknown:'검사 전',unverified:'검사 보류',checking:'조회 중',configured:'검사 전',
@@ -36,13 +38,14 @@ export function applySessionConfiguration(current,session){
  const copy={...current},config=session?.connections||{};
  const configured={
   map:Boolean(session?.mapConfig?.kakao),
-  search:config.route,route:config.route,
+  search:config.route,route:config.route,walk:config.tmap,
   forecast:config.kma,rain:config.kma,radar:config.kma,
   road:config.roadRisk,warning:config.kma,floodNational:config.safemap,floodLocal:config.safemap
  };
  for(const [id,yes]of Object.entries(configured)){
-  copy[id]={...(yes?state('configured','실제 API 응답 검사 전'):state('missing','서버 인증키 미설정')),keyRegistered:Boolean(yes)};
+  copy[id]={...(yes?state('configured','실제 API 응답 검사 전'):state('missing',id==='walk'?'TMAP_API_KEY 미등록 · 카카오 대체 도보 제공자 실수신 별도 확인':'서버 인증키 미설정')),keyRegistered:Boolean(yes)};
  }
+ copy.walkSurface={...state('unverified','실제 보행로 침수·결빙·통제 관측 API 미연결 · Risk Engine은 기상예보로 주의를 판단'),keyRegistered:null};
  return copy;
 }
 export function mapConnectionProbe(kind,data,previous){
@@ -66,6 +69,14 @@ export function mapConnectionProbe(kind,data,previous){
   put('forecast',forecast?.status==='received'?'ok':'error',
    forecast?.status==='received'?'기상청 경로 지점·예보시각 응답 확인':
     '기상청 경로 지점 예보 응답 미확인');
+ }
+ if(kind==='walk'){
+  const valid=data?.provider==='tmap'&&data?.status==='received'&&data?.geometryValid===true;
+  const message=valid?'TMAP 실제 보행경로 '+Math.round(data.distanceMeters)+'m · 약 '+Math.round(data.durationSeconds/60)+'분 확인 · 현장 위험 미검증':
+   [401,403].includes(data?.providerStatus)?'TMAP 인증키 또는 보행 경로 이용권한 확인 필요':
+   data?.providerStatus===429?'TMAP 공급기관 호출 제한':
+   data?.reason||'TMAP 실제 보행 경로 응답 미확인';
+  put('walk',valid?'ok':'error',message);
  }
  if(kind==='rain'){
   const found=Array.isArray(data?.results)?data.results:[];
@@ -151,7 +162,7 @@ export function initConnectionStatusPanel({
    const entry=values[id]||state('unknown','검사 전');
    refs.row.dataset.connectionState=entry.state;
    refs.badge.textContent=CONNECTION_STATE_TEXT[entry.state]||'확인 불가';
-   refs.keyStatus.textContent='API 키 · '+(entry.keyRegistered===true?'등록됨':entry.keyRegistered===false?'미등록':'확인 불가');
+   refs.keyStatus.textContent=id==='walkSurface'?'현장 관측 연계 · 미연결':'API 키 · '+(entry.keyRegistered===true?'등록됨':entry.keyRegistered===false?'미등록':'확인 불가');
    refs.explanation.textContent=entry.state==='empty'?'자료없음 · '+entry.detail:entry.detail||'';
   }
   if(summary)summary.textContent=summarizeConnectionResults(values).text;
@@ -180,13 +191,14 @@ export function initConnectionStatusPanel({
    if(run!==request)return false;
    values=applySessionConfiguration(initialConnectionResults(),session);
    for(const [ids]of [
-    [['map','search','route','forecast']],[['rain']],[['radar']],
+    [['map','search','route','forecast']],[['walk']],[['rain']],[['radar']],
     [['road','warning','floodNational','floodLocal']]
    ])for(const id of ids)if(values[id]?.state==='configured')
     values[id]={...values[id],...state('checking','실제 공급기관 API 응답 확인 중')};
    render();
    const checks=[
     ['journey','/api/preview-journey-smoke',['map','search','route','forecast']],
+    ['walk','/api/pedestrian-route-diagnostic',['walk']],
     ['rain','/api/rain-grid-diagnostic',['rain']],
     ['radar','/api/radar-latest-diagnostic',['radar']],
     ['layers','/api/route-layer-feasibility',['road','warning','floodNational','floodLocal']]

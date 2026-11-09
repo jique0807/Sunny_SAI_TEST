@@ -2254,3 +2254,10 @@ body.sunny-guiding .sunny-demo-detour-popup{
  .sunny-route-studio .sunny-walk-demo-launch{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;min-height:48px}
  .sunny-route-studio .sunny-walk-demo-launch small{flex:1 0 100%;text-align:center}
 }
+
+/* Server-owned provider settings help; no API keys or GPS values in the browser. */
+#settings .sunny-source-guide{margin:12px 0 7px;padding:11px 12px;border-radius:11px;border:1px solid #cee3f5;background:#edf6ff;
+ color:#28516e;font-size:11px;line-height:1.65;overflow-wrap:anywhere}
+#settings .sunny-source-guide strong{font-weight:800}
+#settings .sunny-source-guide code{font-family:ui-monospace,Consolas,monospace;
+ font-size:11px;padding:1px 4px;border-radius:4px;background:#fff}
