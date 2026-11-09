@@ -2146,3 +2146,28 @@ body.sunny-guiding #driveControls{display:none!important;}
  }
  .sunny-rain-grid-head strong{font-size:11px;gap:2px 4px!important;}
 }
+
+
+/* Three-event demo: an unmistakably fictional detour-selection status.
+   The notice stays visible for 3 seconds AFTER selection, then disappears. */
+.sunny-demo-detour-popup[hidden]{display:none!important;}
+body.sunny-guiding .sunny-demo-detour-popup{
+ position:absolute;left:50%;top:clamp(144px,33%,250px);
+ transform:translateX(-50%);z-index:70;
+ width:min(330px,calc(100% - 36px));box-sizing:border-box;
+ padding:16px 17px 14px;border:2px solid #faac54;border-radius:17px;
+ background:#fffdf7;color:#23394d;box-shadow:0 12px 32px #182e4973;
+ pointer-events:none;text-align:left;
+}
+.sunny-demo-detour-header{display:flex;align-items:center;gap:9px;
+ color:#93450f;font-size:16px;font-weight:850;line-height:1.3;}
+.sunny-demo-detour-sign{flex:none;font-size:22px;}
+.sunny-demo-detour-popup p{font-size:13px;line-height:1.45;margin:8px 0;}
+.sunny-demo-detour-popup small{display:block;border-top:1px solid #edd8b8;
+ padding-top:7px;color:#6f5940;font-size:11px;line-height:1.35;}
+@media(max-width:370px){
+ body.sunny-guiding .sunny-demo-detour-popup{
+  top:clamp(130px,30%,190px);padding:11px 12px;}
+ .sunny-demo-detour-header{font-size:14px;}
+ .sunny-demo-detour-popup p{font-size:12px;}
+}
