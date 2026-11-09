@@ -2,7 +2,7 @@
 'use strict';
 if(window.sunnyInitialized)return;window.sunnyInitialized=true;
 const {assess,AlertGate}=await import('/rules.mjs');
-const {makeDemoScenario,makeDemoBreakingWarning,shouldTriggerDemoBreakingWarning,DEMO_BREAKING_TRIGGER,DEMO_SEOUL_BUSAN,demoPointAtSeconds,demoDistanceMeters,demoLeadSeconds,demoSpokenWarning}=await import('/demo-scenario.mjs');
+const {makeDemoScenario,makeDemoBreakingWarning,shouldTriggerDemoBreakingWarning,DEMO_BREAKING_TRIGGER,DEMO_SEOUL_BUSAN,DEMO_INITIAL_WAYPOINTS,DEMO_DETOUR_WAYPOINTS,demoPointAtSeconds,demoDistanceMeters,demoLeadSeconds,demoSpokenWarning,demoBreakingTiming,demoEventAtPlace,demoClosestRouteDistance}=await import('/demo-scenario.mjs');
 const {projectRoute,roadSection,kakaoRouteLink}=await import('/map-geometry.mjs');
 const {coordinatePlace,nearestSample,tileHealth}=await import('/map-state.mjs');
 const {voiceCatalog}=await import('/voice-catalog.mjs');
@@ -20,7 +20,7 @@ const {resolveDrivingHeading,angleStep,compassBearing}=await import('/heading-up
 const {initVectorDriving}=await import('/vector-driving.mjs');
 const {DEFAULT_APP_SETTINGS,initAppSettings}=await import('/app-settings.mjs');
 const {initConnectionStatusPanel}=await import('/connection-status.mjs');
-let demoOverlays=[],carOverlay=null;
+let demoOverlays=[],carOverlay=null,initialDemoRoute=null;
 // Bind the DOM selector before any top-level UI event wiring (prevent TDZ startup crash).
 const $=id=>document.getElementById(id);
 
@@ -750,19 +750,19 @@ async function demoRoute(){
  try{
   // Fixed endpoints and fictional risk layers: NEVER borrow a user's GPS or real weather.
   const start={...DEMO_SEOUL_BUSAN.origin},end={...DEMO_SEOUL_BUSAN.destination};
-  const d=await api('/api/route',{origin:start,destination:end,departure:new Date().toISOString()});
+  const d=await api('/api/route',{origin:start,destination:end,waypoints:DEMO_INITIAL_WAYPOINTS,departure:new Date().toISOString()});
   if(run!==routeSeq)return;
   if(!d.vertices?.length||!d.rainPath?.length)throw Error('시연용 실제 도로 좌표를 받지 못했습니다.');
   originPlace=start;destPlace=end;
   $('origin').value=start.name;$('destination').value=end.name;studioSync();
   route={...d,demo:true};
   const scenario=makeDemoScenario(route);
-  route.demoHazards=scenario.hazards;route.samples=scenario.samples;
+  route.demoHazards=scenario.hazards;route.samples=scenario.samples;route.demoWarningIssued=false;initialDemoRoute=route;
   weather={samples:scenario.samples,source:'시연 모드 · 실제 기상관측 아님',fetchedAt:new Date().toISOString()};
   progress=0;gate.reset();renderRoute();renderCards();
   showNavSearch(false);showNavRouteResult();
   await showMap('kakao');
-  reply('서울에서 부산까지 강수·안개 이벤트 2개를 배치했습니다. 주행 중 긴급특보와 우회경로 선택을 시연합니다.');
+  reply('이천에 비, 상주에 돌발 호우특보, 밀양에 안개를 배치했습니다. 특보 발생 시 카카오 대체 도로 경로를 탐색합니다.');
  }catch(e){if(run===routeSeq)reply('시연 경로를 불러오지 못했어요. '+e.message);}
  finally{if(run===routeSeq){$('demo').disabled=false;$('routeSearch').disabled=false;}}
 }
@@ -930,7 +930,7 @@ function advance(value){
  const elapsed=route.duration*progress/100;
  if(drivingUI.isActive())drivingUI.update(elapsed,null,false);
  // Place new warning on the ahead-of-driver route only when it is issued mid-trip.
- const justIssued=shouldTriggerDemoBreakingWarning(previous,progress,!!route.demoBreakingWarning)
+ const justIssued=!route.demoWarningIssued&&shouldTriggerDemoBreakingWarning(previous,progress,false,demoBreakingTiming(route).triggerPercent)
   &&injectDemoBreakingWarning();
  for(const h of route.demoHazards||[]){
   if(h.breaking||demoAnnounced.has(h.id))continue;
@@ -963,6 +963,7 @@ function startDemoPlayback(){
 }
 function startDemoGuidance(){
  if(!route?.demo)return;
+ if(route.demoDetourSelected&&initialDemoRoute){route=initialDemoRoute;weather={samples:route.samples,source:'시연용 기상·도로위험 자료',fetchedAt:new Date().toISOString()};renderRoute();renderCards();}
  pauseDrive();rainGridOverlay.disableRouteRadar();
  // Clear previously issued synthetic warning when restarting a demo.
  resetDemoBreakingWarning();
@@ -971,7 +972,7 @@ function startDemoGuidance(){
  void startVectorGuidance(route.rainPath[0],demoCourseAt(0));
  $('navRouteResult').hidden=true;document.body.classList.remove('nav-route-open');
  setNavTab('navRoute');showNavSearch(false);
- $('sunnyDemoNext').hidden=false;$('sunnyDemoPause').hidden=false;
+ $('sunnyDemoNext').hidden=false;$('sunnyDemoPause').hidden=false;if($('sunnyDemoSoundTest'))$('sunnyDemoSoundTest').hidden=false;
  $('driveControls').hidden=false;
  progress=0;gate.reset();advance(0);
  void showMap('kakao');
@@ -981,18 +982,18 @@ function startDemoGuidance(){
 $('sunnyDemoNext')?.addEventListener('click',()=>{
  if(!route?.demo)return;
  pauseDrive();
- if(!$('sunnyDemoDetourPopup').hidden)return;
+ if(!$('sunnyDemoDetourPopup').hidden||route.demoDetourPending)return;
  const elapsed=route.duration*progress/100;
  const next=(route.demoHazards||[]).find(h=>!h.breaking&&!demoAnnounced.has(h.id));
  const nextNotice=next?demoLeadSeconds(route.rainPath,next.seconds,500):Infinity;
- const triggerAt=route.duration*DEMO_BREAKING_TRIGGER;
+ const triggerAt=route.demoWarningIssued?Infinity:demoBreakingTiming(route).triggerSeconds;
  // The third and final demo event is the surprise warning and scripted detour.
- if(!route.demoBreakingWarning&&triggerAt>elapsed+1&&triggerAt<nextNotice)
+ if(!route.demoWarningIssued&&triggerAt>elapsed+1&&triggerAt<nextNotice)
   advance(DEMO_BREAKING_TRIGGER*100+0.01);
  else if(next&&nextNotice>=elapsed)
   advance(Math.min(100,(nextNotice+.01)/route.duration*100));
- else if(!route.demoBreakingWarning)
-  advance(DEMO_BREAKING_TRIGGER*100+0.01);
+ else if(!route.demoWarningIssued)
+  advance(Math.min(100,triggerAt/route.duration*100+0.01));
  else{advance(100);toast('모든 위험 이벤트를 확인했습니다.');}
 });
 $('sunnyDemoPause')?.addEventListener('click',()=>{
@@ -1008,7 +1009,7 @@ $('endDrive').onclick=()=>{
  $('progress').value='0';moveCar();$('driveControls').hidden=true;
  clearDemoDetourPopup();
  vectorDriving.stop();if(drivingUI.isActive())drivingUI.stop();
- $('sunnyDemoNext').hidden=true;$('sunnyDemoPause').hidden=true;
+ $('sunnyDemoNext').hidden=true;$('sunnyDemoPause').hidden=true;if($('sunnyDemoSoundTest'))$('sunnyDemoSoundTest').hidden=true;
  showNavRouteResult();
  reply('주행 시연을 종료했어요.');
 };
