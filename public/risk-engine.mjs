@@ -11,7 +11,7 @@ export function assessRouteHazard(h,{now=Date.now()}={}){
  const source=String(h.provider||'');
  if(h.roadRisk!==undefined){
   const g=h.roadRisk,age=validTime(h.validTime)?now-Date.parse(h.validTime):Infinity;
-  if(!source.includes('기상청 도로위험')||![1,2,3].includes(g)||!located(h)||!validTime(h.eta)||age<0||age>15*60000)
+  if(!source.includes('기상청 도로위험')||h.riskGradeVerified!==true||![1,2,3].includes(g)||!located(h)||!validTime(h.eta)||age<0||age>15*60000)
    return assessment('unknown','도로위험 자료 검증 필요','출처·등급·위치·시각 미검증','검증 전 운전자에게 확정된 도로위험으로 알리지 않습니다.',0);
   const rank={1:48,2:75,3:95},level={1:'notice',2:'caution',3:'high'};
   return assessment(level[g],'기상청 도로위험 '+({1:'관심',2:'주의',3:'위험'}[g]),source+' · 위치 및 15분 이내 자료시각 확인',
