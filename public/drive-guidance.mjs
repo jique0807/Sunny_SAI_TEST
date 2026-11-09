@@ -1,5 +1,6 @@
 // Sunny SAI in-app foreground driving panel.
 import {buildRouteHazards,renderHazardRail,showHazardDetail} from './route-hazards.mjs';
+import {prioritizeRouteHazards} from './risk-engine.mjs';
 // All progress comes from GPS projected onto the real Kakao Mobility route.
 // Live mode only uses real provider records. Separate demo mode is explicitly fictional.
 const EARTH=111320;
@@ -97,7 +98,7 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
       return ordered.slice(0,alertCount)
        .map(h=>({...h,minutes:Math.max(0,Math.round((h.seconds-seconds)/60))}));
      })()
-   :upcomingRisks(combinedSamples(),seconds,alertCount);
+   :prioritizeRouteHazards([...buildRouteHazards(combinedSamples(),{limit:20}),...getRoadHazards(route)],seconds,alertCount);
   if(alerts){
    alerts.replaceChildren();
    const slots=[];
@@ -107,9 +108,9 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
    }else if(showWeather){
     for(const item of risks)slots.push({
       title:item.breaking?'신규 호우특보 발효':
-       (item.minutes===0?'현재 부근':item.minutes+'분 후')+' · '+item.title,
-      subtitle:item.label+' · '+(route.demo?'시연 경로':item.source),
-      icon:item.icon,status:false,urgent:!!item.breaking
+       (item.minutes===0?'현재 부근':item.minutes+'분 후')+' · '+(route.demo?item.title:item.assessment?.label||item.title),
+      subtitle:item.label+' · '+(route.demo?'시연 경로':item.assessment?.evidence||item.provider||'기상정보'),
+      icon:item.icon,status:false,urgent:!!item.breaking||item.assessment?.level==='high'
     });
     if(!slots.length){
       const known=route.demo||combinedSamples().length>0;
