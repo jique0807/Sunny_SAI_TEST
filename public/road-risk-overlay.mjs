@@ -68,7 +68,8 @@ export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
   if(!records.length){
    const reason=data.status==='unmapped'?'ZIP에 위험도는 있으나 좌표·도로 형상이 확인되지 않았습니다. 잘못된 지도 표시는 하지 않습니다':
     data.status==='unsupported_format'?'원본 ZIP 자료구조가 확인되지 않아 위치 표출을 중단했습니다':
-    '선택한 유형에서 위치가 검증된 위험구간 없음 (안전하다는 뜻이 아님)';
+    data.locations.some(item=>item.gradeMeaningVerified!==true)?'기상청 숫자 위험코드의 공식 등급 의미가 미확인되어 경고 표출을 보류했습니다':
+    '선택한 유형에서 검증된 위험구간 없음 (안전하다는 뜻이 아님)';
    message(coverage+' · '+reason);return;
   }
   for(const item of records){
