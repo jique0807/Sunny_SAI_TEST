@@ -48,7 +48,7 @@ test('real KOROAD toggle is conditional, UTIC remains disabled, walking demo rem
  assert.match(app,/koroadHotspots.setAvailable\(connections.koroad\)/);
  assert.match(ui,/id="navLayerPedestrianHotspots" type="checkbox" disabled/);
  assert.match(ui,/id="navLayerTrafficIncidents" type="checkbox" disabled/);
- assert.match(app,/chooseWalkingDemoShelter/);
+ assert.match(app,/buildPedestrianHistoryHazards/);
 });
 
 test('KOROAD API does not accept custom regions or arbitrary query parameters',async()=>{
