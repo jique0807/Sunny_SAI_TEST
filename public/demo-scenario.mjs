@@ -118,12 +118,17 @@ export function demoClosestRouteDistance(path,place){
 }
 function eventForScene(route,scene){
  const target=DEMO_PLACES[scene.place];
- const p=demoNearPlace(route.rainPath,target);
- if(!p||p.distanceFromPlace>12000)throw Error(scene.title+' 경로가 '+target.name+'에서 12km 이내를 지나지 않습니다.');
+ const nearest=demoNearPlace(route.rainPath,target);
+ const near=!!nearest&&nearest.distanceFromPlace<=12000;
+ // Ordinary Kakao driving routes are NOT forced through fictional event cities.
+ // If the route bypasses a city, put the event on actual route geometry and use an honest label.
+ const p=near?nearest:demoPointAtSeconds(route.rainPath,route.duration*(scene.kind==='rain'?.22:.82));
+ if(!p||!Number.isFinite(p.lat)||!Number.isFinite(p.lng))throw Error('가상 위험지점을 실제 도로 위에 배치하지 못했습니다.');
  const seconds=Math.round(p.seconds);
  return {id:scene.id,kind:scene.kind,icon:scene.icon,title:scene.title,
-  description:scene.description,measure:scene.measure,
-  lat:p.lat,lng:p.lng,seconds,label:target.name,
+  description:near?scene.description:scene.title+' 시연 이벤트입니다. 실제 관측이 아니며 특정 도시에서 발생했다는 뜻이 아닙니다.',
+  measure:scene.measure,lat:p.lat,lng:p.lng,seconds,
+  label:near?target.name:'현재 자동차 경로 '+(scene.kind==='rain'?'전반부':'후반부'),
   eta:new Date(Date.parse(route.departure)+seconds*1000).toISOString(),
   demo:true,provider:'시연 모드 · 실제 관측 및 위험정보 아님'};
 }
