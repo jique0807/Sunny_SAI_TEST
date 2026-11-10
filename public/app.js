@@ -574,7 +574,7 @@ function drawGps(){
   }
  if(lmap&&window.L){if(!gpsLeaflet)gpsLeaflet=L.circleMarker([p.lat,p.lng],{radius:9,color:'#fff',weight:3,fillColor:'#1769ff',fillOpacity:1}).bindTooltip('실제 GPS 현재 위치').addTo(lmap);else gpsLeaflet.setLatLng([p.lat,p.lng]);}
 }
-function stopRain(){if(typeof clearDemoDetourPopup==='function')clearDemoDetourPopup();vectorDriving.stop();lastMatchedPoint=null;offRouteFix=null;lastRerouteAt=0;routeAheadWeather=null;rerouteBusy=false;drivingUI.stop();resetDrivingMapHeading();lastFollowTime=0;lastFollowPosition=null;rainRun++;if(rainWatch!==null)navigator.geolocation?.clearWatch(rainWatch);rainWatch=null;clearInterval(rainTimer);rainTimer=null;rainPosition=null;rainProgress=0;rainBusy=null;rainLastFetch=0;rainLastPoint=null;rainGate=new RainGate();clearGpsMarker();$('rainStop').hidden=true;$('rainStart').disabled=false;$('rainStatus').textContent='비 예보 음성 안내 종료';}
+function stopRain(){if(typeof clearDemoDetourPopup==='function')clearDemoDetourPopup();if(typeof clearWalkHeatPopup==='function')clearWalkHeatPopup();vectorDriving.stop();lastMatchedPoint=null;offRouteFix=null;lastRerouteAt=0;routeAheadWeather=null;rerouteBusy=false;drivingUI.stop();resetDrivingMapHeading();lastFollowTime=0;lastFollowPosition=null;rainRun++;if(rainWatch!==null)navigator.geolocation?.clearWatch(rainWatch);rainWatch=null;clearInterval(rainTimer);rainTimer=null;rainPosition=null;rainProgress=0;rainBusy=null;rainLastFetch=0;rainLastPoint=null;rainGate=new RainGate();clearGpsMarker();$('rainStop').hidden=true;$('rainStart').disabled=false;$('rainStatus').textContent='비 예보 음성 안내 종료';}
 function remainingRoutePoints(){
  if(!drivingUI.isActive()||!lastMatchedPoint)return route?.vertices??[];
  return [lastMatchedPoint,...route.rainPath.filter(p=>p.seconds>lastMatchedPoint.seconds)];
@@ -1096,6 +1096,75 @@ function simulateDemoDetourSelection(){
   if(route===trip&&drivingUI.isActive()&&!popup.hidden)$('sunnyDemoDetourYes')?.click();
  },1600);
 }
+// Demonstration-only emergency choice; maps use verified POI and TMAP geometry.
+let walkHeatAutoTimer=null,walkHeatHideTimer=null,walkHeatPending=false;
+function clearWalkHeatPopup(){
+ clearTimeout(walkHeatAutoTimer);clearTimeout(walkHeatHideTimer);
+ walkHeatAutoTimer=null;walkHeatHideTimer=null;walkHeatPending=false;
+ if($('sunnyWalkHeatPopup'))$('sunnyWalkHeatPopup').hidden=true;
+ if($('sunnyWalkHeatYes'))$('sunnyWalkHeatYes').onclick=null;
+ if($('sunnyWalkHeatNo'))$('sunnyWalkHeatNo').onclick=null;
+}
+function walkHeatStatus(title,description,choices=false){
+ $('sunnyWalkHeatPopup').hidden=false;
+ $('sunnyWalkHeatTitle').textContent=title;
+ $('sunnyWalkHeatDescription').textContent=description;
+ $('sunnyWalkHeatChoices').hidden=!choices;
+}
+function showWalkingHeatDecision(trip){
+ if(!trip?.demoWalking||trip.demoShelterRerouted)return;
+ pauseDrive();
+ walkHeatStatus('☀️ 무더위 위험 발생','무더위가 심해지고 있습니다. 가까운 소공동 주민센터 무더위쉼터로 이동하시겠습니까?',true);
+ $('sunnyWalkHeatYes').onclick=()=>void chooseWalkingShelterYes(trip);
+ $('sunnyWalkHeatNo').onclick=()=>{clearWalkHeatPopup();if(route===trip&&drivingUI.isActive())startDemoPlayback();};
+ walkHeatAutoTimer=setTimeout(()=>{
+  if(route===trip&&drivingUI.isActive()&&!$('sunnyWalkHeatPopup').hidden)$('sunnyWalkHeatYes').click();
+ },1800);
+}
+async function chooseWalkingShelterYes(trip){
+ if(walkHeatPending||route!==trip)return;
+ clearTimeout(walkHeatAutoTimer);walkHeatPending=true;pauseDrive();
+ walkHeatStatus('무더위쉼터 경로 조회 중…','소공동 주민센터의 위치를 검색하고 보행자 경로를 계산합니다.');
+ try{
+  const current=demoPointAtSeconds(trip.rainPath,trip.duration*progress/100);
+  if(!current)throw Error('현재 보행자 경로 좌표가 없습니다.');
+  const places=await api('/api/search',{query:WALK_DEMO_SHELTER.query});
+  const shelter=chooseWalkingDemoShelter(places.places,current);
+  if(!shelter)throw Error('실제 장소검색에서 소공동 주민센터를 확인하지 못했습니다.');
+  const start={name:'현재 보행 위치',lat:current.lat,lng:current.lng};
+  const next=await api('/api/route',{origin:start,destination:shelter,departure:new Date().toISOString(),travelMode:'walking'});
+  if(next?.travelMode!=='walking'||next.provider!=='TMAP'||!next.rainPath?.length||next.rainPath.length<2||!next.vertices?.length)
+   throw Error('실제 TMAP 쉼터 보행 경로를 확인하지 못했습니다.');
+  if(route!==trip||!drivingUI.isActive())return;
+  const changed={...next,demo:true,demoWalking:true,demoShelterRerouted:true,demoWarningIssued:true,
+   demoHazards:[],samples:[],demoBreakingWarning:null};
+  route=changed;originPlace=start;destPlace={...shelter,name:WALK_DEMO_SHELTER.name+' · 무더위쉼터'};
+  $('origin').value=start.name;$('destination').value=destPlace.name;studioSync();
+  weather={samples:[],source:'무더위 상황 가상 재현 · 현재 쉼터 운영상태 미확인',fetchedAt:new Date().toISOString()};
+  progress=0;gate.reset();demoAnnounced.clear();$('progress').value='0';
+  $('driveStatus').textContent='무더위쉼터 새 경로 · 0%';
+  renderRoute();renderCards();
+  drivingUI.start(route,weather);drivingUI.update(0,null,false);
+  if(vectorDriving.isActive()){
+   vectorDriving.setRoute(route);vectorDriving.refreshHazards([]);
+   demoVectorCourse=null;vectorDriving.update(route.rainPath[0],demoCourseAt(0),appPrefs.headingMode,false);
+  }
+  await showMap('kakao');
+  if(route!==changed||!drivingUI.isActive())return;
+  walkHeatStatus('무더위쉼터 경로 변경 완료',
+   '목적지 '+WALK_DEMO_SHELTER.name+' · 실제 TMAP 경로 '+(next.distance/1000).toFixed(1)+'km, 약 '+Math.round(next.duration/60)+'분. 현재 운영여부 미확인.');
+  walkHeatHideTimer=setTimeout(()=>{
+   if(route!==changed||!drivingUI.isActive())return;
+   clearWalkHeatPopup();reply('소공동 주민센터로 안내하겠습니다.',appPrefs.voiceAlerts);startDemoPlayback();
+  },2300);
+ }catch(error){
+  if(route!==trip||!drivingUI.isActive())return;
+  walkHeatStatus('쉼터 경로 확인 실패','원래 서울시청 경로를 유지합니다. '+String(error?.message||'경로 조회 실패'));
+  walkHeatHideTimer=setTimeout(()=>{
+   if(route===trip&&drivingUI.isActive()){clearWalkHeatPopup();startDemoPlayback();}
+  },2500);
+ }
+}
 function injectWalkingDemoWarning(){
  if(!route?.demoWalking||route.demoWarningIssued||!drivingUI.isActive())return false;
  const hazard=makeWalkingDemoBreakingWarning(route);
@@ -1108,7 +1177,7 @@ function injectWalkingDemoWarning(){
  const ahead=walkingDemoAheadMeters(route,progress,hazard);
  const notice=walkingDemoSpokenWarning(hazard,ahead??100);
  if(notice)reply(notice,appPrefs.voiceAlerts);
- // No automatic detour: pedestrian alternatives have not been verified.
+ showWalkingHeatDecision(route);
  return true;
 }
 function injectDemoBreakingWarning(){
@@ -1128,7 +1197,7 @@ function injectDemoBreakingWarning(){
  return true;
 }
 function resetDemoBreakingWarning(){
- clearDemoDetourPopup();
+ clearDemoDetourPopup();clearWalkHeatPopup();
  demoAnnounced.clear();
  if(!route?.demo)return;
  route.demoDetourSelected=false;route.demoWarningIssued=false;
@@ -1167,7 +1236,7 @@ function advance(value){
  }
  if(progress>=100){
   pauseDrive();$('driveStatus').textContent='시연 완료';
-  reply(route.demoWalking?'서울시청에 도착했습니다. 도보 시연을 종료합니다.':'부산시청에 도착했습니다. 주행 안내를 종료합니다.');
+  reply(route.demoWalking?(route.demoShelterRerouted?'소공동 주민센터 무더위쉼터에 도착했습니다.':'서울시청에 도착했습니다.'):'부산시청에 도착했습니다. 주행 안내를 종료합니다.');
  }
 }
 function pauseDrive(){
@@ -1186,6 +1255,11 @@ function startDemoPlayback(){
 function startDemoGuidance(){
  if(!route?.demo)return;
  try{window.speechSynthesis?.resume?.();window.speechSynthesis?.getVoices?.();}catch{}
+ if(route.demoWalking&&route.demoShelterRerouted&&initialWalkingDemoRoute){
+  route=initialWalkingDemoRoute;originPlace={...WALK_DEMO.origin};destPlace={...WALK_DEMO.destination};
+  $('origin').value=originPlace.name;$('destination').value=destPlace.name;studioSync();
+  weather={samples:route.samples,source:'가상 기상 위험정보'};renderRoute();renderCards();
+ }
  if(route.demoDetourSelected&&initialDemoRoute){route=initialDemoRoute;weather={samples:route.samples,source:'시연용 기상·도로위험 자료',fetchedAt:new Date().toISOString()};renderRoute();renderCards();}
  pauseDrive();rainGridOverlay.disableRouteRadar();
  // Clear previously issued synthetic warning when restarting a demo.
@@ -1199,14 +1273,15 @@ function startDemoGuidance(){
  $('driveControls').hidden=false;
  progress=0;gate.reset();advance(0);
  void showMap('kakao');
- reply(route.demoWalking?'서울역에서 서울시청까지 강수, 빗길 주의, 이동 중 강수 강화를 시연합니다. 모든 위험정보는 시연용입니다.':'서울에서 부산까지 강수·안개·긴급 호우특보를 시연합니다.');
+ reply(route.demoWalking?'서울역에서 서울시청까지 빗길과 사고다발지역, 돌발 무더위와 쉼터 안내를 재현합니다. 모두 가상 상황입니다.':'서울에서 부산까지 강수·안개·긴급 호우특보를 재현합니다. 화면에 시연 상황임을 표시합니다.');
  startDemoPlayback();
 }
 $('sunnyDemoNext')?.addEventListener('click',()=>{
  if(!route?.demo)return;
  pauseDrive();
- if(!$('sunnyDemoDetourPopup').hidden||route.demoDetourPending)return;
+ if(!$('sunnyDemoDetourPopup').hidden||route.demoDetourPending||!$('sunnyWalkHeatPopup').hidden||walkHeatPending)return;
  if(route.demoWalking){
+  if(route.demoShelterRerouted){advance(100);toast('무더위쉼터 도착 장면을 표시했습니다.');return;}
   const elapsed=route.duration*progress/100;
   const next=(route.demoHazards||[]).find(h=>!h.breaking&&!demoAnnounced.has(h.id));
   const notice=next?demoLeadSeconds(route.rainPath,next.seconds,90):Infinity;
@@ -1239,7 +1314,7 @@ $('drive').onclick=()=>{
 };
 $('progress').oninput=e=>advance(Number(e.target.value));
 $('endDrive').onclick=()=>{
- pauseDrive();stopVoice();progress=0;gate.reset();
+ pauseDrive();stopVoice();progress=0;gate.reset();clearWalkHeatPopup();
  $('progress').value='0';moveCar();$('driveControls').hidden=true;
  clearDemoDetourPopup();
  vectorDriving.stop();if(drivingUI.isActive())drivingUI.stop();
