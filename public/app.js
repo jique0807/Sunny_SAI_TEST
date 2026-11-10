@@ -894,7 +894,7 @@ async function demoRoute(){
  finally{if(run===routeSeq){$('demo').disabled=false;$('routeSearch').disabled=false;}}
 }
 async function walkingDemoRoute(){
- // The demo follows a fictional map track and never requires a live pedestrian API.
+ // Demo events are fictional, but all displayed geometry comes from the real TMAP pedestrian route API.
  const walkingRadio=document.querySelector('input[name="travelMode"][value="walking"]');
  if(walkingRadio)walkingRadio.checked=true;
  updateTravelModeUI();
@@ -903,10 +903,10 @@ async function walkingDemoRoute(){
  reply('서울역에서 서울시청까지 도보 이동 장면을 준비하고 있습니다.');
  try{
   const start={...WALK_DEMO.origin},end={...WALK_DEMO.destination};
-  const d=makeVirtualWalkingDemoRoute();
+  const d=await api('/api/route',{origin:start,destination:end,departure:new Date().toISOString(),travelMode:'walking',walkingPriority:'BROAD_FIRST'});
   if(run!==routeSeq)return;
-  if(d.travelMode!=='walking'||!d.rainPath?.length||!d.vertices?.length)
-   throw Error('가상 도보 이동 경로를 구성하지 못했습니다.');
+  if(d.travelMode!=='walking'||d.mode!=='walking'||d.provider!=='TMAP'||!d.rainPath?.length||!d.vertices?.length)
+   throw Error('TMAP 실제 도보 경로를 받지 못했습니다. 자동차/직선 경로로 대체하지 않습니다.');
   originPlace=start;destPlace=end;
   $('origin').value=start.name;$('destination').value=end.name;studioSync();
   route={...d,demo:true,demoWalking:true,demoWarningIssued:false};initialWalkingDemoRoute=route;
@@ -1003,7 +1003,7 @@ function showNavRouteResult(){
  }
  if($('sunnyDriveReroute'))$('sunnyDriveReroute').setAttribute('aria-label',route.travelMode==='walking'?'보행 경로 다시 조회':'차량 경로 다시 조회');
  if($('sunnyDriveStop'))$('sunnyDriveStop').setAttribute('aria-label',route.travelMode==='walking'?'도보 안내 종료':'주행 안내 종료');
- $('navRouteDescription').textContent=route.demo?(route.demoWalking?(route.demoShelterRerouted?'가상 무더위쉼터로 목적지 변경 · 지도 경로는 시나리오용':'가상 도보 이동 경로 + 가상 위험정보 · 실제 도보 길찾기 아님'):'시연용 경로 · 특보 발생 시 가상 우회 선택 화면 표시'):route.travelMode==='walking'?(route.provider==='TMAP'?'TMAP 도보 경로 · 보행시설 위치는 참고용 · 실제 안전 미검증':'카카오 보행로 1개 경로 · 보도·횡단보도 상태와 안전은 미검증'):'조회된 차량 경로 1개 · 다른 경로 대안은 아직 제공하지 않습니다.';
+ $('navRouteDescription').textContent=route.demo?(route.demoWalking?(route.demoShelterRerouted?'현재 위치에서 TMAP 도보 경로 재탐색 · 쉼터 위치/운영 미검증':'실제 TMAP 보행 경로 · 위험 이벤트만 가상'):'시연용 경로 · 특보 발생 시 가상 우회 선택 화면 표시'):route.travelMode==='walking'?(route.provider==='TMAP'?'TMAP 도보 경로 · 보행시설 위치는 참고용 · 실제 안전 미검증':'카카오 보행로 1개 경로 · 보도·횡단보도 상태와 안전은 미검증'):'조회된 차량 경로 1개 · 다른 경로 대안은 아직 제공하지 않습니다.';
  $('navStartGuidance').textContent=route.demo?(route.demoWalking?'▶ 도보 시연 시작':'▶ 주행 시연 시작'):route.travelMode==='walking'?'Sunny SAI 도보 안내 시작 ▶':'Sunny SAI 차량 안내 시작 ▶';
  $('navStartGuidance').disabled=false;
  renderRouteHazards();sheet.hidden=false;document.body.classList.add('nav-route-open');
@@ -1192,12 +1192,16 @@ function showWalkingHeatDecision(trip){
 async function chooseWalkingShelterYes(trip){
  if(walkHeatPending||route!==trip)return;
  clearTimeout(walkHeatAutoTimer);walkHeatPending=true;pauseDrive();
- walkHeatStatus('무더위쉼터로 경로 변경 중…','가상의 무더위쉼터를 새 목적지로 설정합니다.');
+ walkHeatStatus('무더위쉼터로 경로 변경 중…','현재 보행 위치에서 TMAP 보행자 경로를 새로 조회합니다. 목적지 쉼터는 시연용 지정 좌표입니다.');
  try{
   const current=demoPointAtSeconds(trip.rainPath,trip.duration*progress/100);
   if(!current)throw Error('현재 보행자 좌표가 없습니다.');
-  const next=makeVirtualShelterRoute(current);
-  if(!next?.rainPath?.length||!next.vertices?.length)throw Error('쉼터 가상 경로를 구성하지 못했습니다.');
+  const shelter={name:WALK_DEMO_SHELTER.name,lat:WALK_DEMO_SHELTER.lat,lng:WALK_DEMO_SHELTER.lng};
+  const next=await api('/api/route',{origin:{...current,name:'현재 보행 위치'},destination:shelter,
+   departure:new Date().toISOString(),travelMode:'walking',walkingPriority:'BROAD_FIRST'});
+  if(next.travelMode!=='walking'||next.mode!=='walking'||next.provider!=='TMAP'||
+    !next.rainPath?.length||!next.vertices?.length)
+   throw Error('쉼터까지 실제 TMAP 도보 경로를 확인하지 못했습니다.');
   if(route!==trip||!drivingUI.isActive())return;
   const changed={...next,demo:true,demoWalking:true,demoShelterRerouted:true,demoWarningIssued:true,
    demoHazards:[],samples:[],demoBreakingWarning:null};
@@ -1216,7 +1220,7 @@ async function chooseWalkingShelterYes(trip){
   await showMap('kakao');
   if(route!==changed||!drivingUI.isActive())return;
   walkHeatStatus('무더위쉼터로 목적지 변경 완료',
-   '가상 쉼터까지 '+(next.distance/1000).toFixed(1)+'km, 약 '+Math.round(next.duration/60)+'분. 실제 경로·쉼터 운영정보가 아닙니다.');
+   '현재 위치부터 TMAP 도보 경로 '+(next.distance/1000).toFixed(1)+'km, 약 '+Math.round(next.duration/60)+'분. 목적지는 시연용 지정 좌표이며 쉼터 운영 여부는 미확인입니다.');
   walkHeatHideTimer=setTimeout(()=>{
    if(route!==changed||!drivingUI.isActive())return;
    clearWalkHeatPopup();reply('목적지를 가까운 무더위쉼터로 변경했습니다. 새로운 경로로 안내합니다.',appPrefs.voiceAlerts);startDemoPlayback();
