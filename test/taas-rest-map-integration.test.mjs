@@ -36,6 +36,8 @@ test('route and map layers keep REST non-live; WMS no longer powers three displa
  assert.match(app,/initTaasRestOverlay/);
  assert.match(api,/path==='\/api\/taas-rest-map'/);
  assert.match(ui,/위성 영상/);assert.match(ui,/navNationalRadar/);
- assert.match(ui,/TAAS REST는 2024년 과거 사고자료/);
+ assert.match(ui,/<b>보행자 사고다발지역<\/b>/);
+ assert.match(ui,/2024년 과거 통계 · REST 실제 좌표 조회/);
+ assert.doesNotMatch(ui,/TAAS REST는 2024년 과거 사고자료/);
  assert.doesNotMatch(app,/initTaasPedestrianWmsOverlay/);
 });
