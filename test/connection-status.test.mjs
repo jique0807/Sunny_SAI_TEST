@@ -154,7 +154,7 @@ test('settings refresh makes real diagnostic requests and maps results to honest
  ]);
  assert.equal(panel.getStatus().satelliteRR.state,'unverified');
  assert.match(panel.getStatus().satelliteRR.detail,/관측목록 1시각/);
- assert.match(panel.getStatus().satelliteCI.detail,/이용승인/);
+ assert.match(panel.getStatus().satelliteCI.detail,/활용승인/);
  assert.equal(panel.getStatus().rain.state,'ok');
  assert.equal(panel.getStatus().walk.state,'ok');
  assert.equal(panel.getStatus().walkSurface.state,'unverified');
