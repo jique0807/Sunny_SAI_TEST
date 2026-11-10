@@ -125,11 +125,13 @@ export function compareRouteRiskCandidates(candidates,{mode='driving',minCoverag
 }
 
 export function formatRouteRiskSummary(profile){
+ const historical=profile?.signals?.filter(h=>h.kind==='pedestrian-hotspot').length||0;
+ const historyNote=historical?' · 2024년 과거 보행사고 집중구역 '+historical+'곳 참고 (실시간 사고 아님)':'';
  if(!profile||profile.state==='simulation')return '시연용 위험정보 · 실제 위험판정 아님';
  if(profile.state==='unsupported')return '위험분석 보류 · 이동수단별 경로 미지원';
- if(profile.state==='insufficient-data')return '위험분석 보류 · 실제 기상청 경로 예보 미확인 (안전하다는 뜻 아님)';
+ if(profile.state==='insufficient-data')return '위험분석 보류 · 실제 기상청 경로 예보 미확인 (안전하다는 뜻 아님)'+historyNote;
  const portion='예보 조회 '+profile.coveredSamples+'/'+profile.totalSamples+'지점';
- if(profile.state==='partial')return 'Risk Engine 2.0 · '+portion+' · 일부 자료 미확인 (안전 판정 불가)';
+ if(profile.state==='partial')return 'Risk Engine 2.0 · '+portion+' · 일부 자료 미확인 (안전 판정 불가)'+historyNote;
  const risk=profile.signalCount?profile.signalCount+'건의 위험 신호':'조회 지점에 확인된 위험 신호 없음';
- return 'Risk Engine 2.0 · '+portion+' · '+risk+' · 미조회 구간 판단 불가';
+ return 'Risk Engine 2.0 · '+portion+' · '+risk+' · 미조회 구간 판단 불가'+historyNote;
 }
