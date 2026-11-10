@@ -24,7 +24,7 @@ export function initKoroadHotspotOverlay({document,request,getContext,ensureMap,
   for(const p of records){
    const label='2024년 과거 보행자 사고다발지역 · '+p.label+' · '+p.accidentCount+'건 · 실시간 사고/통제 아님';
    const marker=document.createElement('button');marker.type='button';marker.className='sunny-historic-hotspot-pin';
-   marker.textContent='⚠️';marker.title=label;marker.setAttribute('aria-label',label);
+   marker.textContent='📊';marker.title=label;marker.setAttribute('aria-label',label);
    marker.addEventListener('click',()=>say(label));
    items.push(new kakao.maps.CustomOverlay({map:ctx.map,position:new kakao.maps.LatLng(p.lat,p.lng),
      content:marker,xAnchor:.5,yAnchor:.5,zIndex:15,clickable:true}));
