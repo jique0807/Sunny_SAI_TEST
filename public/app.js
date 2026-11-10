@@ -22,7 +22,7 @@ const {routeHistoryQueryPoints,buildPedestrianHistoryHazards}=await import('/ped
 const {buildItsRouteHazards}=await import('/its-route-risk.mjs');
 const {initDriveGuidance,segmentMeters,routeFraction}=await import('/drive-guidance.mjs');
 const {buildRouteHazards,renderHazardRail,showHazardDetail}=await import('/route-hazards.mjs');
-const {evaluateRouteRisk,formatRouteRiskSummary}=await import('/safe-route-engine.mjs');
+const {evaluateDrivingRisk,evaluateWalkingRisk,formatRouteRiskSummary}=await import('/safe-route-engine.mjs');
 const {resolveDrivingHeading,angleStep,compassBearing}=await import('/heading-up.mjs');
 const {initVectorDriving}=await import('/vector-driving.mjs');
 const {DEFAULT_APP_SETTINGS,initAppSettings}=await import('/app-settings.mjs');
@@ -1027,10 +1027,10 @@ function renderRouteHazards(){
  });
  // Risk assessment reads the received provider samples regardless of whether
  // the user hides hazard icons. Sources not yet collected still remain unknown.
- const riskProfile=isDemo?null:evaluateRouteRisk(route,{
+ const riskProfile=isDemo?null:(route?.travelMode==='walking'?evaluateWalkingRisk:evaluateDrivingRisk)(route,{
   weatherSamples:weather?.samples||[],
   extraHazards:[...routeExtraHazards(route),...(route?.travelMode==='walking'&&!$('navLayerPedestrianHotspots')?.checked?(route?.pedestrianRiskEvents||[]):[])],
-  mode:route?.travelMode==='walking'?'walking':'driving'
+  // Each dedicated risk entrypoint supplies the correct mobility mode and provider filter.
  });
  if(isDemo)status.textContent=route.demoWalking?'도보 시연 위험지점 '+count+'개 · 🌧️ 강수 / ⚠️ 빗길 주의'+(route.demoBreakingWarning?' / 🚨 강수 강화':' · 보행 중 🚨 상황 변화')+' · 아이콘 선택':'시연 위험지점 '+count+'개 · 🌧️ 강수 / 🌫️ 안개'+(route.demoBreakingWarning?' / 🚨 긴급특보':' · 주행 중 🚨 특보 추가')+' · 아이콘 선택';
  else{
