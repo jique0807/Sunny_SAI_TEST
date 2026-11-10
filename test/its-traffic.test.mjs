@@ -38,6 +38,28 @@ test('ITS parser reports schema and authorization errors as unknown, not empty o
  assert.equal(blocked.status,'failed');assert.equal(blocked.items.length,0);
  assert.equal(blocked.traffic.status,'failed');assert.ok(!JSON.stringify(blocked).includes('bad-key'));
 });
+test('ITS failure diagnostics distinguish network, timeout, HTTP, JSON and schema without exposing secrets',async()=>{
+ const request=(fn)=>fetchItsRouteContext('DO_NOT_EXPOSE',points,fn,{now});
+ const network=await request(async()=>{throw new TypeError('private user url with secret')});
+ assert.equal(network.reasonCode,'network_error');assert.equal(network.traffic.reasonCode,'network_error');
+ const timeout=await request(async()=>{throw Object.assign(Error('private'),{name:'TimeoutError'})});
+ assert.equal(timeout.reasonCode,'timeout');
+ const blocked=await request(async()=>new Response('denied',{status:403}));
+ assert.equal(blocked.reasonCode,'unauthorized');assert.equal(blocked.providerStatus,403);
+ const malformed=await request(async()=>new Response('<xml>private</xml>',{status:200}));
+ assert.equal(malformed.reasonCode,'invalid_json');
+ const wrongSchema=await request(async()=>Response.json({unexpected:'shape'}));
+ assert.equal(wrongSchema.reasonCode,'invalid_schema');
+ assert.ok(!JSON.stringify([network,timeout,blocked,malformed,wrongSchema]).includes('DO_NOT_EXPOSE'));
+ assert.ok(!JSON.stringify(network).includes('private'));
+});
+test('risk score collects real ITS evidence independent of map visibility',()=>{
+ const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+ assert.match(app,/if\(!activeRoute\|\|activeRoute\.demo\|\|activeRoute\.travelMode!=='driving'\)return;/);
+ assert.match(app,/if\(mode==='driving'\)void loadItsRouteEvidence\(route\)/);
+ assert.match(app,/route\.itsEvidenceStatus=result\.status/);
+ assert.match(app,/route\?\.travelMode==='driving'&&!\$\('navLayerTrafficIncidents'\)\?\.checked\?\(route\?\.itsRiskEvents\|\|\[\]\):\[\]/);
+});
 test('ITS traffic is context-only until the road link geometry is verified',()=>{
  const r=normalizeItsTraffic({response:{data:[{linkId:'AA1',speed:44,roadName:'도로'}]}},{now});
  assert.equal(r.status,'received');assert.equal(r.count,1);assert.equal(r.routeMatched,false);

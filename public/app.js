@@ -321,7 +321,7 @@ let itsLoadSeq=0;
 const itsControl=$('navLayerTrafficIncidents'),itsStatus=$('navTrafficIncidentsStatus');
 const itsSay=value=>{if(itsStatus)itsStatus.textContent=value;};
 async function loadItsRouteEvidence(activeRoute){
- if(!itsControl?.checked||!activeRoute||activeRoute.demo||activeRoute.travelMode!=='driving')return;
+ if(!activeRoute||activeRoute.demo||activeRoute.travelMode!=='driving')return;
  const seq=++itsLoadSeq;
  const points=(activeRoute.samples||[]).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng))
   .slice(0,24).map(p=>({lat:p.lat,lng:p.lng}));
@@ -329,7 +329,8 @@ async function loadItsRouteEvidence(activeRoute){
  itsSay('국가교통정보센터 ITS 사고·공사·통제 조회 중…');
  try{
   const result=await api('/api/its-route-context',{points});
-  if(seq!==itsLoadSeq||route!==activeRoute||!itsControl.checked)return;
+  if(seq!==itsLoadSeq||route!==activeRoute)return;
+  activeRoute.itsEvidenceStatus=result.status;
   activeRoute.itsRiskEvents=buildItsRouteHazards(activeRoute,result);
   if(result.status==='failed'||result.status==='missing'){
    itsSay('ITS 미수신 · '+(result.reason||'기관 응답 확인 필요')+' · 안전 판정 아님');
@@ -341,13 +342,18 @@ async function loadItsRouteEvidence(activeRoute){
   drawWeatherOverlays();renderRouteHazards();drivingUI.render();
  }catch(e){
   if(seq!==itsLoadSeq||route!==activeRoute)return;
+  activeRoute.itsEvidenceStatus='failed';
+  activeRoute.itsRiskEvents=[];
   itsSay('ITS 기관조회 실패 · '+String(e.message||'연결 확인 필요')+' · 안전 판정 아님');
+  renderRouteHazards();
  }
 }
 itsControl?.addEventListener('change',()=>{
- if(!itsControl.checked){itsLoadSeq++;itsSay('ITS 표출 해제');drawWeatherOverlays();renderRouteHazards();drivingUI.render();return;}
- if(route&&!route.demo&&route.travelMode==='driving')void loadItsRouteEvidence(route);
- else itsSay('실제 자동차 경로를 탐색하면 ITS 돌발정보를 조회합니다.');
+ if(!itsControl.checked){itsSay('지도 표시 해제 · 위험판단 자료 수집은 유지');drawWeatherOverlays();renderRouteHazards();drivingUI.render();return;}
+ if(route&&!route.demo&&route.travelMode==='driving'){
+  if(!route.itsEvidenceStatus)void loadItsRouteEvidence(route);
+  else{drawWeatherOverlays();renderRouteHazards();drivingUI.render();}
+ }else itsSay('실제 자동차 경로를 탐색하면 ITS 돌발정보를 조회합니다.');
 });
 function updateMapLayerOpacity(){
  const opacity=Number(document.getElementById('navDemoOpacity')?.value??45);
@@ -1078,7 +1084,9 @@ function renderRouteHazards(){
  // the user hides hazard icons. Sources not yet collected still remain unknown.
  const riskProfile=isDemo?null:(route?.travelMode==='walking'?evaluateWalkingRisk:evaluateDrivingRisk)(route,{
   weatherSamples:weather?.samples||[],
-  extraHazards:[...routeExtraHazards(route),...(route?.travelMode==='walking'&&!$('navLayerPedestrianHotspots')?.checked?(route?.pedestrianRiskEvents||[]):[])],
+  extraHazards:[...routeExtraHazards(route),
+   ...(route?.travelMode==='driving'&&!$('navLayerTrafficIncidents')?.checked?(route?.itsRiskEvents||[]):[]),
+   ...(route?.travelMode==='walking'&&!$('navLayerPedestrianHotspots')?.checked?(route?.pedestrianRiskEvents||[]):[])],
   // Each dedicated risk entrypoint supplies the correct mobility mode and provider filter.
  });
  if(isDemo)status.textContent=route.demoWalking?'도보 시연 위험지점 '+count+'개 · 🌧️ 강수 / ⚠️ 빗길 주의'+(route.demoBreakingWarning?' / 🚨 강수 강화':' · 보행 중 🚨 상황 변화')+' · 아이콘 선택':'시연 위험지점 '+count+'개 · 🌧️ 강수 / 🌫️ 안개'+(route.demoBreakingWarning?' / 🚨 긴급특보':' · 주행 중 🚨 특보 추가')+' · 아이콘 선택';
