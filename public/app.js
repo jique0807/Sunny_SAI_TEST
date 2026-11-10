@@ -289,6 +289,7 @@ const koroadHotspots=initKoroadHotspotOverlay({
   route.pedestrianRiskEvents=buildPedestrianHistoryHazards(route,data);
   renderRouteHazards();drawWeatherOverlays();
  }},
+ onToggle:()=>{if(route&&!route.demo){renderRouteHazards();drawWeatherOverlays();drivingUI.render();}},
  getContext:()=>['kakao','skyview'].includes(activeMap)&&kmap?{type:'kakao',map:kmap}:null,
  ensureMap:()=>showMap('kakao')
 });
