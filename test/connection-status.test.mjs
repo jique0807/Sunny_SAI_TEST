@@ -131,6 +131,11 @@ test('settings refresh makes real diagnostic requests and maps results to honest
   '/api/pedestrian-route-diagnostic':{provider:'tmap',status:'received',geometryValid:true,distanceMeters:1540,durationSeconds:1080},
   '/api/rain-grid-diagnostic':rain,
   '/api/radar-latest-diagnostic':radar,
+  '/api/gk2a-diagnostic':{products:{
+   RR:{state:'received',observationTimes:['202611071500']},
+   CI:{state:'approval_pending',observationTimes:[]},
+   FOG:{state:'format_unverified',observationTimes:[]}
+  }},
   '/api/route-layer-feasibility':layers
  };
  const fetcher=async path=>{
@@ -145,8 +150,11 @@ test('settings refresh makes real diagnostic requests and maps results to honest
  assert.equal(await panel.refresh(),true);
  assert.deepEqual(calls,[
   '/api/session','/api/preview-journey-smoke','/api/pedestrian-route-diagnostic','/api/rain-grid-diagnostic',
-  '/api/radar-latest-diagnostic','/api/route-layer-feasibility'
+  '/api/radar-latest-diagnostic','/api/gk2a-diagnostic','/api/route-layer-feasibility'
  ]);
+ assert.equal(panel.getStatus().satelliteRR.state,'unverified');
+ assert.match(panel.getStatus().satelliteRR.detail,/관측목록 1시각/);
+ assert.match(panel.getStatus().satelliteCI.detail,/이용승인/);
  assert.equal(panel.getStatus().rain.state,'ok');
  assert.equal(panel.getStatus().walk.state,'ok');
  assert.equal(panel.getStatus().walkSurface.state,'unverified');
