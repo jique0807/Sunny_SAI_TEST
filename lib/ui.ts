@@ -82,28 +82,44 @@ export const ui = `
 
 <section class="sunny-settings-section" aria-label="경로 아이콘 안내">
  <details class="sunny-source-fold">
-  <summary><strong>경로 아이콘 안내</strong></summary>
+  <summary><strong>경로 아이콘 안내</strong><small>자동차·도보의 위험자료와 지도 표출 기호를 구분합니다.</small></summary>
+  <p class="sunny-source-guide"><strong>🚗 자동차 위험판단 · 지도에 표시</strong></p>
   <dl class="sunny-route-icon-legend">
-   <dt>🌧️ 비</dt><dd>경로의 예상 통과 시각에 비가 예보된 지점</dd>
-   <dt>❄️ 눈</dt><dd>경로의 예상 통과 시각에 눈이 예보된 지점</dd>
-   <dt>🌨️ 진눈깨비</dt><dd>경로의 예상 통과 시각에 비와 눈이 섞여 내릴 것으로 예보된 지점</dd>
-   <dt>🧊 도로 살얼음</dt><dd>경로 진행 방향과 일치하는 도로 링크의 살얼음 위험 예측</dd>
-   <dt>🌫️ 도로 안개</dt><dd>경로 진행 방향과 일치하는 도로 링크의 가시거리 위험 예측</dd>
+   <dt>🌧️ 비</dt><dd>예상 통과시각의 실제 기상청 강수 예보 · 도로 침수 확정 아님</dd>
+   <dt>❄️ 눈</dt><dd>눈 예보 지점 · 실제 노면 결빙 확정 아님</dd>
+   <dt>🌨️ 비·눈</dt><dd>비·눈 혼합 강수 예보 지점</dd>
+   <dt>🧊 도로 살얼음</dt><dd>공식 도로위험기상 등급·위치·시각 확인 시 표시 · 관측된 결빙은 아님</dd>
+   <dt>🌫️ 도로 안개</dt><dd>공식 도로위험기상 자료가 검증된 경우에만 표시</dd>
+   <dt>⚠️ 기상·도로 주의</dt><dd>발효 기상특보 인접 지점 또는 ITS 도로 돌발 참고정보 · 실제 통제 여부 별도 확인</dd>
+   <dt>🚧 사고·공사</dt><dd>ITS 신고지점이 자동차 경로에 근접한 경우 · 같은 도로·차로 일치 미검증</dd>
+   <dt>⛔ 통제정보</dt><dd>ITS 도로통제 신고 위치 · 정확한 통제구간 확인 전 자동 우회 금지</dd>
   </dl>
+  <p class="sunny-source-guide"><strong>🚶 도보 위험판단 · 교통·보행 정보</strong></p>
+  <dl class="sunny-route-icon-legend">
+   <dt>🚸 횡단보도</dt><dd>TMAP 실제 보행경로의 횡단보도 위치 · 사고 발생을 의미하지 않음</dd>
+   <dt>🚇 지하보도</dt><dd>TMAP 보행시설 위치 참고 · 통행 가능 여부 미확인</dd>
+   <dt>🌉 육교</dt><dd>TMAP 보행시설 위치 참고 · 통행 가능 여부 미확인</dd>
+   <dt>🪜 계단</dt><dd>TMAP 계단 위치 참고 · 보행 약자 경로 적합성은 별도 확인</dd>
+   <dt>📊 과거 사고이력</dt><dd>TAAS REST의 사고 위치·건수가 실제로 검증된 경우에만 경로 아이콘 표시 · 실시간 사고 아님</dd>
+   <dt>☀️ 고온 예보</dt><dd>도보 통과시각의 고온 주의 기준에 해당할 때 표시 · 체감온도·쉼터 상태는 별도 확인</dd>
+   <dt>🌧️ 보행 강수</dt><dd>도보 통과시각의 강수 예보 · 실제 미끄럼 관측 아님</dd>
+   <dt>🧒 · 🧓 TAAS 지도</dt><dd>어린이·노인·일반 보행자 사고다발지역 WMS는 지도 PNG 레이어이며 개별 경로 위험 아이콘이 아님</dd>
+  </dl>
+  <p class="sunny-source-caution">시연용 위험 이벤트는 실제 사고·특보가 아닙니다. 아이콘 유무만으로 해당 경로가 안전하다고 판단할 수 없습니다.</p>
  </details>
 </section>
 <section id="settingsDataConnections" class="sunny-settings-section sunny-source-settings" aria-labelledby="settingsDataConnectionsHeading">
  <details class="sunny-source-fold">
   <summary id="settingsDataConnectionsHeading"><strong>데이터 연결 상태</strong><small>API 키 등록 및 연결 결과</small></summary>
  <div class="sunny-source-settings-head">
-  <div><p>카카오 지도·자동차, TMAP 도보, 기상·도로위험의 API 등록 여부와 실제 응답을 구분해 확인합니다.</p></div>
+  <div><p>자동차(ITS·기상·도로위험)와 도보(TMAP·TAAS)의 자료별 키 등록, 실제 응답, 지도 표출 및 경로 위험판단 근거를 구분합니다.</p></div>
   <button id="settingConnectionRefresh" type="button" aria-label="전체 데이터 연결 상태 다시 검사"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2 5"/></svg><span id="settingConnectionRefreshLabel">상태 새로고침</span></button><button id="settingNationalWalkCheck" type="button" class="sunny-source-check-button">전국 도보 길찾기 진단 (서울·부산·대전)</button><p id="settingNationalWalkStatus" class="sunny-source-checked" role="status">전국 도보 API 검사 전</p>
  </div>
  <p id="settingConnectionSummary" class="sunny-source-summary" role="status" aria-live="polite">검사 전 · 자료별 상태를 조회해주세요.</p>
  <div id="settingConnectionItems" class="sunny-source-items" role="list" aria-label="API 데이터 종류별 연결 상태"></div>
  <p id="settingConnectionCheckedAt" class="sunny-source-checked">최종 검사: 없음</p>
- <p class="sunny-source-guide"><strong>도보:</strong> 전국 TMAP 보행자 경로 조회를 우선 사용합니다. 전국 사고이력은 행정구역별 2024년 TAAS API 응답 확인 후 표시합니다. 무더위쉼터와 보호구역은 별도 승인·연동이 필요합니다. TMAP 보행자 길찾기는 서버의 <code>TMAP_API_KEY</code>를 우선 사용합니다. 인증키는 Vercel 환경변수에서만 등록·수정합니다. TMAP 미등록 시 카카오 도보 대체 제공자의 실제 이용 가능 여부는 별도 확인이 필요합니다. <strong>위험 판단:</strong> Risk Engine 2.0은 기상예보를 분석하며, 현장 보행로 침수·결빙·통행 제한 자료는 아직 미연결입니다.</p>
- <p class="sunny-source-caution">인증키 등록 ≠ 실제 수신 성공. 자료를 받더라도 위험등급·위치·유효시각이 검증되기 전에는 운전 경보로 사용하지 않습니다. API 키나 GPS 위치는 표시하지 않습니다.</p>
+ <p class="sunny-source-guide"><strong>도보:</strong> 전국 TMAP 보행자 경로 조회를 우선 사용합니다. TAAS 보행자·어린이·노인 사고지도는 2024년 WMS PNG를 지도에 표시하고, 경로 사고건수는 별도 REST 응답 검증 후 판단합니다. 무더위쉼터와 보호구역은 별도 승인·연동이 필요합니다. TMAP 보행자 길찾기는 서버의 <code>TMAP_API_KEY</code>를 우선 사용합니다. 인증키는 Vercel 환경변수에서만 등록·수정합니다. TMAP 미등록 시 카카오 도보 대체 제공자의 실제 이용 가능 여부는 별도 확인이 필요합니다. <strong>위험 판단:</strong> Risk Engine 2.0은 기상예보를 분석하며, 현장 보행로 침수·결빙·통행 제한 자료는 아직 미연결입니다.</p>
+ <p class="sunny-source-caution">인증키 등록 ≠ 실제 수신 성공. 연결 검사는 서울시청 인근 고정 좌표를 사용하며 GPS를 전송하지 않습니다. ITS 도로 링크, TAAS 과거 사고건수, 위험등급·유효시각은 검증되기 전까지 확정 위험으로 사용하지 않습니다. API 키나 GPS 위치는 표시하지 않습니다.</p>
  </details>
 </section>
 <div class="sunny-settings-bottom">
