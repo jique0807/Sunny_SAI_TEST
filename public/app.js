@@ -644,6 +644,10 @@ async function checkRain(){
 function startRainGuidance(){
  if(route&&!route.demo&&route.travelMode!==selectedTravelMode()){toast('이동수단 변경 후 새 경로를 탐색해주세요.');return;}
  if(!route||route.demo||!route.rainPath?.length){toast('먼저 실제 자동차·도보 경로를 조회해주세요.');return;}
+ if(route.travelMode==='walking'&&(route.mode!=='walking'||
+    (route.provider!=='TMAP'&&route.source!=='Kakao Maps Walking'))){
+  toast('실제 보행자 전용 경로가 확인되지 않아 안내를 시작할 수 없습니다.');return;
+ }
  if(!window.isSecureContext){toast('GPS는 HTTPS 주소에서 사용해주세요.');return;}
  if(!navigator.geolocation){toast('이 기기는 GPS 위치를 지원하지 않는 환경입니다.');return;}
  stopRain();
