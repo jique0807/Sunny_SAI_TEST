@@ -48,6 +48,8 @@ test('CI requests ELA LC, never switches to KO and never claims unreceived data'
 test('ITS diagnostic is fixed-location and GK2A endpoints whitelist products',()=>{
  const api=readFileSync(new URL('../lib/api.mjs',import.meta.url),'utf8');
  assert.match(api,/path==='\/api\/its-live-diagnostic'/);
+ assert.match(api,/path==='\/api\/gk2a-live-diagnostic'/);
+ assert.match(api,/path==='\/api\/taas-rest-diagnostic'/);
  assert.match(api,/env\.VERCEL_ENV!=='preview'/);
  assert.match(api,/path==='\/api\/gk2a-layer-status'/);
  assert.match(api,/georeference!=='verified_ko_lcc_900'/);
