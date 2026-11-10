@@ -529,6 +529,29 @@ body{background:var(--bg);color:var(--ink)}
  .studio-route-arrow{font-size:20px;color:#7a91af;flex-shrink:0}
  .studio-route-button{display:flex!important;align-items:center;justify-content:center;gap:12px;width:100%!important;min-height:49px!important;border:0!important;border-radius:13px!important;background:#1768e9!important;color:#fff!important;font-weight:800!important;font-size:15px!important}
  .studio-route-button span{font-size:20px}
+ .studio-route-status:not([hidden]){
+  display:block;
+  width:100%;
+  margin:9px 0 0!important;
+  border-radius:11px;
+  padding:10px 12px!important;
+  background:#eef5ff;
+  color:#23476f;
+  border:1px solid #c8ddfa;
+  font-size:12px!important;
+  line-height:1.5;
+  overflow-wrap:anywhere;
+ }
+ .studio-route-status[data-state="error"]:not([hidden]){
+  color:#8b2e28;
+  border-color:#efbab4;
+  background:#fff1ef;
+ }
+ .studio-route-status[data-state="success"]:not([hidden]){
+  color:#146547;
+  border-color:#b6dfca;
+  background:#ecf9f1;
+ }
  .nav-search-sheet #navFavoritesSection{margin-top:25px!important;border:0!important;padding-top:0!important}
  .nav-search-sheet #navFavoritesList{margin-top:12px!important}
  .nav-search-sheet .nav-favorite-tile,.nav-search-sheet .nav-favorite-empty{background:#fff!important;border:1px solid #e3eaf4!important;border-radius:14px!important;box-shadow:0 4px 12px #142d4a08}
