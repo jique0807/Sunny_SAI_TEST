@@ -1091,7 +1091,7 @@ function showNavRouteResult(){
  $('navRouteArrival').textContent='도착 '+fmt(new Date(Date.parse(route.departure)+route.duration*1000));
  const disclaimer=$('navDemoDisclaimer');
  if(disclaimer){disclaimer.hidden=!route.demo;disclaimer.textContent=route.demoWalking?'⚠️ 서울역 → 서울시청 도보 시연 · 실제 기상 관측·통행 위험정보가 아닙니다.':'⚠️ 서울 → 부산 시연 모드 · 위험표시와 기상특보는 실제 관측 및 발표 정보가 아닙니다.';}
- $('navRouteModeBadge').textContent=route.demo?(route.demoWalking?'🚶 도보 시연':'🎬 시연'):route.travelMode==='walking'?'🚶 도보':'🚗 자동차';
+ $('navRouteModeBadge').textContent=route.demo?(route.demoWalking?'🚶 도보 시연':'🚗 주행 시연'):route.travelMode==='walking'?'🚶 도보':'🚗 자동차';
  const facilities=$('navRouteFacilitySummary');
  if(facilities){
   const walking=route.travelMode==='walking';
