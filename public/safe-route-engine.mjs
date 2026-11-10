@@ -59,16 +59,21 @@ export function evaluateRouteRisk(route,{weatherSamples=[],extraHazards=[],mode=
   return {...base,state:'unsupported',reason:'보행자 전용 경로 형상이 없어 자동차 경로를 보행 안전으로 평가하지 않습니다.'};
  const expected=Array.isArray(route.samples)?route.samples.filter(s=>Number.isFinite(s?.seconds)&&geo(s)):[];
  const incoming=Array.isArray(weatherSamples)?weatherSamples:[];
+ // A returned forecast must belong to the current route's actual passing time
+ // as well as its official KMA valid time; old route samples are never reused.
+ const started=Date.parse(route.departure);
+ const trustedForecasts=incoming.filter(s=>validForecastSample(s)&&Number.isFinite(started)&&
+  Math.abs(Date.parse(s.eta)-(started+s.seconds*1000))<=5*60000&&
+  expected.some(p=>Math.abs(p.seconds-s.seconds)<1&&distanceMeters(p,s)<=1500));
  // Only known route sample locations count towards forecast coverage.
  const expectedSeconds=new Set(expected.map(x=>Math.round(x.seconds)));
- const receivedSeconds=new Set(incoming.filter(s=>validForecastSample(s)&&
-  expected.some(p=>Math.abs(p.seconds-s.seconds)<1&&distanceMeters(p,s)<=1500))
+ const receivedSeconds=new Set(trustedForecasts
   .map(x=>Math.round(x.seconds)).filter(s=>expectedSeconds.has(s)));
  const covered=receivedSeconds.size,total=expectedSeconds.size,coverage=total?covered/total:0;
  // Extra hazards may be supplied by verified route-matching adapters. Unknown
  // or malformed records are excluded and counted, never treated as safe.
  const candidates=[
-  ...buildRouteHazards(incoming,{limit:20}),
+  ...buildRouteHazards(trustedForecasts,{limit:20}),
   ...(Array.isArray(extraHazards)?extraHazards:[])
  ];
  // Separate data contracts: driving consumes road hazards, walking consumes pedestrian history.
@@ -76,8 +81,12 @@ export function evaluateRouteRisk(route,{weatherSamples=[],extraHazards=[],mode=
  const accepted=[],unknown=[];
  for(const h of candidates){
   if(!h||h.demo)continue;
+  const proximity=h.kind==='pedestrian-hotspot'||h.kind==='its-incident'?120:
+  h.roadRisk!==undefined?25:h.kind==='warning'?600:1500;
   if(!geo(h)||!Number.isFinite(h.seconds)||h.seconds<0||h.seconds>route.duration||
-     !onRoute(route.rainPath,h,h.kind==='warning'?600:1500)){unknown.push(h);continue;}
+     !onRoute(route.rainPath,h,proximity)||
+     (h.kind==='pedestrian-hotspot'&&(!Number.isFinite(h.distanceToPath)||h.distanceToPath>120))||
+     (h.kind==='its-incident'&&(!Number.isFinite(h.distanceToPath)||h.distanceToPath>120))){unknown.push(h);continue;}
   const a=assessRouteHazard(h,{now});
   if(!a.score||a.level==='unknown'){unknown.push(h);continue;}
   if(mode==='walking'&&(h.roadRisk!==undefined||h.kind==='its-incident')){
