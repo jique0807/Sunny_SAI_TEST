@@ -28,7 +28,7 @@ export function buildPedestrianHistoryHazards(route,result,{limit=12,proximityMe
   const seconds=Math.max(0,Math.round(nearest.seconds));
   if(seconds>route.duration)continue;
   hazards.push({id:'history:'+p.lat.toFixed(5)+':'+p.lng.toFixed(5),
-   kind:'pedestrian-hotspot',icon:'🚸',title:'과거 보행자 사고다발지역',
+   kind:'pedestrian-hotspot',icon:'📊',title:'과거 보행자 사고다발지역',
    label:String(p.name||'보행자 사고 집중구역').slice(0,80),
    lat:p.lat,lng:p.lng,seconds,eta:new Date(Date.parse(route.departure)+seconds*1000).toISOString(),
    distanceToPath:Math.round(nearest.distance),accidentCount:p.accidentCount,
