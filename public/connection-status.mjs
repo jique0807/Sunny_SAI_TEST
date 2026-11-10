@@ -15,8 +15,8 @@ export const DATA_CONNECTION_SOURCES=[
  {id:'floodNational',group:'침수',name:'국가하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 아님'},
  {id:'floodLocal',group:'침수',name:'지방하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 아님'},
  {id:'walkSurface',group:'보행 안전',name:'보행로 침수·결빙·통행 제한',description:'현장 관측자료 API 미연결 · 기상예보 기반 위험 주의만 제공'},
- {id:'trafficIncident',group:'교통·보행 정보',name:'UTIC 사고·공사·통제',description:'인증·서버 연동 전 · 실제 자료 미수신'},
- {id:'pedestrianHotspots',group:'교통·보행 정보',name:'보행자 사고다발지역',description:'KOROAD 2024년 서울 중구 과거 사고다발지역 · 실시간 사고 아님'}
+ {id:'trafficIncident',group:'도로위험',name:'ITS 사고·공사·통제',description:'국가교통정보센터 · 위치·시각 확인 · 도로 링크 미검증'},
+ {id:'pedestrianHotspots',group:'교통·보행 정보',name:'TAAS 보행자·어린이·노인 과거 사고지도',description:'2024년 WMS 지도 이미지 · 경로 사고건수는 별도 REST 확인'}
 ];
 export const CONNECTION_STATE_TEXT={
  unknown:'검사 전',unverified:'검사 보류',checking:'조회 중',configured:'검사 전',
@@ -48,8 +48,8 @@ export function applySessionConfiguration(current,session){
   copy[id]={...(yes?state('configured','실제 API 응답 검사 전'):state('missing',id==='walk'?'TMAP_API_KEY 미등록 · 카카오 대체 도보 제공자 실수신 별도 확인':'서버 인증키 미설정')),keyRegistered:Boolean(yes)};
  }
  copy.walkSurface={...state('unverified','실제 보행로 침수·결빙·통제 관측 API 미연결 · Risk Engine은 기상예보로 주의를 판단'),keyRegistered:null};
- copy.trafficIncident={...state('unverified','UTIC 인증키·IP 등록 및 실수신 서버 연동 필요'),keyRegistered:null};
- copy.pedestrianHotspots={...(config.koroad?state('configured','KOROAD_API_KEY 등록됨 · 실제 2024년 서울 중구 통계 응답 검사 전'):state('unverified','KOROAD_API_KEY 미설정 또는 서비스 이용 미승인 · 실제 데이터 미표출')),keyRegistered:Boolean(config.koroad)};
+ copy.trafficIncident={...(config.its?state('configured','ITS ROAD_API_KEY 등록됨 · 실제 사건 위치·시각·도로링크 확인 전'):state('unverified','ITS ROAD_API_KEY 미설정 또는 실제 조회 실패')),keyRegistered:Boolean(config.its)};
+ copy.pedestrianHotspots={...(config.taasWms?state('configured','TAAS WMS 보행자·어린이·노인 2024 지도 인증키 설정 · 지도에서 실제 PNG 검증 필요'):config.koroad?state('configured','KOROAD_API_KEY 등록됨 · WMS 및 REST 이용승인 실제 확인 필요'):state('unverified','KOROAD_API_KEY 미설정 · 실제 데이터 미표출')),keyRegistered:Boolean(config.taasWms||config.koroad)};
  return copy;
 }
 export function mapConnectionProbe(kind,data,previous){
