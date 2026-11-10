@@ -103,6 +103,25 @@ export function evaluateRouteRisk(route,{weatherSamples=[],extraHazards=[],mode=
   routeMinutes:Math.ceil(route.duration/60)};
 }
 
+// Dedicated entrypoints: do not mix pedestrian traffic history with driving hazards.
+export const RISK_SOURCE_GROUPS=Object.freeze({
+ driving:Object.freeze({name:'자동차 위험판단',displayGroup:'지도에 표시',roadFeeds:['ITS 돌발상황','기상청 도로위험','기상특보'],shared:['강수·눈·풍속 예보']}),
+ walking:Object.freeze({name:'도보 위험판단',displayGroup:'교통·보행 정보',walkingFeeds:['TAAS 과거 보행사고','TMAP 보행시설(위치정보)'],shared:['강수·폭염·기상특보 예보']})
+});
+export function evaluateDrivingRisk(route,{weatherSamples=[],extraHazards=[],now=Date.now()}={}){
+ const accepted=Array.isArray(extraHazards)?extraHazards.filter(h=>
+  h?.roadRisk!==undefined||['its-incident','warning'].includes(h?.kind)):[];
+ return {...evaluateRouteRisk(route,{weatherSamples,extraHazards:accepted,mode:'driving',now}),
+  riskSystem:'driving',sourceGroup:RISK_SOURCE_GROUPS.driving.displayGroup};
+}
+export function evaluateWalkingRisk(route,{weatherSamples=[],extraHazards=[],now=Date.now()}={}){
+ // WMS PNG and TMAP crossings/steps are visual/context data, not validated hazard points.
+ const accepted=Array.isArray(extraHazards)?extraHazards.filter(h=>
+  ['pedestrian-hotspot','warning'].includes(h?.kind)):[];
+ return {...evaluateRouteRisk(route,{weatherSamples,extraHazards:accepted,mode:'walking',now}),
+  riskSystem:'walking',sourceGroup:RISK_SOURCE_GROUPS.walking.displayGroup};
+}
+
 export function compareRouteRiskCandidates(candidates,{mode='driving',minCoverage=80,maxDetourRatio=1.25,now=Date.now()}={}){
  const list=Array.isArray(candidates)?candidates:[];
  const evaluated=list.map((candidate,i)=>({
