@@ -34,9 +34,8 @@ export function selectOptimalDemoDetour(options,hazard,{minClearanceMeters=DEMO_
      !Number.isFinite(option.route.duration)||option.route.duration<=0||
      !Number.isFinite(option.route.distance)||option.route.distance<=0)continue;
   const clearance=demoClosestRouteDistance(option.route.rainPath,hazard);
-  const fogDistance=demoClosestRouteDistance(option.route.rainPath,DEMO_PLACES.miryang);
-  if(clearance<minClearanceMeters||fogDistance>maxFogDistanceMeters)continue;
-  feasible.push({...option,clearance,fogDistance});
+  if(clearance<minClearanceMeters)continue;
+  feasible.push({...option,clearance});
  }
  feasible.sort((a,b)=>a.route.duration-b.route.duration||a.route.distance-b.route.distance);
  return feasible[0]||null;
@@ -148,8 +147,8 @@ export const DEMO_BREAKING_POSITION=.65;
 export function demoBreakingTiming(route){
  if(!route?.rainPath?.length||!Number.isFinite(route.duration))throw Error('시연용 구미 경로가 없습니다.');
  const p=demoNearPlace(route.rainPath,DEMO_PLACES.gumi);
- if(!p||p.distanceFromPlace>12000)throw Error('구미 부근의 실제 도로 경로를 찾지 못했습니다.');
- const seconds=Math.round(p.seconds),triggerSeconds=demoLeadSeconds(route.rainPath,seconds,25000);
+ if(!p||p.distanceFromPlace>30000)throw Error('구미 부근을 지나는 실제 도로 경로를 찾지 못했습니다. 위험구간 좌표를 확인해야 합니다.');
+ const seconds=Math.round(p.seconds),triggerSeconds=demoLeadSeconds(route.rainPath,seconds,30000);
  return{seconds,triggerSeconds,triggerPercent:100*triggerSeconds/route.duration,
   point:p,cityDistanceMeters:p.distanceFromPlace};
 }
