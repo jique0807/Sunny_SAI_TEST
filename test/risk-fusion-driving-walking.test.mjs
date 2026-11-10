@@ -88,3 +88,45 @@ test('two routes with only partial weather evidence do not receive safety recomm
  assert.equal(result.recommendation,null);
  assert.equal(result.status,'not-comparable');
 });
+
+test('map hazard layer excludes stale KMA forecasts even when their raw RN1 values claim rain',async()=>{
+ const {buildRouteHazards}=await import('../public/route-hazards.mjs');
+ const r=route(),s=weather(r,34)[0];
+ const wrong={...s,forecast:{...s.forecast,time:new Date(Date.parse(s.eta)+2*3600000).toISOString()}};
+ assert.equal(buildRouteHazards([wrong]).length,0);
+ assert.equal(buildRouteHazards([s]).length,1);
+});
+test('official region station warning evidence expires after ten minutes without a fresh query',async()=>{
+ const {initWarningOverlay}=await import('../public/kma-warning-overlay.mjs');
+ const prior=globalThis.document;
+ let current=Date.parse('2026-11-10T10:00:00Z');
+ const toggle={checked:false,addEventListener(){}},status={textContent:''};
+ globalThis.document={getElementById:id=>id==='navLayerWarning'?toggle:id==='navWarningStatus'?status:null};
+ try{
+  const engine=initWarningOverlay({
+   query:async()=>({warnings:[{
+    label:'시험 경계',title:'특보 인접',icon:'⚠️',
+    validTime:'2026-11-10T09:00:00Z',points:[{lat:37.5665,lng:126.988}]
+   }]}),
+   getMap:()=>null,ensureMap:async()=>{},onChange:()=>{},now:()=>current
+  });
+  const r=route();
+  assert.deepEqual(engine.routeHazards(r),[]);
+  await engine.loadForRisk();
+  assert.equal(engine.routeHazards(r).length,1);
+  current+=11*60000;
+  assert.equal(engine.routeHazards(r).length,0);
+  await engine.loadForRisk();
+  assert.equal(engine.routeHazards(r).length,1);
+ }finally{globalThis.document=prior;}
+});
+test('route guidance actively rechecks warnings, road and ITS independent of map ON/OFF',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+ assert.match(app,/function collectRouteRiskEvidence\(force=false\)/);
+ assert.match(app,/now-lastEvidenceAt<8\*60000/);
+ assert.match(app,/if\(connections\.kma\)void warningOverlay\.loadForRisk\(\)/);
+ assert.match(app,/if\(route\.travelMode==='driving'&&connections\.roadRisk\)void roadRiskOverlay\.loadForRisk\(\)/);
+ assert.match(app,/if\(route\.travelMode==='driving'&&connections\.its\)void loadItsRouteEvidence\(route\)/);
+ assert.match(app,/if\(!routeWeatherEnabled\(\)\)return;\n collectRouteRiskEvidence\(\);/);
+});
