@@ -17,7 +17,7 @@ const {initWarningOverlay}=await import('/kma-warning-overlay.mjs');
 const {initRoadRiskOverlay}=await import('/road-risk-overlay.mjs');
 const {initWalkingFacilityOverlay}=await import('/walking-facilities-overlay.mjs');
 const {initKoroadHotspotOverlay}=await import('/koroad-hotspot-overlay.mjs');
-const {initTaasPedestrianWmsOverlay}=await import('/taas-pedestrian-wms-overlay.mjs');
+const {initTaasRestOverlay}=await import('/taas-rest-overlay.mjs');
 const {routeHistoryQueryPoints,buildPedestrianHistoryHazards}=await import('/pedestrian-history-risk.mjs');
 const {resolveRouteDeparture}=await import('/route-departure.mjs');
 const {buildItsRouteHazards}=await import('/its-route-risk.mjs');
@@ -160,10 +160,12 @@ document.getElementById('navRoute')?.addEventListener('click',()=>{
 document.getElementById('navLayers')?.addEventListener('click',()=>showNavLayers(navLayersSheet?.hidden!==false));
 const minimizeNavLayers=event=>{event?.preventDefault?.();event?.stopPropagation?.();showNavLayers(false);document.getElementById('navLayers')?.focus?.({preventScroll:true});};
 const disableMapLayers=()=>{
- for(const id of ['navLayersnow','navLayerroad','navLayerfog','navLayerflood','navLayerWarning','navLayerWalkFacilities','navLayerTrafficIncidents','navLayerPedestrianWms','navLayerChildWms','navLayerElderlyWms']){
+ for(const id of ['navLayersnow','navLayerroad','navLayerfog','navLayerflood','navLayerWarning','navLayerWalkFacilities','navLayerTrafficIncidents','navLayerPedestrianWms','navLayerChildWms','navLayerElderlyWms','navGk2aRr','navGk2aCi','navGk2aFog']){
   const control=document.getElementById(id);
   if(control?.checked){control.checked=false;control.dispatchEvent(new Event('change'));}
  }
+ const radar=document.getElementById('navNationalRadar');
+ if(radar?.checked){radar.checked=false;radar.dispatchEvent(new Event('change'));}
  const rain=document.getElementById('navNationalRain');
  if(rain?.checked){rain.checked=false;rain.dispatchEvent(new Event('change'));}
 };
@@ -302,25 +304,12 @@ const koroadHotspots=initKoroadHotspotOverlay({
  getContext:()=>['kakao','skyview'].includes(activeMap)&&kmap?{type:'kakao',map:kmap}:null,
  ensureMap:()=>showMap('kakao')
 });
-// TAAS 2024 WMS PNG layers are pedestrian map context, not machine-readable risk points.
-const taasPedestrianWms=initTaasPedestrianWmsOverlay({
+// TAAS REST coordinates are drawn directly on Kakao; WMS images are not required.
+const taasPedestrianWms=initTaasRestOverlay({
  document,
  getMap:()=>['kakao','skyview'].includes(activeMap)?kmap:null,
  ensureMap:()=>showMap('kakao'),
- request:async(kind,bounds)=>{
-  await sessionPromise;
-  const resp=await fetch('/api/taas-pedestrian-map',{
-   method:'POST',credentials:'same-origin',cache:'no-store',
-   headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},
-   body:JSON.stringify({kind,bounds})
-  });
-  if(!resp.ok){
-   let message='TAAS 지도이미지 수신 실패';
-   try{message=(await resp.json()).error||message;}catch{}
-   throw Error(message);
-  }
-  return {blob:await resp.blob(),regionCode:resp.headers.get('X-TAAS-Region-Code')};
- }
+ request:(kind,bounds)=>api('/api/taas-rest-map',{kind,bounds})
 });
 // ITS reports point locations; a nearby point never proves that the routed lane is closed.
 let itsLoadSeq=0;
@@ -800,10 +789,10 @@ async function speak(t){
  if(seq!==voiceSeq)return;if(!window.speechSynthesis){$('voiceStatus').textContent='음성을 지원하지 않는 기기입니다. 화면 안내를 확인해주세요.';return;}
  try{speechSynthesis.resume?.();const u=new SpeechSynthesisUtterance(t);u.lang='ko-KR';u.rate=Number($('speed').value);u.volume=1;const voices=speechSynthesis.getVoices?.()||[];const korean=voices.find(v=>v.lang?.toLowerCase()==='ko-kr'&&v.localService)||voices.find(v=>v.lang?.toLowerCase()==='ko-kr');if(korean)u.voice=korean;u.onstart=()=>{if(seq===voiceSeq)$('voiceStatus').textContent='🔊 음성 출력 중';};u.onend=()=>{if(seq===voiceSeq)$('voiceStatus').textContent='안내를 마쳤어요.';};u.onerror=e=>{if(seq===voiceSeq){$('voiceStatus').textContent='음성 실패: '+(e.error||'기기 설정');toast('기기 음량·무음 설정과 한국어 음성 지원 여부를 확인해주세요.');}};speechSynthesis.speak(u);}catch(e){$('voiceStatus').textContent='기기 음성 지원 오류';}
 }
-async function session(){const r=await fetch('/api/session',{credentials:'same-origin',cache:'no-store'});const d=await r.json();if(!r.ok)throw Error(d.error);csrf=d.csrf;advanced=d.connected;if(d.voiceProvider)$('voiceProvider').value=d.voiceProvider;loadVoices();mapConfig=d.mapConfig;connections=d.connections;kmaMapOverlay.availability(connections.kma);roadRiskOverlay.setAvailable(connections.roadRisk);koroadHotspots.setAvailable(false);taasPedestrianWms.setAvailable(Boolean(connections.taasWms));if(itsControl){itsControl.disabled=!connections.its;itsControl.closest('.nav-layer-row')?.classList.toggle('nav-layer-unavailable',!connections.its);itsControl.checked=!!connections.its;if(!connections.its)itsSay('ROAD_API_KEY 미설정 · ITS 실시간 돌발정보 미조회');else itsSay('ITS 인증키 설정됨 · 실제 자동차 경로 탐색 시 수신 검사');}if(floodControl){floodControl.disabled=!connections.safemap;if(!connections.safemap){floodControl.checked=false;clearFlood();floodMessage('SAFEMAP_API_KEY 미설정');}else floodMessage('서버 키 등록됨 · 실제 WMS 응답은 검사 전');}keyStatus();connectionStatus();return d;}
+async function session(){const r=await fetch('/api/session',{credentials:'same-origin',cache:'no-store'});const d=await r.json();if(!r.ok)throw Error(d.error);csrf=d.csrf;advanced=d.connected;if(d.voiceProvider)$('voiceProvider').value=d.voiceProvider;loadVoices();mapConfig=d.mapConfig;connections=d.connections;kmaMapOverlay.availability(connections.kma);roadRiskOverlay.setAvailable(connections.roadRisk);koroadHotspots.setAvailable(false);taasPedestrianWms.setAvailable(Boolean(connections.koroad&&connections.route));if(itsControl){itsControl.disabled=!connections.its;itsControl.closest('.nav-layer-row')?.classList.toggle('nav-layer-unavailable',!connections.its);itsControl.checked=!!connections.its;if(!connections.its)itsSay('ROAD_API_KEY 미설정 · ITS 실시간 돌발정보 미조회');else itsSay('ITS 인증키 설정됨 · 실제 자동차 경로 탐색 시 수신 검사');}if(floodControl){floodControl.disabled=!connections.safemap;if(!connections.safemap){floodControl.checked=false;clearFlood();floodMessage('SAFEMAP_API_KEY 미설정');}else floodMessage('서버 키 등록됨 · 실제 WMS 응답은 검사 전');}keyStatus();connectionStatus();return d;}
 function keyStatus(){$('keyStatus').textContent=advanced?'암호화해 임시 연결됨 · 최대 30분 · 재생 시 사용 가능 여부 확인':'연결 안 됨 · 기기 기본 음성을 사용합니다.';}
 async function api(path,data,method='POST',retried=false){await sessionPromise;if(!csrf)throw Error('보안 세션이 준비되지 않았습니다. 새로고침 후 다시 시도해주세요.');const r=await fetchWithReception(fetch,path,{method,credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:data?JSON.stringify(data):undefined,cache:'no-store'});let d;try{d=await r.json();}catch{throw Error('서버 응답을 확인하지 못했습니다.');}if(r.status===401){csrf='';advanced=false;keyStatus();if(!retried&&['/api/weather','/api/route','/api/pedestrian-route-context','/api/its-route-context','/api/search','/api/map-health','/api/map-forecast','/api/road-risk','/api/weather-warnings'].includes(path)){sessionPromise=session();await sessionPromise;return api(path,data,method,true);}}if(!r.ok)throw Object.assign(Error(d.error||'요청을 처리하지 못했습니다.'),{reception:d.reception});return d;}
-function connectionStatus(){$('weatherConnection').textContent=connections.kma?'기상청 서버 키 설정됨 · 실제 응답은 경로 조회 후 확인':'기상청 키 설정 대기 · 자동 모드에서는 Open-Meteo 예보를 표시합니다.';const rows=[['한국도로교통공단 과거 사고지도 (TAAS WMS)',connections.taasWms?'2024년 보행자·어린이·노인 WMS 키 설정됨 · 실제 수신은 지도 선택 후 검사':'KOROAD/카카오 서버 키 미등록'],['국가교통정보센터 ITS 사고·공사·소통',connections.its?'ROAD_API_KEY 등록됨 · 실제 경로조회 후 수신·위치검증':'ROAD_API_KEY 미설정'],['한국도로교통공단 보행자 사고다발지역 (TAAS REST)',connections.koroad?'키 등록됨 · 2024년 과거 통계는 표출 기능 선택 후 실제 수신 확인':'KOROAD_API_KEY 미설정'],['카카오 장소 검색·차량 경로',connections.route?'키 설정됨 · 실제 호출 확인 필요':'운영자 REST 키 필요'],['TMAP 도보 길찾기',connections.tmap?'TMAP 키 등록 · 환경설정에서 실제 도보 경로 응답 검사':connections.walkingProvider==='kakao'?'TMAP 미등록 · 카카오 도보 대체 이용 여부 미검증':'TMAP_API_KEY 등록 필요'],['보행로 현장 위험정보','실제 침수·결빙·통제 자료 미연결 · 기상예보 기반 판단만 가능'],['카카오 지도',mapConfig.kakao?'키 설정됨 · '+providerState.kakao:'운영자 JavaScript 키 필요'],['브이월드 위성 배경',mapConfig.vworld?'키 설정됨 · '+providerState.vworld:'운영자 키 필요'],['기상청 API허브',connections.kma?'서버 키 설정됨 · 경로 선택 후 호출 확인':'KMA_API_KEY 설정 대기'],['기상청 도로살얼음·저시정',connections.roadRisk?'서버 키 설정됨 · 위험정보 ZIP 별도 승인 및 위치정보 검증 필요':'KMA_API_KEY 설정 대기'],['생활안전지도 국가하천 WMS',connections.safemap?'서버 키 설정됨 · 실제 응답 검증 필요':'SAFEMAP_API_KEY 설정 대기'],['대체 기상예보','Open-Meteo · 출처 별도 표시'],['GK2A·공사·통제·지형','미연결 · 실시간 판단에 사용하지 않음']];$('connectionList').innerHTML=rows.map(([a,b])=>`<div class="connection-row"><b>${escape(a)}</b><span>${escape(b)}</span></div>`).join('');}
+function connectionStatus(){$('weatherConnection').textContent=connections.kma?'기상청 서버 키 설정됨 · 실제 응답은 경로 조회 후 확인':'기상청 키 설정 대기 · 자동 모드에서는 Open-Meteo 예보를 표시합니다.';const rows=[['한국도로교통공단 과거 사고지도 (TAAS REST)',connections.koroad?'2024년 보행자·어린이·노인 REST 키 설정됨 · 실제 수신은 지도 선택 후 검사':'KOROAD/카카오 서버 키 미등록'],['국가교통정보센터 ITS 사고·공사·소통',connections.its?'ROAD_API_KEY 등록됨 · 실제 경로조회 후 수신·위치검증':'ROAD_API_KEY 미설정'],['한국도로교통공단 보행자 사고다발지역 (TAAS REST)',connections.koroad?'키 등록됨 · 2024년 과거 통계는 표출 기능 선택 후 실제 수신 확인':'KOROAD_API_KEY 미설정'],['카카오 장소 검색·차량 경로',connections.route?'키 설정됨 · 실제 호출 확인 필요':'운영자 REST 키 필요'],['TMAP 도보 길찾기',connections.tmap?'TMAP 키 등록 · 환경설정에서 실제 도보 경로 응답 검사':connections.walkingProvider==='kakao'?'TMAP 미등록 · 카카오 도보 대체 이용 여부 미검증':'TMAP_API_KEY 등록 필요'],['보행로 현장 위험정보','실제 침수·결빙·통제 자료 미연결 · 기상예보 기반 판단만 가능'],['카카오 지도',mapConfig.kakao?'키 설정됨 · '+providerState.kakao:'운영자 JavaScript 키 필요'],['브이월드 위성 배경',mapConfig.vworld?'키 설정됨 · '+providerState.vworld:'운영자 키 필요'],['기상청 API허브',connections.kma?'서버 키 설정됨 · 경로 선택 후 호출 확인':'KMA_API_KEY 설정 대기'],['기상청 도로살얼음·저시정',connections.roadRisk?'서버 키 설정됨 · 위험정보 ZIP 별도 승인 및 위치정보 검증 필요':'KMA_API_KEY 설정 대기'],['생활안전지도 국가하천 WMS',connections.safemap?'서버 키 설정됨 · 실제 응답 검증 필요':'SAFEMAP_API_KEY 설정 대기'],['대체 기상예보','Open-Meteo · 출처 별도 표시'],['GK2A·공사·통제·지형','미연결 · 실시간 판단에 사용하지 않음']];$('connectionList').innerHTML=rows.map(([a,b])=>`<div class="connection-row"><b>${escape(a)}</b><span>${escape(b)}</span></div>`).join('');}
 sessionPromise=session().catch(e=>{$('keyStatus').textContent=e.message;connectionStatus();});
 // The environment settings now contain a real, read-only source health dashboard.
 // Tests only run when the user presses refresh, avoiding extra provider/API usage.
