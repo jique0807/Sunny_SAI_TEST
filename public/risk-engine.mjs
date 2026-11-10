@@ -34,12 +34,31 @@ export function assessRouteHazard(h,{now=Date.now()}={}){
   return assessment('caution','기상특보 근접 참고',source+' · 경로 인접 관측지점 기준',
    '공식 특보구역 경계·도로 통제 확인은 아닙니다.',78);
  }
- if(!['rain','snow','mixed'].includes(h.kind)||source!=='기상청 격자예보')
+ if(!['rain','snow','mixed','heat','cold','wind'].includes(h.kind)||source!=='기상청 격자예보')
   return assessment('unknown','지원하지 않는 위험자료','검증된 기상청 위험 항목 아님','근거 없는 위험은 생성하지 않습니다.',0);
  if(!located(h)||!validTime(h.eta)||!validTime(h.validTime))
   return assessment('unknown','예보 위치·시각 검증 필요','경로좌표·통과시각·유효시각 미확인','미조회 구간은 안전하다고 판단하지 않습니다.',0);
  if(Math.abs(Date.parse(h.eta)-Date.parse(h.validTime))>90*60000)
   return assessment('unknown','예보 유효시각 불일치','통과 시각과 예보 유효시각이 90분 넘게 다름','잘못된 시간 예보를 위험판정에 쓰지 않습니다.',0);
+ // Source/time/position checks above apply equally to pedestrian exposure.
+ if(h.kind==='heat'){
+  const t=h.temperature;
+  if(!Number.isFinite(t)||t<33)return assessment('unknown','고온 기준 미확인','기온 예보 검증 필요','고온 예보가 없으면 위험 단정을 하지 않습니다.',0);
+  return assessment('caution','고온 예보 주의','기상청 격자예보 기온 '+t+'°C · 앱 주의 기준 33°C 이상',
+   '공식 폭염특보나 개인별 열질환 위험을 의미하지 않습니다.',64);
+ }
+ if(h.kind==='cold'){
+  const t=h.temperature;
+  if(!Number.isFinite(t)||t>-12)return assessment('unknown','저온 기준 미확인','기온 예보 검증 필요','실제 체감온도는 별도 확인이 필요합니다.',0);
+  return assessment('caution','저온 예보 주의','기상청 격자예보 기온 '+t+'°C · 앱 주의 기준 -12°C 이하',
+   '공식 한파특보나 체감온도 판정이 아닙니다.',60);
+ }
+ if(h.kind==='wind'){
+  const w=h.windSpeed;
+  if(!Number.isFinite(w)||w<14)return assessment('unknown','강풍 기준 미확인','풍속 예보 검증 필요','실제 순간돌풍은 별도 확인이 필요합니다.',0);
+  return assessment('caution','강풍 예보 주의','기상청 격자예보 풍속 '+w+'m/s · 앱 주의 기준 14m/s 이상',
+   '공식 강풍특보나 실제 구조물 낙하 위험 판정이 아닙니다.',58);
+ }
  if(h.kind==='snow'||h.kind==='mixed')
   return assessment('notice',h.kind==='snow'?'눈 예보':'비·눈 예보',
    '기상청 강수형태 · '+(h.snowLabel?'신적설 '+h.snowLabel:'적설량 확인 불가'),
