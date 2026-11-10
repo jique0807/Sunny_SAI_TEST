@@ -11,7 +11,7 @@ test('old 10-minute graphic is replaced by real KMA 2.2 numeric forecast in one 
  assert.match(ui,/id="navForecastImageToggle"[^>]*>초단기 강수예측/);
  assert.doesNotMatch(ui,/id="navForecastControls"|id="navForecastImageView"|id="navForecastImageLead"/);
  assert.match(ui,/id="navRainGridLead"[^>]*max="5"[^>]*step="1"/);
- assert.match(ui,/1시간 간격 미래예보/);
+ assert.match(ui,/1시간 간격 · 최대 6시간/);
  assert.match(overlaySource,/source='grid'/);
  assert.match(overlaySource,/drawRainCells\(ctx,forecast\.cells/);
  assert.match(overlaySource,/\/api\/rain-grid\?lead=/);
@@ -65,8 +65,8 @@ test('the same UI button queries 5km KMA RN1 leads 0 and 1 and never fetches pro
   await wait();
   assert.deepEqual(calls,['/api/rain-grid?lead=0','/api/rain-grid?lead=1']);
   element('navForecastImageToggle').dispatch('click');
-  assert.equal(element('navRainGridTimeBar').hidden,true);
-  assert.equal(element('navForecastImageToggle').attributes['aria-pressed'],'false');
+  assert.equal(element('navRainGridTimeBar').hidden,false);
+  assert.equal(element('navForecastImageToggle').attributes['aria-pressed'],'true');
  }finally{
   overlay?.disable();
   for(const [k,v]of Object.entries(prior)){
