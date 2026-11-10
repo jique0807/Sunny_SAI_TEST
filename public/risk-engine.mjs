@@ -9,6 +9,17 @@ export function assessRouteHazard(h,{now=Date.now()}={}){
   return assessment('unknown','자료 미수신','확인된 자료 없음','자료가 없다고 안전한 것은 아닙니다.',0);
  if(h.demo)return assessment('simulation','시연','가상의 기상위험','실제 위험판정이 아닙니다.',0);
  const source=String(h.provider||'');
+ // Historic crash clusters are cautionary context, NOT observed real-time collisions.
+ if(h.kind==='pedestrian-hotspot'){
+  if(source!=='한국도로교통공단 TAAS'||h.historic!==true||h.live!==false||
+     h.year!=='2024'||!located(h)||!Number.isFinite(h.seconds)||!validTime(h.eta)||
+     !Number.isInteger(h.accidentCount)||h.accidentCount<1)
+   return assessment('unknown','과거 보행 사고정보 검증 필요','원본·연도·위치·건수 미확인','근거 없는 사고 위험은 생성하지 않습니다.',0);
+  return assessment('notice','과거 보행 사고 집중구역',
+   '한국도로교통공단 TAAS · 2024년 과거 사고 '+h.accidentCount+'건 · 실제 경로 120m 이내',
+   '현재 사고가 발생했다는 뜻이 아니며 향후 사고확률이나 통제 여부는 알 수 없습니다.',42);
+ }
+
  if(h.roadRisk!==undefined){
   const g=h.roadRisk,age=validTime(h.validTime)?now-Date.parse(h.validTime):Infinity;
   if(!source.includes('기상청 도로위험')||h.riskGradeVerified!==true||![1,2,3].includes(g)||!located(h)||!validTime(h.eta)||age<0||age>15*60000)
