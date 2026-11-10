@@ -63,7 +63,11 @@ document.querySelectorAll('input[name="travelMode"]').forEach(input=>input.addEv
  updateTravelModeUI();
  if(route&&!route.demo&&route.travelMode!==selectedTravelMode()){
   if($('navStartGuidance'))$('navStartGuidance').disabled=true;
-  reply('이동수단을 변경했습니다. 새 경로를 탐색해야 안내할 수 있습니다.');
+  // Never leave a previous car line visible after the user selects walking.
+  routePolyline?.setMap(null);routePolyline=null;
+  if($('navRouteResult'))$('navRouteResult').hidden=true;
+  if($('navRouteRiskMarks'))$('navRouteRiskMarks').replaceChildren();
+  reply('이동수단을 변경했습니다. 이전 차량 경로를 지웠습니다. 도보 경로를 새로 탐색해주세요.');
  }
 }));
 
