@@ -1,12 +1,13 @@
 // Historical KOROAD TAAS pedestrian collision clusters, not live warnings.
+import {buildPedestrianHistoryHazards} from './pedestrian-history-risk.mjs';
 // Only validated API coordinates can create map overlays.
 export function displayablePedestrianHotspots(data){
- if(data?.status!=='received'||!Array.isArray(data.items))return[];
+ if(!['received','partial'].includes(data?.status)||!Array.isArray(data.items))return[];
  return data.items.filter(p=>p?.historic===true&&p.live===false&&p.year==='2024'&&
    Number.isFinite(p.lat)&&p.lat>=32&&p.lat<=40&&Number.isFinite(p.lng)&&p.lng>=123&&p.lng<=133&&
    Number.isInteger(p.accidentCount)&&p.accidentCount>=0).slice(0,60);
 }
-export function initKoroadHotspotOverlay({document,request,getContext,ensureMap,getRoute,onData=()=>{}}){
+export function initKoroadHotspotOverlay({document,request,getContext,ensureMap,getRoute,onData=()=>{},onToggle=()=>{}}){
  const control=document.getElementById('navLayerPedestrianHotspots');
  const status=document.getElementById('navPedestrianHotspotStatus');
  const available=()=>Boolean(control&&!control.disabled);
@@ -15,12 +16,13 @@ export function initKoroadHotspotOverlay({document,request,getContext,ensureMap,
  function clear(){for(const item of items)try{item.setMap(null)}catch{}items=[];}
  function repaint(){
   clear();if(!control?.checked||!data)return;
-  const records=displayablePedestrianHotspots(data);
+  // Map only verified historical clusters within 120 m of the selected route.
+  const records=buildPedestrianHistoryHazards(getRoute?.(),data);
   if(!records.length){say(data.status==='empty'?'경로 주변에 확인된 2024년 사고집중구역 없음 · 안전 판정 아님':data.reason||'사고다발지역 좌표 확인 실패');return;}
   const ctx=getContext();if(!ctx?.map){say('카카오 지도로 이동한 뒤 표시합니다.');return;}
   if(!globalThis.kakao?.maps){say('카카오 지도 SDK 연결 전입니다.');return;}
   for(const p of records){
-   const label='2024년 과거 보행자 사고다발지역 · '+p.name+' · '+p.accidentCount+'건 · 실시간 사고/통제 아님';
+   const label='2024년 과거 보행자 사고다발지역 · '+p.label+' · '+p.accidentCount+'건 · 실시간 사고/통제 아님';
    const marker=document.createElement('button');marker.type='button';marker.className='sunny-historic-hotspot-pin';
    marker.textContent='⚠️';marker.title=label;marker.setAttribute('aria-label',label);
    marker.addEventListener('click',()=>say(label));
@@ -45,8 +47,9 @@ export function initKoroadHotspotOverlay({document,request,getContext,ensureMap,
   finally{if(run===seq)loading=false;}
  }
  control?.addEventListener('change',()=>{
-  if(!control.checked){seq++;loading=false;clear();say(available()?'표출 해제 · 과거 통계':'기관 인증키 등록 전');return;}
+  if(!control.checked){seq++;loading=false;clear();say(available()?'표출 해제 · 과거 통계':'기관 인증키 등록 전');onToggle();return;}
   if(data)repaint();else void load();
+  onToggle();
  });
  function setAvailable(configured){
   if(!control)return;
