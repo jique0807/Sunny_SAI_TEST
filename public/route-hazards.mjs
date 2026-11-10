@@ -43,7 +43,15 @@ export function hazardDetails(hazard,formatTime){
   '위험정보: '+hazard.measure,hazard.description,'출처: '+hazard.provider
  ];
  let details;
- if(hazard.kind==='warning')details=[
+ if(hazard.kind==='pedestrian-hotspot')details=[
+  hazard.title,'과거 사고 집중구역: '+hazard.label,
+  '자료연도: 2024년 · 한국도로교통공단 TAAS',
+  '과거 사고건수: '+hazard.accidentCount+'건',
+  '실제 경로와의 최단거리: '+(hazard.distanceToPath??'미확인')+'m',
+  '예상 통과: '+format(hazard.eta),
+  '현재 사고·도로 통제 정보가 아니며 안전한 우회경로를 보증하지 않습니다.'
+ ];
+ else if(hazard.kind==='warning')details=[
   hazard.title,'특보구역: '+hazard.label,'발효 시각: '+format(hazard.validTime),
   '자료: '+hazard.provider
  ];
