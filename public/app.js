@@ -40,6 +40,7 @@ function updateTravelModeUI(){
   ?'도보 경로를 탐색하고 예상 통과시각의 기상 위험을 확인합니다.'
   :'자동차 경로와 예상 통과시각을 확인합니다.';
  if($('walkModeNotice'))$('walkModeNotice').hidden=!walking;
+ if($('walkRoutePriorityRow'))$('walkRoutePriorityRow').hidden=!walking;
  const notice=$('walkExternalLink');
  if(notice){
   notice.hidden=!(walking&&originPlace&&destPlace);
@@ -838,7 +839,7 @@ $('searchForm').onsubmit=async e=>{e.preventDefault();stopRain();if(playing)retu
   showNavSearch(true);
   throw Error('출발지가 선택되지 않았습니다. 출발지 검색 버튼 또는 현재 위치 버튼으로 먼저 위치를 정해주세요.');
  }
- if(!originPlace)originPlace=await choose('origin');if(!destPlace)destPlace=await choose('destination');rememberQuery($('destination').value);if(run!==routeSeq)return;const departure=new Date($('departure').value).toISOString();const mode=selectedTravelMode();reply((mode==='walking'?'도보':'차량')+' 경로와 예상 통과시각을 확인하고 있어요.');const d=await api('/api/route',{origin:originPlace,destination:destPlace,departure,travelMode:mode});if(run!==routeSeq)return;route={...d,demo:false};weather=null;progress=0;gate.reset();koroadHotspots.setData(null);renderRoute();rememberDestination(destPlace);showNavSearch(false);showNavRouteResult();reply((mode==='walking'?'보행로':'차량')+' 경로를 찾았어요. 구간별 예보를 확인합니다.');
+ if(!originPlace)originPlace=await choose('origin');if(!destPlace)destPlace=await choose('destination');rememberQuery($('destination').value);if(run!==routeSeq)return;const departure=new Date($('departure').value).toISOString();const mode=selectedTravelMode();reply((mode==='walking'?'도보':'차량')+' 경로와 예상 통과시각을 확인하고 있어요.');const d=await api('/api/route',{origin:originPlace,destination:destPlace,departure,travelMode:mode,walkingPriority:mode==='walking'?$('walkingPriority').value:'BROAD_FIRST'});if(run!==routeSeq)return;route={...d,demo:false};weather=null;progress=0;gate.reset();koroadHotspots.setData(null);renderRoute();rememberDestination(destPlace);showNavSearch(false);showNavRouteResult();reply((mode==='walking'?'보행로':'차량')+' 경로를 찾았어요. 구간별 예보를 확인합니다.');
  if(mode==='walking')void loadPedestrianRouteEvidence(route);
  await Promise.all([loadWeather(),showMap('kakao')]); }catch(e){
  if(run===routeSeq){
