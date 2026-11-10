@@ -44,7 +44,7 @@ test('walking demo has separate desktop and mobile entries without replacing veh
  assert.match(app,/\$\('navDemoWalk'\)\?\.addEventListener\('click',walkingDemoRoute\)/);
  assert.match(app,/route\.demoWalking\?\(!route\.demoWarningIssued/);
  assert.match(app,/injectWalkingDemoWarning\(\)/);
- assert.match(app,/route\.demoWalking\?'서울시청에 도착/);
+ assert.match(app,/route\.demoShelterRerouted\?'소공동 주민센터 무더위쉼터에 도착/);
  assert.match(css,/sunny-walk-demo-launch/);
 });
 test('walking demo never invokes the Gumi detour and retains user-visible simulation disclosure',()=>{

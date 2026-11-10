@@ -16,7 +16,7 @@ export const DATA_CONNECTION_SOURCES=[
  {id:'floodLocal',group:'침수',name:'지방하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 아님'},
  {id:'walkSurface',group:'보행 안전',name:'보행로 침수·결빙·통행 제한',description:'현장 관측자료 API 미연결 · 기상예보 기반 위험 주의만 제공'},
  {id:'trafficIncident',group:'교통·보행 정보',name:'UTIC 사고·공사·통제',description:'인증·서버 연동 전 · 실제 자료 미수신'},
- {id:'pedestrianHotspots',group:'교통·보행 정보',name:'보행자 사고다발지역',description:'인증·서버 연동 전 · 과거 사고 통계 미수신'}
+ {id:'pedestrianHotspots',group:'교통·보행 정보',name:'보행자 사고다발지역',description:'KOROAD 2024년 서울 중구 과거 사고다발지역 · 실시간 사고 아님'}
 ];
 export const CONNECTION_STATE_TEXT={
  unknown:'검사 전',unverified:'검사 보류',checking:'조회 중',configured:'검사 전',
@@ -49,7 +49,7 @@ export function applySessionConfiguration(current,session){
  }
  copy.walkSurface={...state('unverified','실제 보행로 침수·결빙·통제 관측 API 미연결 · Risk Engine은 기상예보로 주의를 판단'),keyRegistered:null};
  copy.trafficIncident={...state('unverified','UTIC 인증키·IP 등록 및 실수신 서버 연동 필요'),keyRegistered:null};
- copy.pedestrianHotspots={...state('unverified','한국도로교통공단 인증 및 좌표 검증 필요 · 과거 사고통계'),keyRegistered:null};
+ copy.pedestrianHotspots={...(config.koroad?state('configured','KOROAD_API_KEY 등록됨 · 실제 2024년 서울 중구 통계 응답 검사 전'):state('unverified','KOROAD_API_KEY 미설정 또는 서비스 이용 미승인 · 실제 데이터 미표출')),keyRegistered:Boolean(config.koroad)};
  return copy;
 }
 export function mapConnectionProbe(kind,data,previous){
@@ -81,6 +81,12 @@ export function mapConnectionProbe(kind,data,previous){
    data?.providerStatus===429?'TMAP 공급기관 호출 제한':
    data?.reason||'TMAP 실제 보행 경로 응답 미확인';
   put('walk',valid?'ok':'error',message);
+ }
+ if(kind==='koroad'){
+  const status=data?.status;
+  put('pedestrianHotspots',status==='received'?'ok':status==='empty'?'empty':'error',
+   status==='received'?'한국도로교통공단 2024년 서울 중구 과거 사고다발지역 '+(data.items?.length||0)+'곳 수신 · 실시간 사고 아님':
+   status==='empty'?'2024년 서울 중구 과거 사고다발지역 제공자료 없음':data?.reason||'KOROAD API 인증 또는 수신 실패');
  }
  if(kind==='rain'){
   const found=Array.isArray(data?.results)?data.results:[];
@@ -166,7 +172,7 @@ export function initConnectionStatusPanel({
    const entry=values[id]||state('unknown','검사 전');
    refs.row.dataset.connectionState=entry.state;
    refs.badge.textContent=CONNECTION_STATE_TEXT[entry.state]||'확인 불가';
-   refs.keyStatus.textContent=['walkSurface','trafficIncident','pedestrianHotspots'].includes(id)?'실제 데이터 연계 · 미완료':'API 키 · '+(entry.keyRegistered===true?'등록됨':entry.keyRegistered===false?'미등록':'확인 불가');
+   refs.keyStatus.textContent=['walkSurface','trafficIncident'].includes(id)?'실제 데이터 연계 · 미완료':'API 키 · '+(entry.keyRegistered===true?'등록됨':entry.keyRegistered===false?'미등록':'확인 불가');
    refs.explanation.textContent=entry.state==='empty'?'자료없음 · '+entry.detail:entry.detail||'';
   }
   if(summary)summary.textContent=summarizeConnectionResults(values).text;
@@ -196,13 +202,14 @@ export function initConnectionStatusPanel({
    values=applySessionConfiguration(initialConnectionResults(),session);
    for(const [ids]of [
     [['map','search','route','forecast']],[['walk']],[['rain']],[['radar']],
-    [['road','warning','floodNational','floodLocal']]
+    [[ 'road','warning','floodNational','floodLocal' ]],[['pedestrianHotspots']]
    ])for(const id of ids)if(values[id]?.state==='configured')
     values[id]={...values[id],...state('checking','실제 공급기관 API 응답 확인 중')};
    render();
    const checks=[
     ['journey','/api/preview-journey-smoke',['map','search','route','forecast']],
     ['walk','/api/pedestrian-route-diagnostic',['walk']],
+    ['koroad','/api/koroad-pedestrian-hotspots',['pedestrianHotspots']],
     ['rain','/api/rain-grid-diagnostic',['rain']],
     ['radar','/api/radar-latest-diagnostic',['radar']],
     ['layers','/api/route-layer-feasibility',['road','warning','floodNational','floodLocal']]

@@ -2283,3 +2283,10 @@ body.sunny-guiding .sunny-demo-detour-popup{
  .sunny-route-studio .sunny-real-walk-launch{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;width:100%;gap:6px}
  .sunny-route-studio .sunny-real-walk-launch small{flex:1 0 100%;text-align:center}
 }
+
+/* Historical KOROAD data: intentionally distinct from real-time incident/warning pins. */
+.sunny-historic-hotspot-pin{display:flex;align-items:center;justify-content:center;width:34px;height:34px;
+ border:2px solid #fff;border-radius:50%;background:#fff2cc;box-shadow:0 3px 8px #83641a45;
+ font-size:17px;cursor:pointer;touch-action:manipulation}
+.sunny-historic-hotspot-pin:focus-visible{outline:3px solid #1768ed;outline-offset:3px}
+.nav-layers-sheet .nav-layer-row:has(#navLayerPedestrianHotspots:enabled){opacity:1}
