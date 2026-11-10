@@ -47,9 +47,11 @@ test('source inventory covers all agreed menu sources but excludes CCTV and ordi
  const ids=DATA_CONNECTION_SOURCES.map(x=>x.id);
  assert.equal(new Set(ids).size,ids.length);
  assert.ok(ids.includes('map')&&ids.includes('rain')&&ids.includes('radar'));
- assert.equal(ids.length,14);
+ assert.equal(ids.length,18);
  assert.ok(ids.includes('walk')&&ids.includes('walkSurface'));
  assert.ok(ids.includes('trafficIncident')&&ids.includes('pedestrianHotspots'));
+ assert.ok(ids.includes('itsTraffic'));
+ for(const id of ['taasPedestrianWms','taasChildWms','taasElderlyWms'])assert.ok(ids.includes(id));
  assert.ok(ids.includes('road')&&ids.includes('warning'));
  assert.ok(ids.includes('floodNational')&&ids.includes('floodLocal'));
  assert.ok(!ids.includes('riverLevel'));
@@ -177,4 +179,64 @@ test('walking diagnostic never claims road or sidewalk observations are measured
  assert.equal(results.walkSurface.state,'unverified');
  assert.match(results.walkSurface.detail,/미연결/);
  assert.match(results.walk.detail,/현장 위험 미검증/);
+});
+
+
+test('ITS and TAAS 2024 WMS each receive a distinct, honest live diagnostic status',async()=>{
+ const configured={...session,csrf:'csrf-connection-check',connections:{
+  ...session.connections,its:true,koroad:true,taasWms:true
+ }};
+ const data={status:'received',items:[{type:'accident'}],
+  traffic:{status:'received',count:18}};
+ const png=new Uint8Array([137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82,0,0,2,0,0,0,2,0]);
+ const requests=[];
+ const fetcher=async(path,opts={})=>{
+  requests.push({path,method:opts.method??'GET',body:opts.body||'',headers:opts.headers||{}});
+  if(path==='/api/session')return Response.json(configured);
+  if(path==='/api/its-route-context'){
+   assert.equal(opts.method,'POST');assert.equal(opts.headers['X-CSRF-Token'],configured.csrf);
+   const points=JSON.parse(opts.body).points;
+   assert.equal(points.length,2);
+   assert.deepEqual(points[0],{lat:37.5663,lng:126.9779});
+   return Response.json(data);
+  }
+  if(path==='/api/taas-pedestrian-map'){
+   assert.equal(opts.method,'POST');assert.equal(opts.headers['X-CSRF-Token'],configured.csrf);
+   const body=JSON.parse(opts.body);
+   return new Response(png,{headers:{'content-type':'image/png','X-TAAS-Year':'2024',
+    'X-TAAS-Layer':body.kind}});
+  }
+  if(path==='/api/koroad-pedestrian-hotspots')
+   return Response.json({status:'failed',items:[],reason:'TAAS REST 별도 승인 확인 필요'});
+  if(path==='/api/preview-journey-smoke')return Response.json(journey);
+  if(path==='/api/pedestrian-route-diagnostic')
+   return Response.json({provider:'tmap',status:'received',geometryValid:true,distanceMeters:2102,durationSeconds:1638});
+  if(path==='/api/rain-grid-diagnostic')return Response.json(rain);
+  if(path==='/api/radar-latest-diagnostic')return Response.json(radar);
+  if(path==='/api/route-layer-feasibility')return Response.json(layers);
+  throw Error('Unexpected diagnostic: '+path);
+ };
+ const {document}=dom();
+ const panel=initConnectionStatusPanel({document,fetcher,waitForSession:async()=>{}});
+ assert.equal(await panel.refresh(),true);
+ const result=panel.getStatus();
+ assert.equal(result.trafficIncident.state,'ok');
+ assert.equal(result.itsTraffic.state,'ok');
+ assert.equal(result.pedestrianHotspots.state,'error');
+ for(const id of ['taasPedestrianWms','taasChildWms','taasElderlyWms']){
+  assert.equal(result[id].state,'ok',id);
+  assert.match(result[id].detail,/PNG/);
+ }
+ assert.equal(requests.filter(x=>x.path==='/api/taas-pedestrian-map').length,3);
+ assert.equal(requests.filter(x=>x.path==='/api/its-route-context').length,1);
+ const joined=JSON.stringify(requests);
+ assert.doesNotMatch(joined,/KOROAD_API_KEY|ROAD_API_KEY|SERVER_KEY/);
+ assert.match(result.trafficIncident.detail,/미검증/);
+});
+test('missing provider key keeps pending status, not a fabricated connection success',()=>{
+ const info=applySessionConfiguration(initialConnectionResults(),{mapConfig:{},connections:{koroad:true,its:false,taasWms:false}});
+ assert.equal(info.trafficIncident.state,'unverified');
+ assert.equal(info.itsTraffic.state,'unverified');
+ assert.equal(info.taasChildWms.state,'unverified');
+ assert.equal(info.pedestrianHotspots.state,'configured');
 });
