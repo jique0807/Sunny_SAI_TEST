@@ -678,13 +678,16 @@ async function refreshRouteFromGps(automatic=false){
  try{
   const origin={lat:location.lat,lng:location.lng,name:'현재 위치'};
   const result=await api('/api/route',{
-   origin,destination,departure:new Date().toISOString(),travelMode:previous.travelMode||'driving'
+   origin,destination,departure:new Date().toISOString(),travelMode:previous.travelMode||'driving',walkingPriority:previous.walkingPriority||'BROAD_FIRST'
   });
   // A newer user route or stopped guidance invalidates this in-flight reply.
   if(!drivingUI.isActive()||rainWatch===null||sessionRun!==rainRun||route!==previous||destPlace!==destination)return;
   if(automatic&&!offRouteFix)return;
-  if(!result.rainPath?.length||!result.vertices?.length)throw Error('새 도로 좌표를 받지 못했습니다.');
-  originPlace=origin;route={...result,demo:false};weather=null;routeAheadWeather=null;
+  if(result.travelMode!==previous.travelMode||result.mode!==previous.travelMode||
+    (previous.travelMode==='walking'&&result.provider!=='TMAP'&&result.source!=='Kakao Maps Walking'))
+   throw Error('보행 경로를 재탐색했으나 다른 이동수단의 노선이 반환되어 안내를 유지합니다.');
+  if(!result.rainPath?.length||!result.vertices?.length)throw Error('새 경로 좌표를 받지 못했습니다.');
+  originPlace=origin;route={...result,demo:false,walkingPriority:previous.walkingPriority||null};weather=null;routeAheadWeather=null;
   vectorDriving.setRoute(route);vectorDriving.refreshHazards(vectorGuidanceHazards());
   lastMatchedPoint=null;offRouteFix=null;rainProgress=0;rainLastFetch=0;rainLastPoint=null;rainGate=new RainGate();
   const updatedRoute=route;
@@ -839,7 +842,14 @@ $('searchForm').onsubmit=async e=>{e.preventDefault();stopRain();if(playing)retu
   showNavSearch(true);
   throw Error('출발지가 선택되지 않았습니다. 출발지 검색 버튼 또는 현재 위치 버튼으로 먼저 위치를 정해주세요.');
  }
- if(!originPlace)originPlace=await choose('origin');if(!destPlace)destPlace=await choose('destination');rememberQuery($('destination').value);if(run!==routeSeq)return;const departure=new Date($('departure').value).toISOString();const mode=selectedTravelMode();reply((mode==='walking'?'도보':'차량')+' 경로와 예상 통과시각을 확인하고 있어요.');const d=await api('/api/route',{origin:originPlace,destination:destPlace,departure,travelMode:mode,walkingPriority:mode==='walking'?$('walkingPriority').value:'BROAD_FIRST'});if(run!==routeSeq)return;route={...d,demo:false};weather=null;progress=0;gate.reset();koroadHotspots.setData(null);renderRoute();rememberDestination(destPlace);showNavSearch(false);showNavRouteResult();reply((mode==='walking'?'보행로':'차량')+' 경로를 찾았어요. 구간별 예보를 확인합니다.');
+ if(!originPlace)originPlace=await choose('origin');if(!destPlace)destPlace=await choose('destination');rememberQuery($('destination').value);if(run!==routeSeq)return;const departure=new Date($('departure').value).toISOString();const mode=selectedTravelMode();reply((mode==='walking'?'도보':'차량')+' 경로와 예상 통과시각을 확인하고 있어요.');const d=await api('/api/route',{origin:originPlace,destination:destPlace,departure,travelMode:mode,walkingPriority:mode==='walking'?$('walkingPriority').value:'BROAD_FIRST'});if(run!==routeSeq)return;
+ // Fail closed: a walking request must never render or navigate a car route.
+ if(d.travelMode!==mode||d.mode!==mode||
+    (mode==='walking'&&d.provider!=='TMAP'&&d.source!=='Kakao Maps Walking')||
+    !Array.isArray(d.vertices)||d.vertices.length<2||
+    !Array.isArray(d.rainPath)||d.rainPath.length<2)
+  throw Error('도보/차량 경로 제공자 또는 경로 좌표가 요청한 이동수단과 일치하지 않습니다. 잘못된 노선을 표시하지 않습니다.');
+ route={...d,demo:false,walkingPriority:mode==='walking'?$('walkingPriority').value:null};weather=null;progress=0;gate.reset();koroadHotspots.setData(null);renderRoute();rememberDestination(destPlace);showNavSearch(false);showNavRouteResult();reply((mode==='walking'?'보행로':'차량')+' 경로를 찾았어요. 구간별 예보를 확인합니다.');
  if(mode==='walking')void loadPedestrianRouteEvidence(route);
  await Promise.all([loadWeather(),showMap('kakao')]); }catch(e){
  if(run===routeSeq){
@@ -1447,7 +1457,7 @@ async function showMap(type,{preserveCamera=false}={}){const keepKakaoCamera=pre
  // Demo mode has its own persistent disclaimer and labeled hazard markers; no map popup.
  try{if(isKakao){if(!mapConfig.kakao)throw Error('운영자의 카카오 JavaScript 키가 필요합니다.');if(!kmap){await script('https://dapi.kakao.com/v2/maps/sdk.js?autoload=false&appkey='+encodeURIComponent(mapConfig.kakao));await new Promise((resolve,reject)=>{if(!window.kakao?.maps)return reject(Error('카카오 지도 SDK 응답을 확인해주세요.'));const timeout=setTimeout(()=>reject(Error('카카오 지도 초기화 시간 초과')),12000);kakao.maps.load(()=>{clearTimeout(timeout);resolve();});});if(run!==mapRun)return;kmap=new kakao.maps.Map($('kakaoMap'),{center:new kakao.maps.LatLng(36.85,127.44),level:10});/* Kakao zoom sidebar removed; home can still pinch/double-tap to zoom. */kakao.maps.event.addListener(kmap,'click',e=>mapClick({lat:e.latLng.getLat(),lng:e.latLng.getLng()}));kakao.maps.event.addListener(kmap,'idle',kmaMapOverlay.schedule);}
  if(run!==mapRun)return;if(!keepKakaoCamera){kmap.relayout();rainGridOverlay.setMap(kmap);kmap.setMapTypeId(type==='skyview'?kakao.maps.MapTypeId.HYBRID:kakao.maps.MapTypeId.ROADMAP);}providerState.kakao='SDK 초기화 확인';connectionStatus();routePolyline?.setMap(null);kmarker?.setMap(null);kend?.setMap(null);routeCurrentMarker?.setMap(null);routePolyline=null;kmarker=null;kend=null;routeCurrentMarker=null;
- if(route?.demo){const bounds=new kakao.maps.LatLngBounds();[originPlace,destPlace].forEach(p=>bounds.extend(new kakao.maps.LatLng(p.lat,p.lng)));kmap.setBounds(bounds);}if(route?.vertices?.length){const pts=remainingRoutePoints().map(p=>new kakao.maps.LatLng(p.lat,p.lng));routePolyline=new kakao.maps.Polyline({map:kmap,path:pts,zIndex:10,strokeWeight:7,strokeColor:type==='skyview'?'#ffda7d':'#315fce',strokeOpacity:.95});kakao.maps.event.addListener(routePolyline,'click',e=>mapClick({lat:e.latLng.getLat(),lng:e.latLng.getLng()}));const bounds=new kakao.maps.LatLngBounds();pts.forEach(p=>bounds.extend(p));if(!keepKakaoCamera)kmap.setBounds(bounds);homeLocationMarker?.setMap(null);homeLocationMarker=null;
+ if(route?.demo){const bounds=new kakao.maps.LatLngBounds();[originPlace,destPlace].forEach(p=>bounds.extend(new kakao.maps.LatLng(p.lat,p.lng)));kmap.setBounds(bounds);}if(route?.vertices?.length){const pts=remainingRoutePoints().map(p=>new kakao.maps.LatLng(p.lat,p.lng));routePolyline=new kakao.maps.Polyline({map:kmap,path:pts,zIndex:10,strokeWeight:route?.travelMode==='walking'?6:7,strokeColor:route?.travelMode==='walking'?'#10a56b':type==='skyview'?'#ffda7d':'#315fce',strokeOpacity:.95});kakao.maps.event.addListener(routePolyline,'click',e=>mapClick({lat:e.latLng.getLat(),lng:e.latLng.getLng()}));const bounds=new kakao.maps.LatLngBounds();pts.forEach(p=>bounds.extend(p));if(!keepKakaoCamera)kmap.setBounds(bounds);homeLocationMarker?.setMap(null);homeLocationMarker=null;
  kmarker=new kakao.maps.CustomOverlay({map:kmap,position:pts[0],content:createRoutePin('start'),xAnchor:.5,yAnchor:.3,zIndex:21});
  kend=new kakao.maps.CustomOverlay({map:kmap,position:pts[pts.length-1],content:createRoutePin('destination'),xAnchor:.5,yAnchor:.3,zIndex:21});
  updateRouteCurrentMarker();}if(!route?.vertices?.length&&viewport)restoreMapViewport(viewport);else if(!route?.vertices?.length&&homePosition)centerHomeMap();}
