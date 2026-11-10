@@ -88,5 +88,8 @@ test('manifest endpoint and client wiring are protected from arbitrary provider 
  assert.equal(invalid.status,400);
  const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
  assert.match(app,/createRiskModelRegistry/);
- assert.match(app,/buildRiskLineage/);
+ assert.match(app,/initArchitecturePanel/);
+ assert.match(app,/architecturePanel\.update/);
+ const panel=readFileSync(new URL('../public/architecture-panel.mjs',import.meta.url),'utf8');
+ assert.match(panel,/buildRiskLineage/);
 });
