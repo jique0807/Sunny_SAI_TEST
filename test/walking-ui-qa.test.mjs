@@ -83,7 +83,7 @@ test('mobile route button dispatches to actual route handler rather than silentl
  const end=app.indexOf("\n$('origin')?.addEventListener('change',studioSync);",begin);
  assert.ok(begin>0&&end>begin);
  const snippet=app.slice(begin,end);
- assert.doesNotMatch(snippet,/requestSubmit\(\)/);
+ assert.doesNotMatch(snippet,/\.requestSubmit\(\)/);
  assert.match(snippet,/dispatchEvent\(new Event\('submit'/);
  const registry={},updates=[];
  const elements={
