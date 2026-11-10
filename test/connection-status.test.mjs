@@ -149,7 +149,7 @@ test('settings refresh makes real diagnostic requests and maps results to honest
  assert.equal(await panel.refresh(),true);
  assert.deepEqual(calls,[
   '/api/session','/api/preview-journey-smoke','/api/pedestrian-route-diagnostic','/api/rain-grid-diagnostic',
-  '/api/radar-latest-diagnostic','/api/route-layer-feasibility','/api/gk2a-live-diagnostic'
+  '/api/radar-latest-diagnostic','/api/route-layer-feasibility'
  ]);
  assert.equal(panel.getStatus().rain.state,'ok');
  assert.equal(panel.getStatus().walk.state,'ok');
@@ -157,8 +157,8 @@ test('settings refresh makes real diagnostic requests and maps results to honest
  assert.equal(panel.getStatus().road.state,'partial');
  assert.equal(panel.getStatus().floodNational.state,'error');
  assert.match(nodes.get('settingConnectionSummary').textContent,/연결/);
- assert.equal(panel.getStatus().gk2aRr.state,'partial');
- assert.equal(panel.getStatus().gk2aCi.state,'unverified');
+ assert.equal(panel.getStatus().gk2aRr.state,'missing');
+ assert.equal(panel.getStatus().gk2aCi.state,'missing');
  assert.match(nodes.get('settingConnectionCheckedAt').textContent,/2026/);
  assert.equal(nodes.get('settingConnectionRefresh').disabled,false);
  assert.equal(panel.isChecking(),false);
