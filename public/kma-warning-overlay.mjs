@@ -13,7 +13,7 @@ export function warningRouteHazards(warnings,path,departure){
  }
  return hazards;
 }
-export function initWarningOverlay({query,getMap,ensureMap,onChange}){
+export function initWarningOverlay({query,getMap,ensureMap,onChange,now=()=>Date.now()}){
  const toggle=document.getElementById('navLayerWarning'),status=document.getElementById('navWarningStatus');
  let data=null,items=[],request=0,timer=null,lastVerifiedAt=0;
  const say=text=>{if(status)status.textContent=text;};
@@ -43,7 +43,7 @@ export function initWarningOverlay({query,getMap,ensureMap,onChange}){
   try{
    const result=await query();
    if(run!==request||(!forRisk&&!toggle?.checked))return;
-   data=result;lastVerifiedAt=Date.now();
+   data=result;lastVerifiedAt=now();
    const matched=data.warnings.filter(w=>w.points.length).length;
    if(!forRisk){
     say('발효 특보 '+data.warnings.length+'건 · 지도 표시 '+matched+'건'+
@@ -67,6 +67,6 @@ export function initWarningOverlay({query,getMap,ensureMap,onChange}){
  return {load,repaint,loadForRisk:()=>load({forRisk:true}),
   // An old "active warning" response is NOT authoritative forever.
   routeHazards:route=>route&&!route.demo&&data&&lastVerifiedAt>0&&
-   Date.now()-lastVerifiedAt<=10*60000?
+   now()>=lastVerifiedAt&&now()-lastVerifiedAt<=10*60000?
    warningRouteHazards(data.warnings,route.rainPath??[],route.departure):[]};
 }
