@@ -23,7 +23,7 @@ const {resolveRouteDeparture}=await import('/route-departure.mjs');
 const {buildItsRouteHazards}=await import('/its-route-risk.mjs');
 const {initDriveGuidance,segmentMeters,routeFraction}=await import('/drive-guidance.mjs');
 const {buildRouteHazards,renderHazardRail,showHazardDetail}=await import('/route-hazards.mjs');
-const {evaluateDrivingRisk,evaluateWalkingRisk,formatRouteRiskSummary}=await import('/safe-route-engine.mjs');
+const {evaluateDrivingRisk,evaluateWalkingRisk,formatRouteRiskSummary,compareRouteRiskCandidates,areRoutesSpatiallyDistinct}=await import('/safe-route-engine.mjs');
 const {resolveDrivingHeading,angleStep,compassBearing}=await import('/heading-up.mjs');
 const {initVectorDriving}=await import('/vector-driving.mjs');
 const {DEFAULT_APP_SETTINGS,initAppSettings}=await import('/app-settings.mjs');
@@ -1144,10 +1144,112 @@ function showNavRouteResult(){
  $('navRouteDescription').textContent=route.demo?(route.demoWalking?(route.demoShelterRerouted?'현재 위치에서 TMAP 도보 경로 재탐색 · 쉼터 위치/운영 미검증':'실제 TMAP 보행 경로 · 위험 이벤트만 가상'):'시연용 경로 · 특보 발생 시 가상 우회 선택 화면 표시'):route.travelMode==='walking'?(route.provider==='TMAP'?'TMAP 도보 경로 · 보행시설 위치는 참고용 · 실제 안전 미검증':'카카오 보행로 1개 경로 · 보도·횡단보도 상태와 안전은 미검증'):'조회된 차량 경로 1개 · 다른 경로 대안은 아직 제공하지 않습니다.';
  $('navStartGuidance').textContent=route.demo?(route.demoWalking?'▶ 도보 시연 시작':'▶ 주행 시연 시작'):route.travelMode==='walking'?'Sunny SAI 도보 안내 시작 ▶':'Sunny SAI 차량 안내 시작 ▶';
  $('navStartGuidance').disabled=false;
+ // The risk-aware comparison is opt-in, driving-only, and requires actual KMA forecasts.
+ const comparePanel=$('navRiskComparePanel'),compareButton=$('navRiskCompare'),applyButton=$('navRiskApply');
+ if(comparePanel)comparePanel.hidden=route.demo||route.travelMode!=='driving';
+ if(compareButton)compareButton.disabled=!connections.kma;
+ if(applyButton)applyButton.hidden=true;
+ if($('navRiskCompareStatus'))$('navRiskCompareStatus').textContent=connections.kma?
+  '카카오 대안경로와 기상청 예보를 비교합니다. 사고·통제·도로 안전은 별도 확인이 필요합니다.':
+  '기상청 KMA_API_KEY 미등록 · 실제 기상예보 비교를 사용할 수 없습니다.';
+ riskSuggestedRoute=null;
  renderRouteHazards();sheet.hidden=false;document.body.classList.add('nav-route-open');
  setNavTab('navRoute');ensureNavigationKakao();
  if(!route.demo)watchPreviewPosition();
 }
+// Human-confirmed route choice: independent KMA forecasts for each genuine road shape.
+// This does not prove road safety, and does not automatically replace an active GPS route.
+let riskSuggestedRoute=null,riskCompareInFlight=false,riskLastComparedAt=0;
+const comparisonSamplePoints=points=>{
+ if(!Array.isArray(points)||points.length<2)return [];
+ const count=Math.min(12,points.length),selected=[];
+ for(let i=0;i<count;i++){
+  const p=points[Math.round(i*(points.length-1)/(count-1))];
+  if(p&&!selected.some(x=>x.seconds===p.seconds))selected.push(p);
+ }
+ return selected;
+};
+async function compareDrivingRouteRisk(){
+ const btn=$('navRiskCompare'),apply=$('navRiskApply'),status=$('navRiskCompareStatus');
+ if(riskCompareInFlight||!route||route.demo||route.travelMode!=='driving'||drivingUI.isActive())return;
+ if(!connections.kma||!originPlace||!destPlace){if(status)status.textContent='기상청 인증키 또는 출발지·목적지 확인 전 · 비교 불가';return;}
+ if(riskLastComparedAt&&Date.now()-riskLastComparedAt<60000){if(status)status.textContent='방금 비교했습니다. 자료 호출 제한을 위해 잠시 후 다시 비교할 수 있습니다.';return;}
+ const initial=route,from=originPlace,to=destPlace,run=routeSeq,departure=initial.departure;
+ riskLastComparedAt=Date.now();riskCompareInFlight=true;riskSuggestedRoute=null;
+ if(btn)btn.disabled=true;if(apply)apply.hidden=true;
+ if(status)status.textContent='카카오 경로 후보 확인 중 · 실제 예보 수신 여부도 검사합니다…';
+ const alive=()=>route===initial&&routeSeq===run&&!drivingUI.isActive();
+ try{
+  const inputs=await Promise.allSettled(['TIME','DISTANCE'].map(drivingPriority=>
+   api('/api/route',{origin:from,destination:to,departure,travelMode:'driving',drivingPriority})));
+  if(!alive())return;
+  const candidates=[{id:'current',label:'현재 추천 경로',route:initial}];
+  for(let i=0;i<inputs.length;i++){
+   if(inputs[i].status!=='fulfilled')continue;
+   const option=inputs[i].value;
+   if(option.mode!=='driving'||option.travelMode!=='driving'||!Array.isArray(option.samples)||
+      !Array.isArray(option.rainPath)||option.rainPath.length<2)continue;
+   if(candidates.some(x=>!areRoutesSpatiallyDistinct(option,x.route)))continue;
+   candidates.push({id:['fast','short'][i],label:['최단시간 경로','최단거리 경로'][i],route:option});
+  }
+  if(candidates.length<2){
+   if(status)status.textContent='실제 도로형상이 다른 경로를 2개 이상 받지 못했습니다. 위험도를 비교하거나 우회를 추천하지 않습니다.';
+   return;
+  }
+  if(status)status.textContent='기상청에서 각 경로의 예상 통과시각별 예보를 확인 중…';
+  const checked=await Promise.allSettled(candidates.map(async x=>{
+   const samples=comparisonSamplePoints(x.route.samples);
+   if(samples.length<2)throw Error('경로 예보 조회 지점 부족');
+   const r=await api('/api/weather',{provider:'kma',samples});
+   if(r.provider!=='kma'||!Array.isArray(r.samples))throw Error('기상청 원본 예보 미확인');
+   return {...x,forecast:r,weatherSamples:r.samples,routeForComparison:{...x.route,samples}};
+  }));
+  if(!alive())return;
+  const valid=checked.filter(x=>x.status==='fulfilled').map(x=>x.value);
+  if(valid.length<2||!valid.some(x=>x.id==='current')){
+   if(status)status.textContent='기상청 예보를 2개 경로에서 충분히 수신하지 못했습니다. 비교 보류 · 안전 판정이 아닙니다.';
+   return;
+  }
+  const result=compareRouteRiskCandidates(valid.map(x=>({
+   id:x.id,label:x.label,route:x.routeForComparison,weatherSamples:x.weatherSamples,extraHazards:[]
+  })),{mode:'driving',minCoverage:80,maxDetourRatio:1.25});
+  if(result.status!=='conditional-comparison'||!result.recommendation){
+   if(status)status.textContent='기상청 예보 조회율이 낮거나 경로 시간이 크게 달라 비교를 보류했습니다. 위험이 없다는 뜻은 아닙니다.';
+   return;
+  }
+  const winner=result.recommendation;
+  if(status)status.textContent='실제 '+result.compared+'개 경로 조회 · '+result.ranking.length+
+   '개 경로 조건부 비교 · 상대적 강수·기온·풍속 위험 신호 '+winner.signalIndex+
+   ' · 예보 조회율 '+winner.coverage+'% · '+winner.label+
+   ' ('+winner.minutes+'분). ITS 통제·도로위험구간 정합은 후보별 미검증, 안전 보장 아님.';
+  if(winner.id!=='current'){
+   const chosen=valid.find(x=>x.id===winner.id);
+   if(chosen){
+    riskSuggestedRoute={initial,route:chosen.route,checkedAt:Date.now(),label:winner.label};
+    if(apply){apply.hidden=false;apply.textContent=winner.label+' 경로 선택 · '+winner.minutes+'분';}
+   }
+  }
+ }catch(e){
+  if(alive()&&status)status.textContent='경로 비교 실패 · '+String(e?.message||'기관 자료 수신 실패').slice(0,110)+' · 기존 경로를 유지합니다.';
+ }finally{riskCompareInFlight=false;if(alive()&&btn)btn.disabled=false;}
+}
+$('navRiskCompare')?.addEventListener('click',()=>{void compareDrivingRouteRisk();});
+$('navRiskApply')?.addEventListener('click',()=>{
+ const candidate=riskSuggestedRoute;
+ if(!candidate||route!==candidate.initial||drivingUI.isActive()||route?.demo)return;
+ if(Date.now()-candidate.checkedAt>5*60000){
+  if($('navRiskCompareStatus'))$('navRiskCompareStatus').textContent='비교 결과가 오래됐습니다. 최신 기상예보로 다시 확인해주세요.';
+  $('navRiskApply').hidden=true;riskSuggestedRoute=null;return;
+ }
+ // The user explicitly chooses the real Kakao polyline; data are reacquired for this route.
+ routeSeq++;route={...candidate.route,demo:false,itsRiskEvents:[]};weather=null;routeAheadWeather=null;
+ riskSuggestedRoute=null;gate.reset();renderRoute();showNavRouteResult();
+ void loadWeather();void loadItsRouteEvidence(route);
+ if(connections.kma)void warningOverlay.loadForRisk();
+ if(connections.roadRisk)void roadRiskOverlay.loadForRisk();
+ void showMap('kakao');
+ toast(candidate.label+' 선택 · 실제 새 경로와 예보를 다시 확인합니다. 안전 보장 아님.');
+});
 $('navRouteResultClose')?.addEventListener('click',goToInitialHome);
 $('navStartGuidance')?.addEventListener('click',()=>{if(!route?.demo&&route?.travelMode!==selectedTravelMode()){toast('이동수단에 맞는 새 경로를 먼저 탐색해주세요.');return;}route?.demo?startDemoGuidance():startRainGuidance();});
 async function loadWeather(){if(!route||route.demo)return;const current=route;const run=routeSeq;const weatherRun=++weatherSeq;$('refresh').disabled=true;$('weatherDetail').textContent='예보 확인 중';setLayerReception('navLayerWeather','loading');try{const d=await api('/api/weather',{samples:route.samples,provider:$('weatherProvider').value});if(route!==current||run!==routeSeq||weatherRun!==weatherSeq)return;weather=d;setLayerReception('navLayerWeather',forecastReception(d.samples,p=>p.forecast));renderCards();drivingUI.setWeather(weather);reply(d.samples.some(p=>p.forecast)?d.source+'를 확인했어요. 공사·통제는 별도 확인이 필요합니다.':'기상 예보를 확인하지 못했어요. '+(d.samples.find(p=>p.error)?.error||'자료 제공 범위를 확인해주세요.'));}catch(e){if(route!==current||run!==routeSeq||weatherRun!==weatherSeq)return;weather={provider:$('weatherProvider').value==='kma'?'kma':'open-meteo',samples:route.samples.map(p=>({...p,forecast:null,error:e.message})),source:'조회 실패',fetchedAt:new Date().toISOString()};setLayerReception('navLayerWeather',e.reception||'failed');renderCards();drivingUI.setWeather(weather);reply(e.message);}finally{if(route===current&&run===routeSeq&&weatherRun===weatherSeq)$('refresh').disabled=false;}}
