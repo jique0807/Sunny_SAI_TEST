@@ -207,14 +207,36 @@ export function initConnectionStatusPanel({
     year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})+
    ' KST · 검사 시점의 서버 상태':'최종 검사: 없음';
  }
- async function requestJSON(path){
+ async function requestJSON(path,options={}){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
   try{
    const response=await fetchWithReception(fetcher,path,{credentials:'same-origin',
-    cache:'no-store',signal:controller.signal});
+    cache:'no-store',signal:controller.signal,...options});
    if(!response.ok){const err=Error(providerFailure(response.status));
     err.http=response.status;throw err;}
    return await response.json();
+  }finally{clearTimeout(timer);}
+ }
+ // Fixed, non-personal Seoul City Hall vicinity for provider connectivity checks only.
+ // Never send the user's GPS coordinates during settings diagnostics.
+ const TAAS_TEST_BOUNDS={west:126.971,south:37.555,east:126.986,north:37.575};
+ const ITS_TEST_POINTS=[{lat:37.5663,lng:126.9779},{lat:37.5548,lng:126.9708}];
+ async function requestImage(kind,csrfToken){
+  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),timeoutMs);
+  try{
+   const response=await fetchWithReception(fetcher,'/api/taas-pedestrian-map',{
+    method:'POST',credentials:'same-origin',cache:'no-store',signal:ctrl.signal,
+    headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},
+    body:JSON.stringify({kind,bounds:TAAS_TEST_BOUNDS})
+   });
+   if(!response.ok){const err=Error(providerFailure(response.status));err.http=response.status;throw err;}
+   const bytes=new Uint8Array(await response.arrayBuffer());
+   const valid=response.headers.get('content-type')?.includes('image/png')&&
+    response.headers.get('X-TAAS-Year')==='2024'&&response.headers.get('X-TAAS-Layer')===kind&&
+    bytes.length>=24&&bytes.length<=2500000&&
+    [137,80,78,71,13,10,26,10].every((c,i)=>bytes[i]===c);
+   if(!valid)throw Error('기관의 2024년 PNG 영상 형식이 검증되지 않았습니다.');
+   return {kind,status:'received'};
   }finally{clearTimeout(timer);}
  }
  async function refresh(){
@@ -240,10 +262,30 @@ export function initConnectionStatusPanel({
     ['radar','/api/radar-latest-diagnostic',['radar']],
     ['layers','/api/route-layer-feasibility',['road','warning','floodNational','floodLocal']]
    ];
-   await Promise.all(checks.map(async([kind,path,ids])=>{
+   // Inspect approved ITS/TAAS sources only with a valid same-origin CSRF session.
+   // The fixed diagnostic area is independent of the current map and user location.
+   if(session.csrf){
+    if(values.trafficIncident?.state==='configured'){
+     for(const id of ['trafficIncident','itsTraffic'])values[id]={...values[id],...state('checking','서울시청 인근 고정구간 ITS 응답 확인 중')};
+     checks.push(['its','/api/its-route-context',['trafficIncident','itsTraffic'],
+      {method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':session.csrf},
+       body:JSON.stringify({points:ITS_TEST_POINTS})}]);
+    }
+    if(values.taasPedestrianWms?.state==='configured'){
+     for(const [kind,id] of [
+      ['pedestrian','taasPedestrianWms'],['child','taasChildWms'],['elderly','taasElderlyWms']
+     ]){
+      values[id]={...values[id],...state('checking','2024년 TAAS WMS PNG 실제 수신 확인 중')};
+      checks.push(['taas-wms','/api/taas-pedestrian-map',[id],{kind,csrfToken:session.csrf}]);
+     }
+    }
+    render();
+   }
+   await Promise.all(checks.map(async([kind,path,ids,options])=>{
     if(!ids.some(id=>values[id]?.state==='checking'))return;
     try{
-     const data=await requestJSON(path);
+     const data=kind==='taas-wms'?await requestImage(options.kind,options.csrfToken):
+      await requestJSON(path,options||{});
      if(run===request){values=mapConnectionProbe(kind,data,values);render();}
     }catch(e){
      if(run!==request)return;
