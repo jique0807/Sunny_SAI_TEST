@@ -27,6 +27,7 @@ test('GK2A RR CI FOG API uses key but returns no secrets or request URLs',async(
  assert.deepEqual(result.results.map(x=>x.product),['RR','CI','FOG']);
  assert.ok(result.results.every(x=>x.image.width===400&&x.image.height===300));
  assert.equal(calls.length,6);
+ assert.ok(calls.some(u=>u.searchParams.get('data')==='ci-ci1'));
  assert.ok(calls.filter(u=>u.pathname.endsWith('sat_file_img_down.php')).every(u=>u.searchParams.get('area')==='ko'));
  assert.doesNotMatch(JSON.stringify(result),/private-test-key|authKey|https:\/\//);
 });
