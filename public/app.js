@@ -732,6 +732,19 @@ sessionPromise=session().catch(e=>{$('keyStatus').textContent=e.message;connecti
 // Tests only run when the user presses refresh, avoiding extra provider/API usage.
 const connectionPanel=initConnectionStatusPanel({document,waitForSession:async()=>{await sessionPromise;}});
 void sessionPromise.then(session=>connectionPanel.setSession(session));
+$('settingNationalWalkCheck')?.addEventListener('click',async()=>{
+ const btn=$('settingNationalWalkCheck'),label=$('settingNationalWalkStatus');
+ btn.disabled=true;label.textContent='서울·부산·대전 TMAP 실제 보행경로 응답 검사 중…';
+ try{
+  const data=await api('/api/pedestrian-national-diagnostic',null,'GET');
+  const entries=(data.cases||[]).map(item=>item.case+': '+
+   (item.status==='received'?'경로 좌표 수신 · '+Math.round((item.distanceMeters||0)/1000*10)/10+'km':
+    item.reason||item.status));
+  label.textContent='검증 '+(data.regionsReceived||0)+'/'+(data.regionsChecked||0)+
+   '개 지역 · '+entries.join(' / ')+' · 3개 도시 시험이며 전국 보장 아님';
+ }catch(e){label.textContent='도보 API 지역별 진단 실패 · '+String(e.message||'서버 응답 오류');}
+ finally{btn.disabled=false;}
+});
 $('checkDataSources').onclick=async()=>{
  const button=$('checkDataSources'),target=$('dataHealth');button.disabled=true;target.textContent='기상청·생활안전지도 서버에 실제 조회 중입니다.';
  try{const result=await api('/api/data-health',{});target.replaceChildren();
