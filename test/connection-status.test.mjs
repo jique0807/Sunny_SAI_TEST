@@ -47,11 +47,12 @@ test('source inventory covers all agreed menu sources but excludes CCTV and ordi
  const ids=DATA_CONNECTION_SOURCES.map(x=>x.id);
  assert.equal(new Set(ids).size,ids.length);
  assert.ok(ids.includes('map')&&ids.includes('rain')&&ids.includes('radar'));
- assert.equal(ids.length,18);
+ assert.equal(ids.length,23);
  assert.ok(ids.includes('walk')&&ids.includes('walkSurface'));
  assert.ok(ids.includes('trafficIncident')&&ids.includes('pedestrianHotspots'));
  assert.ok(ids.includes('itsTraffic'));
- for(const id of ['taasPedestrianWms','taasChildWms','taasElderlyWms'])assert.ok(ids.includes(id));
+ for(const id of ['satelliteRR','satelliteCI','satelliteFog','taasPedestrianRest','taasChildRest','taasElderlyRest','snow','walkFacilities'])assert.ok(ids.includes(id));
+ assert.ok(!ids.some(id=>/icing|wms/i.test(id)),'no satellite icing or legacy WMS sources in settings');
  assert.ok(ids.includes('road')&&ids.includes('warning'));
  assert.ok(ids.includes('floodNational')&&ids.includes('floodLocal'));
  assert.ok(!ids.includes('riverLevel'));
@@ -182,7 +183,7 @@ test('walking diagnostic never claims road or sidewalk observations are measured
 });
 
 
-test('ITS and TAAS 2024 WMS each receive a distinct, honest live diagnostic status',async()=>{
+test('ITS real diagnostics remain active while TAAS REST products do not pretend WMS is REST',async()=>{
  const configured={...session,csrf:'csrf-connection-check',connections:{
   ...session.connections,its:true,koroad:true,taasWms:true
  }};
@@ -223,11 +224,11 @@ test('ITS and TAAS 2024 WMS each receive a distinct, honest live diagnostic stat
  assert.equal(result.trafficIncident.state,'ok');
  assert.equal(result.itsTraffic.state,'ok');
  assert.equal(result.pedestrianHotspots.state,'error');
- for(const id of ['taasPedestrianWms','taasChildWms','taasElderlyWms']){
-  assert.equal(result[id].state,'ok',id);
-  assert.match(result[id].detail,/PNG/);
+ for(const id of ['taasPedestrianRest','taasChildRest','taasElderlyRest']){
+  assert.equal(result[id].state,'unverified',id);
+  assert.match(result[id].detail,/REST/);
  }
- assert.equal(requests.filter(x=>x.path==='/api/taas-pedestrian-map').length,3);
+ assert.equal(requests.filter(x=>x.path==='/api/taas-pedestrian-map').length,0);
  assert.equal(requests.filter(x=>x.path==='/api/its-route-context').length,1);
  const joined=JSON.stringify(requests);
  assert.doesNotMatch(joined,/KOROAD_API_KEY|ROAD_API_KEY|SERVER_KEY/);
@@ -237,6 +238,6 @@ test('missing provider key keeps pending status, not a fabricated connection suc
  const info=applySessionConfiguration(initialConnectionResults(),{mapConfig:{},connections:{koroad:true,its:false,taasWms:false}});
  assert.equal(info.trafficIncident.state,'unverified');
  assert.equal(info.itsTraffic.state,'unverified');
- assert.equal(info.taasChildWms.state,'unverified');
+ assert.equal(info.taasChildRest.state,'unverified');
  assert.equal(info.pedestrianHotspots.state,'configured');
 });
