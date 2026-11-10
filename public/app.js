@@ -815,7 +815,8 @@ $('searchForm').onsubmit=async e=>{e.preventDefault();stopRain();if(playing)retu
  }
  if(!originPlace)originPlace=await choose('origin');if(!destPlace)destPlace=await choose('destination');rememberQuery($('destination').value);if(run!==routeSeq)return;const departure=new Date($('departure').value).toISOString();const mode=selectedTravelMode();reply((mode==='walking'?'도보':'차량')+' 경로와 예상 통과시각을 확인하고 있어요.');const d=await api('/api/route',{origin:originPlace,destination:destPlace,departure,travelMode:mode});if(run!==routeSeq)return;route={...d,demo:false};weather=null;progress=0;gate.reset();renderRoute();rememberDestination(destPlace);showNavSearch(false);showNavRouteResult();reply((mode==='walking'?'보행로':'차량')+' 경로를 찾았어요. 구간별 예보를 확인합니다.');await Promise.all([loadWeather(),showMap('kakao')]); }catch(e){
  if(run===routeSeq){
-  reply(e.message,true);
+  const walking=selectedTravelMode()==='walking';
+  reply(walking?'도보 경로 탐색에 실패했습니다. '+e.message+' 환경설정의 데이터 연결 상태에서 TMAP 도보 길찾기를 검사해주세요.':e.message,!walking);
   // If the API is unauthorized or unavailable, offer the official Kakao Map
   // walking view. Do not substitute car-road geometry.
   if(selectedTravelMode()==='walking')updateTravelModeUI();
