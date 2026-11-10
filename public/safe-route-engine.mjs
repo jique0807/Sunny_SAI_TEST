@@ -30,6 +30,16 @@ function onRoute(path,point,limit=1000){
  }
  return false;
 }
+// Comparison candidates must be genuinely different road geometries: different
+// priority names or journey times alone do not constitute an alternative.
+export function areRoutesSpatiallyDistinct(a,b,{minimumMeters=200}={}){
+ if(!validRoute(a)||!validRoute(b))return false;
+ const n=10;
+ const differs=(p,q)=>Array.from({length:n-1},(_,i)=>p.rainPath[
+  Math.min(p.rainPath.length-1,Math.floor((i+1)*(p.rainPath.length-1)/n))])
+  .some(point=>!onRoute(q.rainPath,point,minimumMeters));
+ return differs(a,b)||differs(b,a);
+}
 const validForecastSample=s=>s?.status==='forecast'&&s.forecast?.provider==='kma'&&
  geo(s)&&time(s.eta)&&time(s.forecast.time)&&Number.isFinite(s.seconds)&&
  Math.abs(Date.parse(s.eta)-Date.parse(s.forecast.time))<=90*60000;
