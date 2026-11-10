@@ -47,8 +47,12 @@ test('main layer menu omits generic temperature/wind and does not fake hazard av
  assert.ok(menu.length>1000);
  assert.doesNotMatch(menu,/id="navNowcastRow"|온도|풍속/);
  assert.match(menu,/id="navLayerWeather" type="checkbox" checked/);
- assert.equal(menu.match(/type="checkbox"/g)?.length,13);
-  // Three approved historical TAAS WMS overlays are available once keys are configured.
+ assert.equal(menu.match(/type="checkbox"/g)?.length,17);
+ assert.match(menu,/위성 영상/);
+ assert.match(menu,/navGk2aRr/);
+ assert.match(menu,/navGk2aCi/);
+ assert.match(menu,/navGk2aFog/);
+  // Three historical TAAS REST layers become available only after the keys are configured.
   for(const id of ['navLayerPedestrianWms','navLayerChildWms','navLayerElderlyWms'])
    assert.ok(menu.includes('id="'+id+'" type="checkbox" disabled'),id);
   for(const id of ['navLayerTrafficIncidents','navLayerPedestrianHotspots'])

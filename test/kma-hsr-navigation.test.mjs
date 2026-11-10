@@ -81,7 +81,7 @@ test('HSR and nationwide RN1 share one Kakao popup',()=>{
   'navRainGridLead','navRainGridTicks','navRainLegendTitle','navRainGridDisclaimer'])
   assert.equal(ui.split('id="'+id+'"').length-1,1,id);
  assert.match(ui,/초단기 강수예측/);
- assert.doesNotMatch(ui,/id="navNationalRadar"/);
+ assert.match(ui,/id="navNationalRadar"/);
  assert.match(overlay,/source='grid'/);
  assert.match(overlay,/selectRainSource\('grid'\)/);
  assert.match(overlay,/\[nationalRadar,'radar'\]/);
