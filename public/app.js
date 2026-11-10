@@ -251,6 +251,19 @@ const routeExtraHazards=route=>route?.demo?(route.demoHazards||[]):[
  ...(route?.travelMode==='driving'?(route?.itsRiskEvents||[]):[]),
  ...(route?.travelMode==='walking'?(route?.pedestrianRiskEvents||[]):[])
 ];
+// Source snapshots cannot be treated as valid indefinitely. Refresh official
+// warning/road/ITS evidence on the real route every 8 minutes while guidance
+// remains active, independent of the user's map display layer checkboxes.
+let lastEvidenceRoute=null,lastEvidenceAt=0;
+function collectRouteRiskEvidence(force=false){
+ if(!route||route.demo||!routeWeatherEnabled())return;
+ const now=Date.now();
+ if(!force&&lastEvidenceRoute===route&&now-lastEvidenceAt<8*60000)return;
+ lastEvidenceAt=now;lastEvidenceRoute=route;
+ if(connections.kma)void warningOverlay.loadForRisk();
+ if(route.travelMode==='driving'&&connections.roadRisk)void roadRiskOverlay.loadForRisk();
+ if(route.travelMode==='driving'&&connections.its)void loadItsRouteEvidence(route);
+}
 const roadRiskOverlay=initRoadRiskOverlay({
  query:roadNum=>api('/api/road-risk',{roadNum}),
  onChange:()=>{drawWeatherOverlays();renderRouteHazards();drivingUI.render();},
@@ -686,6 +699,7 @@ async function checkRain(){
  drawGps();drivingUI.update(rainProgress,rainPosition);followDrivingGps();
  $('gpsStatus').textContent='GPS '+fmt(rainPosition.timestamp)+' · 오차 ±'+Math.round(rainPosition.accuracy)+'m · '+rainPosition.lat.toFixed(5)+', '+rainPosition.lng.toFixed(5)+' · 경로와 '+Math.round(found.meters)+'m';
  if(!routeWeatherEnabled())return;
+ collectRouteRiskEvidence();
  if(!connections.kma){$('rainStatus').textContent='GPS 작동 중 · 기상청 키 미설정으로 비 예보 조회 대기';return;}
  const moved=rainLastPoint?Math.hypot((rainPosition.lat-rainLastPoint.lat)*111320,(rainPosition.lng-rainLastPoint.lng)*88000):Infinity;
  if(rainBusy!==null||rainLastFetch&&(now-rainLastFetch<appPrefs.refreshMinutes*60000||now-rainLastFetch<300000&&moved<1000))return;
@@ -759,10 +773,8 @@ async function refreshRouteFromGps(automatic=false){
   await showMap('kakao',{preserveCamera:true});
   if(!drivingUI.isActive()||sessionRun!==rainRun||route!==updatedRoute||!rainPosition)return;
   void loadWeather();
-  if(route.travelMode==='driving')void loadItsRouteEvidence(route);
-  else void loadPedestrianRouteEvidence(route);
-  if(connections.kma)void warningOverlay.loadForRisk();
-  if(route.travelMode==='driving'&&connections.roadRisk)void roadRiskOverlay.loadForRisk();
+  if(route.travelMode==='walking')void loadPedestrianRouteEvidence(route);
+  collectRouteRiskEvidence(true);
   rainPosition.directionStatus=updateDrivingMapHeading(rainPosition);
   drawGps();void checkRain();
   toast('현재 GPS 위치 기준으로 '+(route.travelMode==='walking'?'도보':'자동차')+' 경로와 기상예보를 새로 조회했습니다.');
@@ -968,10 +980,7 @@ $('searchForm').onsubmit=async e=>{
  studioRouteMessage((mode==='walking'?'도보':'자동차')+' 경로를 찾았습니다. 지도로 이동합니다.','success');
  route={...d,demo:false,walkingPriority:mode==='walking'?$('walkingPriority').value:null};weather=null;progress=0;gate.reset();koroadHotspots.setData(null);route.itsRiskEvents=[];renderRoute();rememberDestination(destPlace);showNavSearch(false);showNavRouteResult();reply((mode==='walking'?'보행로':'차량')+' 경로를 찾았어요. 구간별 예보를 확인합니다.');
  if(mode==='walking')void loadPedestrianRouteEvidence(route);
- if(mode==='driving')void loadItsRouteEvidence(route);
- // Retrieve road/warning evidence for risk assessment even if their map layers are hidden.
- if(connections.kma)void warningOverlay.loadForRisk();
- if(mode==='driving'&&connections.roadRisk)void roadRiskOverlay.loadForRisk();
+ collectRouteRiskEvidence(true);
  const afterRoute=await Promise.allSettled([loadWeather(),showMap('kakao')]);
  if(run===routeSeq&&afterRoute.some(task=>task.status==='rejected')){
   // Routing succeeded; weather/map rendering failures must not be shown as a TMAP failure.
@@ -1237,9 +1246,8 @@ $('navRiskApply')?.addEventListener('click',()=>{
  // The user explicitly chooses the real Kakao polyline; data are reacquired for this route.
  routeSeq++;route={...candidate.route,demo:false,itsRiskEvents:[]};weather=null;routeAheadWeather=null;
  riskSuggestedRoute=null;gate.reset();renderRoute();showNavRouteResult();
- void loadWeather();void loadItsRouteEvidence(route);
- if(connections.kma)void warningOverlay.loadForRisk();
- if(connections.roadRisk)void roadRiskOverlay.loadForRisk();
+ void loadWeather();
+ collectRouteRiskEvidence(true);
  void showMap('kakao');
  toast(candidate.label+' 선택 · 실제 새 경로와 예보를 다시 확인합니다. 안전 보장 아님.');
 });
