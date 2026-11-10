@@ -702,7 +702,11 @@ function reply(t,voice=false){
  }
 }
 function stopVoice(){voiceSeq++;window.speechSynthesis?.cancel();if(activeAudio){activeAudio.pause();URL.revokeObjectURL(activeAudio.src);activeAudio=null;}finishVoice?.();finishVoice=null;}
-async function speak(t){stopVoice();const seq=voiceSeq;$('voiceStatus').textContent='써니가 안내하고 있어요.';
+async function speak(t){
+ // Do not vocalize the presentation prefix; retain on-screen simulation disclosure.
+ if(route?.demo)t=String(t).replace(/시연(?:용| 모드)?[.·\s]*/g,'').trim();
+ if(!t)return;
+ stopVoice();const seq=voiceSeq;$('voiceStatus').textContent='써니가 안내하고 있어요.';
  if(advanced&&!route?.demo){try{const d=await api('/api/voice/speak',{text:t,rate:Number($('speed').value),voiceName:$('voiceChoice').value||undefined,provider:$('voiceProvider').value});if(seq!==voiceSeq)return;const blob=new Blob([Uint8Array.from(atob(d.audioContent),c=>c.charCodeAt(0))],{type:d.mimeType||'audio/mpeg'});const a=new Audio(URL.createObjectURL(blob));activeAudio=a;await new Promise((resolve,reject)=>{finishVoice=resolve;a.onended=resolve;a.onerror=reject;a.play().catch(reject);});if(activeAudio===a){URL.revokeObjectURL(a.src);activeAudio=null;}if(seq===voiceSeq)$('voiceStatus').textContent='선택한 '+d.voiceName+' 목소리로 재생했어요.';return;}catch(e){if(seq!==voiceSeq)return;const message=e.message||'오디오 재생에 실패했습니다. 미리듣기를 다시 눌러주세요.';$('keyStatus').textContent=message;$('voiceStatus').textContent=message;toast(message+' · 기기 음성으로 대체합니다.');}}
  if(seq!==voiceSeq)return;if(!window.speechSynthesis){$('voiceStatus').textContent='음성을 지원하지 않는 기기입니다. 화면 안내를 확인해주세요.';return;}
  try{speechSynthesis.resume?.();const u=new SpeechSynthesisUtterance(t);u.lang='ko-KR';u.rate=Number($('speed').value);u.volume=1;const voices=speechSynthesis.getVoices?.()||[];const korean=voices.find(v=>v.lang?.toLowerCase()==='ko-kr'&&v.localService)||voices.find(v=>v.lang?.toLowerCase()==='ko-kr');if(korean)u.voice=korean;u.onstart=()=>{if(seq===voiceSeq)$('voiceStatus').textContent='🔊 음성 출력 중';};u.onend=()=>{if(seq===voiceSeq)$('voiceStatus').textContent='안내를 마쳤어요.';};u.onerror=e=>{if(seq===voiceSeq){$('voiceStatus').textContent='음성 실패: '+(e.error||'기기 설정');toast('기기 음량·무음 설정과 한국어 음성 지원 여부를 확인해주세요.');}};speechSynthesis.speak(u);}catch(e){$('voiceStatus').textContent='기기 음성 지원 오류';}
