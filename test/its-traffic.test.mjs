@@ -56,7 +56,7 @@ test('ITS failure diagnostics distinguish network, timeout, HTTP, JSON and schem
 test('risk score collects real ITS evidence independent of map visibility',()=>{
  const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
  assert.match(app,/if\(!activeRoute\|\|activeRoute\.demo\|\|activeRoute\.travelMode!=='driving'\)return;/);
- assert.match(app,/if\(mode==='driving'\)void loadItsRouteEvidence\(route\)/);
+ assert.match(app,/if\(mode==='driving'\)\{\s*void loadItsRouteEvidence\(route\)/);
  assert.match(app,/activeRoute\.itsEvidenceStatus=result\.status/);
  assert.match(app,/route\?\.travelMode==='driving'&&!\$\('navLayerTrafficIncidents'\)\?\.checked\?\(route\?\.itsRiskEvents\|\|\[\]\):\[\]/);
 });
