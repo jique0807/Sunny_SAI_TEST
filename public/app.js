@@ -882,7 +882,7 @@ async function walkingDemoRoute(){
   progress=0;gate.reset();renderRoute();renderCards();
   showNavSearch(false);showNavRouteResult();
   await showMap('kakao');
-  reply('서울역에서 서울시청까지 빗길, 보행자 사고다발지역, 돌발 무더위와 쉼터 이동을 재현합니다. 모든 위험 이벤트는 가상입니다.');
+  reply('서울역에서 서울시청까지 빗길, 보행자 사고다발지역, 돌발 무더위와 쉼터 이동을 재현합니다.');
  }catch(e){
   if(run===routeSeq)reply('도보 시연 경로를 불러오지 못했어요. '+e.message);
  }finally{
@@ -1283,7 +1283,7 @@ function startDemoGuidance(){
  $('driveControls').hidden=false;
  progress=0;gate.reset();advance(0);
  void showMap('kakao');
- reply(route.demoWalking?'서울역에서 서울시청까지 빗길과 사고다발지역, 돌발 무더위와 쉼터 안내를 재현합니다. 모두 가상 상황입니다.':'서울에서 부산까지 강수·안개·긴급 호우특보를 재현합니다. 화면에 시연 상황임을 표시합니다.');
+ reply(route.demoWalking?'서울역에서 서울시청까지 빗길과 사고다발지역, 돌발 무더위와 쉼터 안내를 재현합니다.':'서울에서 부산까지 강수·안개·긴급 호우특보를 재현합니다.');
  startDemoPlayback();
 }
 $('sunnyDemoNext')?.addEventListener('click',()=>{
