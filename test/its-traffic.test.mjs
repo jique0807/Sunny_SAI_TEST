@@ -58,7 +58,7 @@ test('risk score collects real ITS evidence independent of map visibility',()=>{
  assert.match(app,/if\(!activeRoute\|\|activeRoute\.demo\|\|activeRoute\.travelMode!=='driving'\)return;/);
  assert.match(app,/if\(mode==='driving'\)\{\s*void loadItsRouteEvidence\(route\)/);
  assert.match(app,/activeRoute\.itsEvidenceStatus=result\.status/);
- assert.match(app,/route\?\.travelMode==='driving'&&!\$\('navLayerTrafficIncidents'\)\?\.checked\?\(route\?\.itsRiskEvents\|\|\[\]\):\[\]/);
+ assert.match(app,/route\?\.travelMode==='driving'\?\(route\?\.itsRiskEvents\|\|\[\]\):\[\]/);
 });
 test('ITS traffic is context-only until the road link geometry is verified',()=>{
  const r=normalizeItsTraffic({response:{data:[{linkId:'AA1',speed:44,roadName:'도로'}]}},{now});

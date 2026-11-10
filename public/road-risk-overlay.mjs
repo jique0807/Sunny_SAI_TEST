@@ -50,7 +50,7 @@ export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
  const button=document.getElementById('navRoadRiskRefresh');
  const status=document.getElementById('navRoadRiskStatus');
  let available=false,data=null,items=[],pending=0,loading=false;
- let routeMatch,riskPending=null,lastRiskAttempt=0;
+ let routeMatch,riskPending=null,lastRiskAttempt=0,riskReceivedAt=0;
  const enabled=()=>Boolean(ice?.checked||visibility?.checked);
  const message=s=>{if(status)status.textContent='기상청 도로위험: '+s;};
  function clear(){
@@ -103,11 +103,13 @@ export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
  // Failed or unverified provider data must never become an empty/safe risk signal.
  async function collectForRisk(){
   if(!available)return {status:'missing'};
-  if(data)return {status:'received',verifiedLocations:displayableRisks(data.locations,true,true).length};
+  if(data&&Date.now()-riskReceivedAt<=180000)
+   return {status:'received',verifiedLocations:displayableRisks(data.locations,true,true).length};
+  if(data){data=null;routeMatch=null;}
   if(riskPending){await riskPending;return {status:data?'received':'unavailable'};}
   if(Date.now()-lastRiskAttempt<180000)return {status:'unavailable'};
   lastRiskAttempt=Date.now();
-  riskPending=query('all').then(d=>{data=d;return d;}).catch(()=>null)
+  riskPending=query('all').then(d=>{data=d;riskReceivedAt=Date.now();return d;}).catch(()=>null)
    .finally(()=>{riskPending=null;});
   const result=await riskPending;
   if(result)onChange?.();
@@ -125,7 +127,7 @@ export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
    const d=data||(riskPending?await riskPending:await query('all'));
    if(!d)throw Error('도로위험 자료를 수신하지 못했습니다.');
    if(request!==pending)return;
-   data=d;
+   data=d;riskReceivedAt=Date.now();
    for(const id of ['navLayerroad','navLayerfog'])setLayerReception(id,d.receivedRoads===0||d.status==='unsupported_format'?'failed':d.locations.some(item=>item.kind===(id==='navLayerroad'?'ice':'visibility'))?'received':d.status==='georeferenced'?'empty':'received');
    await ensureMap();
    if(request===pending)repaint();
@@ -154,7 +156,7 @@ export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
  button?.addEventListener('click',load);
  return {setAvailable,load,collectForRisk,repaint,clear,hasData:()=>Boolean(data),
   routeHazards(route,{forRisk=false}={}){
-   if(!route||route.demo||!data||(!forRisk&&!enabled()))return [];
+   if(!route||route.demo||!data||Date.now()-riskReceivedAt>180000||(!forRisk&&!enabled()))return [];
    const now=Date.now(),mask=forRisk?3:Number(ice?.checked)+2*Number(visibility?.checked);
    if(routeMatch?.route!==route||routeMatch.data!==data||routeMatch.mask!==mask){
     const records=displayableRisks(data.locations,Boolean(mask&1),Boolean(mask&2));
