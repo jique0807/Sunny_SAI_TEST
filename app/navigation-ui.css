@@ -2313,6 +2313,16 @@ body.sunny-guiding .sunny-demo-detour-popup{
   display:block;
   scroll-margin-top:70px;
  }
+ .nav-layers-scroll-guide{
+  display:block;
+  margin:2px 0 8px!important;
+  padding:7px 10px!important;
+  background:#eff5ff;
+  border-radius:8px;
+  color:#315780!important;
+  font-size:11px!important;
+  line-height:1.5;
+ }
  .nav-layers-sheet .nav-layers-head{
   position:sticky;
   top:-12px;
