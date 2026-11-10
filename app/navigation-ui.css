@@ -2374,3 +2374,157 @@ body.sunny-guiding .sunny-demo-detour-popup{
 .sunny-gk2a-inspector-tools button:disabled{opacity:.55;}
 .sunny-gk2a-inspector p{margin:6px 0!important;font-size:11px!important;line-height:1.5!important;color:#536b7b!important;}
 .sunny-gk2a-inspector img:not([hidden]){display:block;max-width:100%;height:auto;margin:7px auto;border:1px solid #c7d4df;border-radius:6px;}
+
+
+/* 2026-11-10 Rain popup restoration: one wide, low panel over the existing Kakao map.
+   The actual HSR LCC projection / RN1 5 km cell projection remain in kma-rain-overlay.mjs.
+   These rules intentionally override older 335px/hidden-label experimental styles. */
+#navRainGridTimeBar:not([hidden]){
+ display:block!important;
+ width:min(900px,calc(100vw - 24px))!important;
+ max-height:min(330px,52dvh)!important;
+ padding:11px 14px!important;
+ overflow-x:hidden!important;
+ overflow-y:auto!important;
+ left:50%!important;
+ right:auto!important;
+ transform:translateX(-50%)!important;
+ bottom:calc(var(--sunny-bottom-nav-height,68px) + 12px)!important;
+ box-sizing:border-box!important;
+ border-radius:16px!important;
+ border:1px solid #accbe2!important;
+ background:rgba(255,255,255,.97)!important;
+ color:#153e60!important;
+ box-shadow:0 10px 32px #1734533d!important;
+ z-index:900!important;
+}
+#navRainGridTimeBar .sunny-rain-grid-head{justify-content:space-between!important}
+#navRainGridTimeBar .sunny-rain-grid-head strong{display:flex!important;font-size:14px!important;align-items:center;gap:6px}
+#navRainGridTimeBar .sunny-rain-grid-head strong small{font-size:11px!important}
+#navRainGridTimeBar .sunny-rain-grid-head-actions{display:flex;align-items:center;gap:6px}
+#navRainGridTimeBar .sunny-rain-grid-head-actions button{
+ display:inline-grid!important;place-items:center;
+ min-width:31px!important;min-height:31px!important;
+ width:31px!important;height:31px!important;
+ border-radius:8px!important;
+}
+#navRainGridTimeBar #navRainGridRefresh,
+#navRainGridTimeBar.sunny-grid-active #navRainGridRefresh{display:inline-grid!important}
+#navRainGridTimeBar .sunny-rain-mode-buttons,
+#navRainGridTimeBar.sunny-grid-active .sunny-rain-mode-buttons{
+ display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ gap:8px!important;margin:8px 0!important;
+}
+#navRainGridTimeBar .sunny-rain-mode-buttons button{
+ min-height:48px!important;padding:7px 10px!important;
+ border:1px solid #c3d7e8!important;border-radius:10px!important;
+ background:#eef5fb!important;color:#244967!important;
+ font-size:12px!important;font-weight:800!important;
+ line-height:1.3!important;cursor:pointer;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+}
+#navRainGridTimeBar .sunny-rain-mode-buttons button small{
+ color:#5e7891;font-size:10px;font-weight:600;
+}
+#navRainGridTimeBar .sunny-rain-mode-buttons button[aria-pressed="true"]{
+ background:#1668d5!important;border-color:#1668d5!important;
+ color:white!important;box-shadow:0 2px 8px #1558a42d;
+}
+#navRainGridTimeBar .sunny-rain-mode-buttons button[aria-pressed="true"] small{color:#e7f2ff}
+#navRainGridTimeBar .sunny-rain-time-details{
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ flex-wrap:wrap;margin:3px 0 6px;
+}
+#navRainGridTimeBar #navRainGridValid{
+ display:block!important;margin:0!important;font-size:11px!important;
+ color:#244d71!important;font-weight:750;
+}
+#navRainGridTimeBar #navRainMapStatus{
+ font-size:10px;line-height:1.4;color:#0e7658;font-weight:750;
+}
+#navRainGridTimeBar #navRainMapStatus[data-state="waiting"]{color:#a26616}
+#navRainGridTimeBar .sunny-rain-playback-strip{
+ display:grid;grid-template-columns:auto minmax(0,1fr);
+ gap:10px;align-items:center;min-width:0;
+ margin:5px 0 4px;
+}
+#navRainGridTimeBar .sunny-rain-grid-controls{
+ display:flex!important;align-items:center;gap:5px;
+ margin:0!important;flex-wrap:nowrap!important;
+}
+#navRainGridTimeBar .sunny-rain-grid-controls button{
+ min-height:33px!important;padding:5px 10px!important;
+ white-space:nowrap!important;font-size:11px!important;
+}
+#navRainGridTimeBar #navRainGridStep{
+ display:block!important;margin-left:2px!important;
+ min-width:44px!important;font-size:11px!important;
+}
+#navRainGridTimeBar .sunny-rain-timeline-axis{min-width:0}
+#navRainGridTimeBar #navRainGridLead{
+ display:block!important;min-height:24px!important;
+ width:100%!important;margin:0!important;accent-color:#1764cb!important;
+}
+#navRainGridTimeBar .sunny-rain-timeline-axis .sunny-rain-grid-ticks{
+ display:flex!important;justify-content:space-between!important;
+ font-size:10px!important;color:#617d95!important;
+}
+#navRainGridTimeBar #navHsrReception:not([hidden]),
+#navRainGridTimeBar #navGridReception:not([hidden]){
+ display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;
+ grid-auto-flow:unset!important;gap:4px!important;max-width:360px;
+ margin:6px 0 3px;
+}
+#navRainGridTimeBar :is(#navHsrReception,#navGridReception)[hidden]{display:none!important}
+#navRainGridTimeBar :is(#navHsrReception,#navGridReception) span{
+ display:block;min-height:7px!important;height:7px!important;
+ border-radius:4px!important;padding:0!important;
+}
+#navRainGridTimeBar #navRainGridStatus{
+ display:block!important;font-size:10px!important;
+ margin:4px 0!important;max-height:none!important;overflow:visible!important;
+}
+#navRainGridTimeBar.sunny-hsr-active #navRainGridStatus{display:block!important}
+#navRainGridTimeBar > .sunny-rain-grid-legend,
+#navRainGridTimeBar:not(.sunny-hsr-active) > .sunny-rain-grid-legend{
+ display:flex!important;align-items:center;gap:7px!important;margin:4px 0!important;
+ font-size:10px!important;flex-wrap:nowrap!important;
+}
+#navRainGridTimeBar #navRainGridLegend[data-mode="radar"] .nav-weather-gradient{display:none!important}
+#navRainGridTimeBar #navRainGridLegend[data-mode="radar"] #navRainLegendScale{font-size:10px!important}
+#navRainGridTimeBar .sunny-rain-opacity{
+ display:flex;align-items:center;gap:9px;
+ font-size:10px!important;font-weight:700;
+ margin:4px 0 2px;color:#355d7c;
+}
+#navRainGridTimeBar .sunny-rain-opacity input{
+ flex:1;min-width:50px;max-width:320px;height:22px;accent-color:#1764cb;
+}
+#navRainGridTimeBar .sunny-rain-opacity output{
+ width:34px;text-align:right;font-variant-numeric:tabular-nums;
+}
+#navRainGridTimeBar #navRainGridDisclaimer{
+ display:block!important;font-size:9px!important;line-height:1.4!important;
+ margin-top:3px!important;
+}
+@media(max-width:650px){
+ #navRainGridTimeBar:not([hidden]){
+  width:calc(100vw - 16px)!important;left:8px!important;
+  right:8px!important;transform:none!important;
+  padding:8px 10px!important;
+  max-height:min(345px,51dvh)!important;
+  bottom:calc(var(--sunny-bottom-nav-height,68px) + 8px)!important;
+ }
+ #navRainGridTimeBar .sunny-rain-mode-buttons button{min-height:43px!important;font-size:11px!important}
+ #navRainGridTimeBar .sunny-rain-mode-buttons button small{font-size:9px}
+ #navRainGridTimeBar .sunny-rain-playback-strip{grid-template-columns:minmax(0,1fr);gap:2px}
+ #navRainGridTimeBar .sunny-rain-grid-controls button{padding:4px 6px!important;min-height:30px!important}
+ #navRainGridTimeBar .sunny-rain-time-details{gap:4px}
+ #navRainGridTimeBar #navRainGridValid{font-size:10px!important}
+ #navRainGridTimeBar .sunny-rain-grid-head strong{font-size:12px!important}
+ body.sunny-rain-grid-active.sunny-guiding #navRainGridTimeBar{
+  width:calc(100vw - 16px)!important;left:8px!important;
+  bottom:calc(135px + env(safe-area-inset-bottom,0px))!important;
+  max-height:min(300px,42dvh)!important;
+ }
+}

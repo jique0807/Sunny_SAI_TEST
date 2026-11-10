@@ -47,6 +47,9 @@ const fmtTime=iso=>{
 };
 export function initNationalRainOverlay({onEnable,waitForSession}={}){
  const get=id=>document.getElementById(id);
+ const radarMode=get('navOpenHsr'),imageToggle=get('navForecastImageToggle');
+ const opacitySlider=get('navRainOverlayOpacity'),opacityOutput=get('navRainOverlayOpacityValue');
+ const mapStatus=get('navRainMapStatus');
  const nationalRain=get('navNationalRain'),nationalRadar=get('navNationalRadar'),quick=get('navRadarQuick');
  const sourceTitle=get('navRainSourceTitle'),sourceSub=get('navRainSourceSub'),
   ticks=get('navRainGridTicks'),legendTitle=get('navRainLegendTitle'),
@@ -103,6 +106,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  };
  const syncSourceUI=()=>{
   const radar=source==='radar',grid=source==='grid';
+  const legend=get('navRainGridLegend');if(legend)legend.dataset.mode=source;
   panel?.classList?.toggle('sunny-grid-active',grid);
   for(const control of [slider,ticks,get('navRainGridPlay')?.parentElement]){
    if(control)control.hidden=!(radar||grid);
@@ -119,9 +123,8 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    slider.setAttribute('aria-label',source==='radar'?
     '레이더 관측 10분 단위 과거시각 선택 (0~60분 전)':'초단기 강수예보 유효시각 선택 (1시간 간격, 최대 6시간)');
   }
-  if(legendTitle)legendTitle.textContent=source==='radar'?'레이더 에코':'강수량 mm/1h';
-  if(legendScale)legendScale.textContent=source==='radar'?
-   '약 → 강':'0.1 · 1 · 3 · 7 · 15 · 30+';
+  if(legendTitle)legendTitle.textContent=radar?'레이더 영상':'강수량 mm/1h';
+  if(legendScale)legendScale.textContent=radar?'영상 색상은 강수량으로 환산하지 않음':'0.1 · 1 · 3 · 7 · 15 · 30+';
   if(disclaimer)disclaimer.textContent=source==='radar'?
    'HSR 실제 레이더 관측 · 10분 간격 선택 · 최신 자료는 약 30분 지연 조회 · 영상 색으로 강수량 추정 불가':
    '실제 5km 예보 · 결측은 무강수가 아닙니다.';
@@ -137,6 +140,14 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   if(source==='grid')setLayerReception('navNationalRain',state==='idle'?'waiting':state);
  };
  const isKakao=()=>Boolean(map&&window.kakao?.maps);
+ const updateMapStatus=()=>{
+  const ready=isKakao()&&typeof map.getProjection?.()?.containerPointFromCoords==='function';
+  if(mapStatus){
+   mapStatus.textContent=ready?'카카오맵 연결됨 · 좌표 중첩 준비':'카카오맵 연결 대기 · 중첩 미표시';
+   mapStatus.dataset.state=ready?'connected':'waiting';
+  }
+  return ready;
+ };
  const updateButtons=()=>{
   updateRouteToggles(button=>{
    button.setAttribute('aria-pressed',String(routeRadar));
@@ -152,7 +163,8 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
    quick.setAttribute('aria-label',enabled?'강수예보 켜짐, 팝업 열기':'강수예보 꺼짐, 눌러 켜기');
   }
   if(badge)badge.textContent=enabled?'ON':'OFF';
-  if(imageToggle){imageToggle.setAttribute('aria-pressed',String(enabled&&source==='grid'&&!routeRadar));imageToggle.textContent=enabled&&source==='grid'?'초단기 강수예보 종료':'초단기 강수예보';}
+  radarMode?.setAttribute('aria-pressed',String(enabled&&source==='radar'&&!routeRadar));
+  imageToggle?.setAttribute('aria-pressed',String(enabled&&source==='grid'&&!routeRadar));
   if(quickLabel)quickLabel.textContent=source==='radar'?'레이더':'강수예보';
   if(panel)panel.hidden=routeRadar||!(enabled&&expanded);
   document.body.classList.toggle('sunny-rain-grid-active',enabled);
@@ -169,6 +181,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  function paint(){
   if(!enabled||!(source==='radar'?radarFrame:forecast)||!isKakao())return;
   const container=get('kakaoMap');if(!container||container.hidden||!container.clientWidth||!container.clientHeight)return;
+  updateMapStatus();
   const projection=map.getProjection?.();
   if(!projection||typeof projection.containerPointFromCoords!=='function'){
    message('카카오맵 좌표 변환을 확인하지 못해 강수영역을 표시하지 않았습니다.');return;
@@ -334,23 +347,27 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  }
  // Former 10-minute graphic forecast images are deliberately retired.
  // The existing RN1 numeric grid is the only forecast canvas source.
- const imageToggle=get('navForecastImageToggle');
  function hideForecastImage(){
   imageToggle?.setAttribute('aria-pressed','false');
  }
- imageToggle?.addEventListener('click',()=>{
-  if(enabled&&source==='grid'&&!routeRadar){setEnabled(false);return;}
+ // Mode selection is idempotent; pressing the active tab does not hide the map overlay.
+ function selectRainSource(next){
   if(routeRadar)setEnabled(false);
-  setSource('grid');
-  setEnabled(true);
- });
+  const changed=source!==next;
+  setSource(next);
+  if(!enabled){setEnabled(true);return;}
+  expanded=true;updateButtons();onEnable?.();
+  if(!changed&&!(next==='radar'?radarFrame:forecast))void load();
+ }
+ imageToggle?.addEventListener('click',()=>selectRainSource('grid'));
+ radarMode?.addEventListener('click',()=>selectRainSource('radar'));
  function setEnabled(next){
   if(!next){routeRadar=false;updateRouteToggles(button=>{button.title='';button.setAttribute('aria-label','현재 레이더 중첩');});}
   enabled=Boolean(next);expanded=enabled&&!routeRadar;
   if(!enabled){hideForecastImage();received.clear();gridStates.clear();}
   if(!enabled){firstValidTime=null;if(slider)slider.value='0';}
   pausePlayback();
-  updateButtons();syncSourceUI();
+  updateButtons();syncSourceUI();updateMapStatus();
   if(enabled){onEnable?.();void load();startRefresh();}
   else{
    ++requestId;controller?.abort();forecast=null;radarFrame=null;clear();
@@ -361,8 +378,8 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   }
  }
  function setMap(next){
-  if(map===next){schedule();return;}
-  map=next;clear();
+  if(map===next){updateMapStatus();schedule();return;}
+  map=next;clear();updateMapStatus();
   if(isKakao()){
    kakao.maps.event.addListener(map,'idle',schedule);
    kakao.maps.event.addListener(map,'center_changed',schedule);
@@ -418,10 +435,6 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  get('navHsrStop')?.addEventListener('click',()=>{
   pausePlayback();slider.value='0';syncLead();void load();
  });
- get('navOpenHsr')?.addEventListener('click',()=>{
-  hideForecastImage();setSource('radar');
- });
-
  reset?.addEventListener('click',()=>{
   pausePlayback();
   if(slider)slider.value='0';syncLead();
@@ -434,7 +447,22 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   frameCache.clear();clearHSRCache();void load({force:true});
  });
  slider?.addEventListener('change',()=>{syncLead();if(enabled)void load();});
- get('navDemoOpacity')?.addEventListener('input',schedule);
+ const syncPopupOpacity=()=>{
+  const value=String(get('navDemoOpacity')?.value??'45');
+  if(opacitySlider)opacitySlider.value=value;
+  if(opacityOutput)opacityOutput.textContent=value+'%';
+ };
+ opacitySlider?.addEventListener('input',()=>{
+  const shared=get('navDemoOpacity');
+  if(shared){
+   shared.value=opacitySlider.value;
+   shared.dispatchEvent(new Event('input',{bubbles:true}));
+  }
+  syncPopupOpacity();schedule();
+ });
+ get('navDemoOpacity')?.addEventListener('input',()=>{
+  syncPopupOpacity();schedule();
+ });
  document.addEventListener('visibilitychange',()=>{
   if(document.hidden)pausePlayback();
   else if(enabled&&!routeRadar&&Date.now()-loadedAt>(source==='radar'?600000:180000)){
@@ -446,6 +474,6 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  window.addEventListener('pagehide',()=>{
   pausePlayback();++requestId;controller?.abort();stopRefresh();clearHSRCache();clear();
  });
- syncSourceUI();updateButtons();pausePlayback();
+ syncPopupOpacity();syncSourceUI();updateButtons();updateMapStatus();pausePlayback();
  return {setMap,redraw:schedule,disableRouteRadar:()=>{if(routeRadar)setEnabled(false);},disable:()=>setEnabled(false),isEnabled:()=>enabled};
 }
