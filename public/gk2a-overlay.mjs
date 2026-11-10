@@ -37,7 +37,7 @@ export function initGk2aOverlay({document,getMap,ensureMap,waitForSession}){
  }
  function redraw(){
   if(!canvas||!image||!map)return;
-  const p=map.getProjection?.(),root=map.getNode?.();
+  const p=map.getProjection?.(),root=get('kakaoMap');
   if(!p||!root)return;
   const w=root.clientWidth,h=root.clientHeight;
   if(!w||!h)return;
@@ -70,7 +70,7 @@ export function initGk2aOverlay({document,getMap,ensureMap,waitForSession}){
     stop();return;
    }
    if(!getMap())await ensureMap?.();
-   const liveMap=getMap();if(!liveMap?.getProjection?.()||!liveMap.getNode?.())throw Error('Kakao map not ready');
+   const liveMap=getMap();if(!liveMap?.getProjection?.()||!get('kakaoMap'))throw Error('Kakao map not ready');
    const resp=await fetch('/api/gk2a-layer-image?product='+k,{credentials:'same-origin',cache:'no-store'});
    if(!resp.ok||!String(resp.headers.get('content-type')||'').includes('image/png'))throw Error('No PNG');
    const blob=await resp.blob();if(blob.size>5_000_000)throw Error('PNG too large');
@@ -81,8 +81,8 @@ export function initGk2aOverlay({document,getMap,ensureMap,waitForSession}){
    if(picture.naturalWidth!==900||picture.naturalHeight!==900){URL.revokeObjectURL(url);throw Error('Unverified PNG dimensions');}
    drop();current=k;image=picture;objectUrl=url;map=liveMap;
    canvas=document.createElement('canvas');canvas.className='sunny-gk2a-map-overlay';
-   Object.assign(canvas.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none',zIndex:'5'});
-   map.getNode().append(canvas);
+   Object.assign(canvas.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none',zIndex:'13'});
+   get('kakaoMap').append(canvas);
    kakao.maps.event.addListener(map,'idle',redraw);redraw();
    say(k,'GK2A 실제 위성영상 중첩 · 관측 '+meta.observationUTC+' UTC');
   }catch{if(current===k){say(k,'위성영상 수신/정합 실패 · 미표시');stop();}}

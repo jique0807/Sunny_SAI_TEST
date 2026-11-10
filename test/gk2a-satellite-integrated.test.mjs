@@ -54,3 +54,13 @@ test('ITS diagnostic is fixed-location and GK2A endpoints whitelist products',()
  assert.match(api,/path==='\/api\/gk2a-layer-status'/);
  assert.match(api,/georeference!=='verified_ko_lcc_900'/);
 });
+
+test('GK2A Kakao overlay uses the real map container, not an undocumented SDK map node method',()=>{
+ const source=readFileSync(new URL('../public/gk2a-overlay.mjs',import.meta.url),'utf8');
+ const styles=readFileSync(new URL('../app/navigation-ui.css',import.meta.url),'utf8');
+ assert.doesNotMatch(source,/map\.getNode|liveMap\.getNode/);
+ assert.match(source,/const p=map\.getProjection\?\.\(\),root=get\('kakaoMap'\)/);
+ assert.match(source,/get\('kakaoMap'\)\.append\(canvas\)/);
+ assert.match(source,/containerPointFromCoords\(new kakao\.maps\.LatLng/);
+ assert.match(styles,/#kakaoMap > \.sunny-gk2a-map-overlay\{/);
+});

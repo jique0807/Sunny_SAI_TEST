@@ -2490,3 +2490,7 @@ body.sunny-guiding .sunny-demo-detour-popup{
 #navRainGridTimeBar #navRainGridLegend[data-mode="radar"],
 #navRainGridTimeBar #navRainGridLegend[hidden],
 #navRainGridTimeBar #navRainGridDisclaimer[hidden]{display:none!important}
+
+/* GK2A raster canvas sits above Kakao basemap tiles and below route/risk pins.
+   Child satellite imagery remains pointer-transparent for route interaction. */
+#kakaoMap > .sunny-gk2a-map-overlay{position:absolute!important;inset:0!important;z-index:13!important;pointer-events:none!important}
