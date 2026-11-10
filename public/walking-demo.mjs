@@ -7,7 +7,7 @@ export const WALK_DEMO=Object.freeze({
  destination:Object.freeze({name:'서울시청',lat:37.5662952,lng:126.9779451})
 });
 export const WALK_DEMO_TRIGGER=69;
-export const WALK_DEMO_SHELTER=Object.freeze({name:'무더위쉼터(가상)',lat:37.56415,lng:126.9742});
+export const WALK_DEMO_SHELTER=Object.freeze({name:'무더위쉼터 목적지(시연용 좌표 · 실제 시설 미확인)',lat:37.56415,lng:126.9742});
 const valid=p=>Number.isFinite(p?.lat)&&Number.isFinite(p?.lng)&&p.lat>=32&&p.lat<=40&&p.lng>=123&&p.lng<=133;
 const gap=(a,b)=>Math.hypot((a.lat-b.lat)*111195,(a.lng-b.lng)*111195*Math.cos((a.lat+b.lat)*Math.PI/360));
 // Geographic coordinates are only illustrative: these are NOT checked pedestrian paths.
@@ -52,13 +52,13 @@ export function makeVirtualShelterRoute(current,at=Date.now()){
 }
 export function validateWalkingDemoRoute(route){
  const path=route?.rainPath;
- if(route?.travelMode!=='walking'||!Array.isArray(path)||path.length<2||!Array.isArray(route?.vertices)||route.vertices.length<2||
+ if(route?.travelMode!=='walking'||route?.mode!=='walking'||route?.provider!=='TMAP'||!Array.isArray(path)||path.length<2||!Array.isArray(route?.vertices)||route.vertices.length<2||
    !Number.isFinite(route.duration)||route.duration<=0||route.duration>21600||
    !Number.isFinite(route.distance)||route.distance<=0||!Number.isFinite(Date.parse(route.departure))||
    path.some(p=>!valid(p)||!Number.isFinite(p.seconds))||
    path.some((p,i)=>i&&p.seconds<path[i-1].seconds)||
    gap(path[0],WALK_DEMO.origin)>1200||gap(path.at(-1),WALK_DEMO.destination)>1200)
-  throw new Error('서울역 → 서울시청의 가상 보행 시나리오 경로가 올바르지 않습니다.');
+  throw new Error('서울역 → 서울시청 TMAP 보행자 경로가 올바르지 않습니다.');
  return true;
 }
 function event(route,fraction,{id,kind,icon,title,measure,description}){
