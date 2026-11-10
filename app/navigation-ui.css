@@ -2363,3 +2363,14 @@ body.sunny-guiding .sunny-demo-detour-popup{
 .sunny-risk-compare button:disabled{opacity:.55;cursor:default;}
 .sunny-risk-compare #navRiskApply:not([hidden]){color:#fff;background:#1d5c90;}
 .sunny-risk-compare p{margin:0!important;font-size:11px!important;line-height:1.5!important;color:#425b6c!important;overflow-wrap:anywhere;}
+
+/* GK2A original-file verification — not a geographically aligned satellite map layer. */
+.sunny-gk2a-inspector{margin:7px 5px 10px;padding:9px;border:1px solid #cbd7e4;border-radius:10px;background:#f4f8fc;color:#254967;}
+.sunny-gk2a-inspector summary{font-size:12px;font-weight:750;cursor:pointer;}
+.sunny-gk2a-inspector-tools{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px;margin:10px 0 5px;align-items:center;}
+.sunny-gk2a-inspector-tools label{font-size:11px;color:#46627d;}
+.sunny-gk2a-inspector-tools select,.sunny-gk2a-inspector-tools button{width:100%;box-sizing:border-box;min-width:0;min-height:36px;padding:6px;border:1px solid #9bb5cc;border-radius:8px;background:white;color:#203d55;font-size:11px;}
+.sunny-gk2a-inspector-tools button{font-weight:700;}
+.sunny-gk2a-inspector-tools button:disabled{opacity:.55;}
+.sunny-gk2a-inspector p{margin:6px 0!important;font-size:11px!important;line-height:1.5!important;color:#536b7b!important;}
+.sunny-gk2a-inspector img:not([hidden]){display:block;max-width:100%;height:auto;margin:7px auto;border:1px solid #c7d4df;border-radius:6px;}
