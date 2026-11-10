@@ -50,3 +50,9 @@ test('real KOROAD toggle is conditional, UTIC remains disabled, walking demo rem
  assert.match(ui,/id="navLayerTrafficIncidents" type="checkbox" disabled/);
  assert.match(app,/chooseWalkingDemoShelter/);
 });
+
+test('KOROAD API does not accept custom regions or arbitrary query parameters',async()=>{
+ const env={APP_ORIGIN:'https://sunny.example',SESSION_SECRET:'s'.repeat(64),KOROAD_API_KEY:'no-leak'};
+ const r=await handle(new Request('https://sunny.example/api/koroad-pedestrian-hotspots?siDo=11'),env,async()=>{throw Error('not called')});
+ assert.equal(r.status,400);assert.ok(!(await r.text()).includes('no-leak'));
+});

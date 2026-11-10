@@ -37,7 +37,7 @@ test('walking demo alerts identify hypothetical weather and avoid claiming obser
  assert.match(walkingDemoSpokenWarning(makeWalkingDemoScenario(r).hazards[1],100),/보행자 사고/);
 });
 test('walking demo has separate desktop and mobile entries without replacing vehicle demo',()=>{
- for(const id of ['demoWalk','navDemoWalk','demo','navDemoSeoulBusan'])
+ for(const id of ['demoWalk','navDemoWalk','demo','navDemoSeoulBusan','realWalk','navRealWalk','sunnyWalkHeatPopup','sunnyWalkHeatYes','sunnyWalkHeatNo'])
   assert.equal(ui.split('id="'+id+'"').length-1,1,id);
  assert.match(app,/async function walkingDemoRoute\(\)/);
  assert.match(app,/travelMode:'walking'/);
@@ -61,4 +61,19 @@ test('cooling shelter is a verified landmark found via geocoded address, not gue
  assert.equal(chooseWalkingDemoShelter([place],{lat:35,lng:129}),null);
  assert.equal(chooseWalkingDemoShelter([{...place,name:'다른 주민센터'}],{lat:37.56,lng:126.975}),null);
  assert.equal(chooseWalkingDemoShelter([{...place,address:'주소 불명'}],{lat:37.56,lng:126.975}),null);
+});
+
+test('heat decision auto-confirms shelter and never invents route when provider lookup fails',()=>{
+ assert.match(app,/walkHeatAutoTimer=setTimeout/);
+ assert.match(app,/\$\('sunnyWalkHeatYes'\)\.click\(\)/);
+ assert.match(app,/chooseWalkingDemoShelter\(places.places,current\)/);
+ assert.match(app,/travelMode:'walking'/);
+ assert.match(app,/실제 장소검색에서 소공동 주민센터를 확인하지 못했습니다/);
+ assert.match(app,/현재 쉼터 운영상태 미확인/);
+ assert.doesNotMatch(walkingDemoSpokenWarning(makeWalkingDemoBreakingWarning(route()),100),/시연 안내입니다/);
+});
+test('normal walking route supports GPS-free explicit origin selection',()=>{
+ assert.match(app,/function realWalkingExample\(\)/);
+ assert.match(app,/출발지가 선택되지 않았습니다/);
+ assert.match(app,/\$\('searchForm'\)\.requestSubmit\(\)/);
 });
