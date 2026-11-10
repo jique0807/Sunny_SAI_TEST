@@ -32,6 +32,8 @@ test('ITS event parser refuses expired, outside Korea, and unreported-time as sc
 test('ITS parser reports schema and authorization errors as unknown, not empty or safe',async()=>{
  assert.equal(normalizeItsEvents({response:{code:'4005'}}).status,'failed');
  assert.equal(normalizeItsTraffic({response:{error:'no approval'}}).status,'failed');
+ assert.equal(normalizeItsEvents({response:{header:{resultCode:'4005'},data:[]}}).status,'failed');
+ assert.equal(normalizeItsTraffic({response:{header:{resultCode:'4005'},data:[]}}).status,'failed');
  const blocked=await fetchItsRouteContext('bad-key',points,async()=>new Response('not permitted',{status:403}),{now});
  assert.equal(blocked.status,'failed');assert.equal(blocked.items.length,0);
  assert.equal(blocked.traffic.status,'failed');assert.ok(!JSON.stringify(blocked).includes('bad-key'));
