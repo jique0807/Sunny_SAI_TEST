@@ -63,5 +63,5 @@ test('KMA time-aligned high temperature, low temperature and wind generate cauti
  assert.equal(cold[0].kind,'cold');
  assert.equal(cold[0].assessment.level,'caution');
  const bad={...sample(34,0),forecast:{...sample(34,0).forecast,time:'2026-11-11T01:00:00Z'}};
- assert.equal(buildRouteHazards([bad])[0].assessment.level,'unknown');
+ assert.equal(buildRouteHazards([bad]).length,0); // unverified time must never appear as a map hazard
 });
