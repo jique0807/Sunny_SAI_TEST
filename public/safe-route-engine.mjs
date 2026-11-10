@@ -61,6 +61,8 @@ export function evaluateRouteRisk(route,{weatherSamples=[],extraHazards=[],mode=
   ...buildRouteHazards(incoming,{limit:20}),
   ...(Array.isArray(extraHazards)?extraHazards:[])
  ];
+ // Separate data contracts: driving consumes road hazards, walking consumes pedestrian history.
+ // Weather exposures (rain, snow, heat, cold, wind) remain shared forecast context.
  const accepted=[],unknown=[];
  for(const h of candidates){
   if(!h||h.demo)continue;
@@ -68,8 +70,12 @@ export function evaluateRouteRisk(route,{weatherSamples=[],extraHazards=[],mode=
      !onRoute(route.rainPath,h,h.kind==='warning'?600:1500)){unknown.push(h);continue;}
   const a=assessRouteHazard(h,{now});
   if(!a.score||a.level==='unknown'){unknown.push(h);continue;}
-  if(mode==='walking'&&h.roadRisk!==undefined){
-   // KMA road-link risk grades refer to vehicle roads, not pedestrian access.
+  if(mode==='walking'&&(h.roadRisk!==undefined||h.kind==='its-incident')){
+   // Live road-event points and road-link icing are vehicle-only evidence.
+   unknown.push(h);continue;
+  }
+  if(mode==='driving'&&h.kind==='pedestrian-hotspot'){
+   // Historical pedestrian accident clusters cannot become motor-vehicle risk scores.
    unknown.push(h);continue;
   }
   if(accepted.some(x=>x.kind===h.kind&&Math.abs(x.seconds-h.seconds)<600&&x.provider===h.provider))continue;
@@ -125,13 +131,14 @@ export function compareRouteRiskCandidates(candidates,{mode='driving',minCoverag
 }
 
 export function formatRouteRiskSummary(profile){
+ const modeLabel=profile?.mode==='walking'?'도보 위험판단':'자동차 위험판단';
  const historical=profile?.signals?.filter(h=>h.kind==='pedestrian-hotspot').length||0;
  const historyNote=historical?' · 2024년 과거 보행사고 집중구역 '+historical+'곳 참고 (실시간 사고 아님)':'';
  if(!profile||profile.state==='simulation')return '시연용 위험정보 · 실제 위험판정 아님';
  if(profile.state==='unsupported')return '위험분석 보류 · 이동수단별 경로 미지원';
  if(profile.state==='insufficient-data')return '위험분석 보류 · 실제 기상청 경로 예보 미확인 (안전하다는 뜻 아님)'+historyNote;
  const portion='예보 조회 '+profile.coveredSamples+'/'+profile.totalSamples+'지점';
- if(profile.state==='partial')return 'Risk Engine 2.0 · '+portion+' · 일부 자료 미확인 (안전 판정 불가)'+historyNote;
+ if(profile.state==='partial')return 'Risk Engine 2.0 · '+modeLabel+' · '+portion+' · 일부 자료 미확인 (안전 판정 불가)'+historyNote;
  const risk=profile.signalCount?profile.signalCount+'건의 위험 신호':'조회 지점에 확인된 위험 신호 없음';
- return 'Risk Engine 2.0 · '+portion+' · '+risk+' · 미조회 구간 판단 불가'+historyNote;
+ return 'Risk Engine 2.0 · '+modeLabel+' · '+portion+' · '+risk+' · 미조회 구간 판단 불가'+historyNote;
 }
