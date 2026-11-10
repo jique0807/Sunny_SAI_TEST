@@ -97,7 +97,7 @@ export const ui = `
   <summary id="settingsDataConnectionsHeading"><strong>데이터 연결 상태</strong><small>API 키 등록 및 연결 결과</small></summary>
  <div class="sunny-source-settings-head">
   <div><p>카카오 지도·자동차, TMAP 도보, 기상·도로위험의 API 등록 여부와 실제 응답을 구분해 확인합니다.</p></div>
-  <button id="settingConnectionRefresh" type="button" aria-label="전체 데이터 연결 상태 다시 검사"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2 5"/></svg><span id="settingConnectionRefreshLabel">상태 새로고침</span></button>
+  <button id="settingConnectionRefresh" type="button" aria-label="전체 데이터 연결 상태 다시 검사"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2 5"/></svg><span id="settingConnectionRefreshLabel">상태 새로고침</span></button><button id="settingNationalWalkCheck" type="button" class="sunny-source-check-button">전국 도보 길찾기 진단 (서울·부산·대전)</button><p id="settingNationalWalkStatus" class="sunny-source-checked" role="status">전국 도보 API 검사 전</p>
  </div>
  <p id="settingConnectionSummary" class="sunny-source-summary" role="status" aria-live="polite">검사 전 · 자료별 상태를 조회해주세요.</p>
  <div id="settingConnectionItems" class="sunny-source-items" role="list" aria-label="API 데이터 종류별 연결 상태"></div>
