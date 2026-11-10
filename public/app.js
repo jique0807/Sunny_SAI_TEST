@@ -19,6 +19,7 @@ const {initWalkingFacilityOverlay}=await import('/walking-facilities-overlay.mjs
 const {initKoroadHotspotOverlay}=await import('/koroad-hotspot-overlay.mjs');
 const {initTaasPedestrianWmsOverlay}=await import('/taas-pedestrian-wms-overlay.mjs');
 const {routeHistoryQueryPoints,buildPedestrianHistoryHazards}=await import('/pedestrian-history-risk.mjs');
+const {resolveRouteDeparture}=await import('/route-departure.mjs');
 const {buildItsRouteHazards}=await import('/its-route-risk.mjs');
 const {initDriveGuidance,segmentMeters,routeFraction}=await import('/drive-guidance.mjs');
 const {buildRouteHazards,renderHazardRail,showHazardDetail}=await import('/route-hazards.mjs');
@@ -773,7 +774,14 @@ $('rainStart').onclick=startRainGuidance;
 $('rainStop').onclick=()=>goToInitialHome();
 document.addEventListener('visibilitychange',()=>{if(rainWatch===null)return;if(document.hidden){stopVoice();$('gpsStatus').textContent='화면 숨김 · 안내 일시정지 (백그라운드 작동 보장 안 됨)';}else{rainLastFetch=0;checkRain();}});
 
-$('departure').value=localInput(new Date(Date.now()+120000));$('departure').min=localInput(new Date());$('departure').max=localInput(new Date(Date.now()+86400000));
+const departureInput=$('departure');
+let departureEdited=false;
+departureInput.value=localInput(new Date(Date.now()+120000));
+let autoDepartureValue=departureInput.value;
+departureInput.min=localInput(new Date());
+departureInput.max=localInput(new Date(Date.now()+86400000));
+departureInput.addEventListener('input',()=>{departureEdited=true;});
+departureInput.addEventListener('change',()=>{departureEdited=true;});
 function toast(t){$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').hidden=true,5500);}
 function reply(t,voice=false){
  $('reply').textContent=t; // Visual notice always retains simulation disclosure.
@@ -907,7 +915,17 @@ $('searchForm').onsubmit=async e=>{e.preventDefault();stopRain();if(playing)retu
   showNavSearch(true);
   throw Error('출발지가 선택되지 않았습니다. 출발지 검색 버튼 또는 현재 위치 버튼으로 먼저 위치를 정해주세요.');
  }
- if(!originPlace)originPlace=await choose('origin');if(!destPlace)destPlace=await choose('destination');rememberQuery($('destination').value);if(run!==routeSeq)return;const departure=new Date($('departure').value).toISOString();const mode=selectedTravelMode();reply((mode==='walking'?'도보':'차량')+' 경로와 예상 통과시각을 확인하고 있어요.');const d=await api('/api/route',{origin:originPlace,destination:destPlace,departure,travelMode:mode,walkingPriority:mode==='walking'?$('walkingPriority').value:'BROAD_FIRST'});if(run!==routeSeq)return;
+ if(!originPlace)originPlace=await choose('origin');if(!destPlace)destPlace=await choose('destination');rememberQuery($('destination').value);if(run!==routeSeq)return;const selected=resolveRouteDeparture(departureInput.value,{
+  userEdited:departureEdited||departureInput.value!==autoDepartureValue
+ });
+ if(selected.refreshed){
+  // The original 2-minute default is stale after leaving a mobile tab open.
+  departureInput.min=localInput(new Date());
+  departureInput.max=localInput(new Date(Date.now()+86400000));
+  departureInput.value=localInput(new Date(selected.iso));
+  autoDepartureValue=departureInput.value;
+ }
+ const departure=selected.iso;const mode=selectedTravelMode();reply((mode==='walking'?'도보':'차량')+' 경로와 예상 통과시각을 확인하고 있어요.');const d=await api('/api/route',{origin:originPlace,destination:destPlace,departure,travelMode:mode,walkingPriority:mode==='walking'?$('walkingPriority').value:'BROAD_FIRST'});if(run!==routeSeq)return;
  // Fail closed: a walking request must never render or navigate a car route.
  if(d.travelMode!==mode||d.mode!==mode||
     (mode==='walking'&&d.provider!=='TMAP'&&d.source!=='Kakao Maps Walking')||
@@ -917,7 +935,15 @@ $('searchForm').onsubmit=async e=>{e.preventDefault();stopRain();if(playing)retu
  route={...d,demo:false,walkingPriority:mode==='walking'?$('walkingPriority').value:null};weather=null;progress=0;gate.reset();koroadHotspots.setData(null);route.itsRiskEvents=[];renderRoute();rememberDestination(destPlace);showNavSearch(false);showNavRouteResult();reply((mode==='walking'?'보행로':'차량')+' 경로를 찾았어요. 구간별 예보를 확인합니다.');
  if(mode==='walking')void loadPedestrianRouteEvidence(route);
  if(mode==='driving')void loadItsRouteEvidence(route);
- await Promise.all([loadWeather(),showMap('kakao')]); }catch(e){
+ const afterRoute=await Promise.allSettled([loadWeather(),showMap('kakao')]);
+ if(run===routeSeq&&afterRoute.some(task=>task.status==='rejected')){
+  // Routing succeeded; weather/map rendering failures must not be shown as a TMAP failure.
+  const remarks=[];
+  if(afterRoute[0].status==='rejected')remarks.push('기상예보를 확인하지 못했습니다.');
+  if(afterRoute[1].status==='rejected')remarks.push('지도를 표시하지 못했습니다.');
+  reply((mode==='walking'?'도보':'차량')+' 경로는 찾았습니다. '+remarks.join(' ')+' 경로 탐색을 다시 할 필요는 없습니다.');
+ }
+ }catch(e){
  if(run===routeSeq){
   const walking=selectedTravelMode()==='walking';
   reply(walking?'도보 경로 탐색에 실패했습니다. '+e.message+' 환경설정의 데이터 연결 상태에서 TMAP 도보 길찾기를 검사해주세요.':e.message,!walking);
