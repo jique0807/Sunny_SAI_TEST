@@ -84,7 +84,7 @@ test('separate risk engines do not conflate ITS motor incidents and TAAS pedestr
  const incidents={...common,kind:'its-incident',validTime:new Date(now-900000).toISOString(),
   provider:'국가교통정보센터 ITS',reportedFresh:true,segmentVerified:false,distanceToPath:7};
  const pedestrian={...common,kind:'pedestrian-hotspot',provider:'한국도로교통공단 TAAS',
-  historic:true,live:false,year:'2024',accidentCount:9};
+  historic:true,live:false,year:'2024',accidentCount:9,distanceToPath:0};
  const drive=evaluateRouteRisk({...route,travelMode:'driving'},{extraHazards:[incidents,pedestrian],mode:'driving',now});
  const walk=evaluateRouteRisk({...route,travelMode:'walking'},{extraHazards:[incidents,pedestrian],mode:'walking',now});
  assert.deepEqual(drive.signals.map(x=>x.kind),['its-incident']);
