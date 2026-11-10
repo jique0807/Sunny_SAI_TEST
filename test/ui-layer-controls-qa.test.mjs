@@ -47,12 +47,22 @@ test('main layer menu omits generic temperature/wind and does not fake hazard av
  assert.ok(menu.length>1000);
  assert.doesNotMatch(menu,/id="navNowcastRow"|온도|풍속/);
  assert.match(menu,/id="navLayerWeather" type="checkbox" checked/);
- assert.equal(menu.match(/type="checkbox"/g)?.length,7);
+ assert.equal(menu.match(/type="checkbox"/g)?.length,17);
+  // Legacy WMS inputs remain disabled while the visible menu transitions to separately verified REST products.
+  for(const id of ['navLayerPedestrianWms','navLayerChildWms','navLayerElderlyWms'])
+   assert.ok(menu.includes('id="'+id+'" type="checkbox" disabled'),id);
+  for(const id of ['navLayerTrafficIncidents','navLayerPedestrianHotspots'])
+   assert.ok(menu.includes('id="'+id+'" type="checkbox" disabled'),id);
+  assert.ok(menu.includes('id="navLayerWalkFacilities" type="checkbox"'));
  for(const id of ['navLayerroad','navLayerfog','navLayerflood']){
   assert.ok(menu.includes('id="'+id+'" type="checkbox" disabled'));
  }
  assert.doesNotMatch(menu,/미구현/);
  assert.match(menu,/id="navLayerWarning" type="checkbox"/);
+  assert.match(menu,/id="navNationalRadar" type="checkbox"/);
+  for(const id of ['navSatelliteRR','navSatelliteCI','navSatelliteFog'])assert.ok(menu.includes('id="'+id+'" type="checkbox" disabled'),id);
+  assert.doesNotMatch(menu,/위성영상\(착빙\)|navSatelliteIcing/);
+  assert.match(menu,/보행자 사고다발지역/);
 });
 test('rain panel close and reload trigger the same state machine in simple DOM',async()=>{
  const original={document:globalThis.document,window:globalThis.window,fetch:globalThis.fetch};
@@ -148,4 +158,26 @@ test('rain panel close and reload trigger the same state machine in simple DOM',
    else globalThis[k]=v;
   }
  }
+});
+
+test('mobile layer sheet uses a single scroll region and does not hide TAAS after ITS',()=>{
+ const sheetStart=ui.indexOf('id="navLayersSheet"');
+ const sheetEnd=ui.indexOf('id="navRainGridTimeBar"',sheetStart);
+ const sheet=ui.slice(sheetStart,sheetEnd);
+ assert.ok(sheetStart>=0&&sheetEnd>sheetStart);
+ assert.match(sheet,/nav-layers-scroll-guide/);
+ assert.match(sheet,/아래로 스크롤/);
+ const incident=sheet.indexOf('id="navLayerTrafficIncidents"');
+ const walk=sheet.indexOf('교통·보행 정보');
+ assert.ok(incident>=0&&walk>incident,'walking category must remain below ITS');
+ for(const id of ['navLayerWalkFacilities','navLayerPedestrianWms','navLayerChildWms','navLayerElderlyWms','navLayerPedestrianHotspots']){
+  assert.ok(sheet.indexOf('id="'+id+'"')>walk,id+' must exist in walking category');
+ }
+ const latest=css.lastIndexOf('.nav-layers-sheet .nav-layer-list{');
+ assert.ok(latest>0,'mobile override is missing');
+ const lastRule=css.slice(latest,css.indexOf('}',latest)+1);
+ assert.match(lastRule,/max-height:none!important/);
+ assert.match(lastRule,/overflow:visible!important/);
+ assert.match(css.slice(latest-700,latest),/overflow-y:auto!important/);
+ assert.match(css,/one continuous scroll surface/);
 });

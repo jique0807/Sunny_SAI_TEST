@@ -34,9 +34,8 @@ export function selectOptimalDemoDetour(options,hazard,{minClearanceMeters=DEMO_
      !Number.isFinite(option.route.duration)||option.route.duration<=0||
      !Number.isFinite(option.route.distance)||option.route.distance<=0)continue;
   const clearance=demoClosestRouteDistance(option.route.rainPath,hazard);
-  const fogDistance=demoClosestRouteDistance(option.route.rainPath,DEMO_PLACES.miryang);
-  if(clearance<minClearanceMeters||fogDistance>maxFogDistanceMeters)continue;
-  feasible.push({...option,clearance,fogDistance});
+  if(clearance<minClearanceMeters)continue;
+  feasible.push({...option,clearance});
  }
  feasible.sort((a,b)=>a.route.duration-b.route.duration||a.route.distance-b.route.distance);
  return feasible[0]||null;
@@ -119,12 +118,17 @@ export function demoClosestRouteDistance(path,place){
 }
 function eventForScene(route,scene){
  const target=DEMO_PLACES[scene.place];
- const p=demoNearPlace(route.rainPath,target);
- if(!p||p.distanceFromPlace>12000)throw Error(scene.title+' 경로가 '+target.name+'에서 12km 이내를 지나지 않습니다.');
+ const nearest=demoNearPlace(route.rainPath,target);
+ const near=!!nearest&&nearest.distanceFromPlace<=12000;
+ // Ordinary Kakao driving routes are NOT forced through fictional event cities.
+ // If the route bypasses a city, put the event on actual route geometry and use an honest label.
+ const p=near?nearest:demoPointAtSeconds(route.rainPath,route.duration*(scene.kind==='rain'?.22:.82));
+ if(!p||!Number.isFinite(p.lat)||!Number.isFinite(p.lng))throw Error('가상 위험지점을 실제 도로 위에 배치하지 못했습니다.');
  const seconds=Math.round(p.seconds);
  return {id:scene.id,kind:scene.kind,icon:scene.icon,title:scene.title,
-  description:scene.description,measure:scene.measure,
-  lat:p.lat,lng:p.lng,seconds,label:target.name,
+  description:near?scene.description:scene.title+' 시연 이벤트입니다. 실제 관측이 아니며 특정 도시에서 발생했다는 뜻이 아닙니다.',
+  measure:scene.measure,lat:p.lat,lng:p.lng,seconds,
+  label:near?target.name:'현재 자동차 경로 '+(scene.kind==='rain'?'전반부':'후반부'),
   eta:new Date(Date.parse(route.departure)+seconds*1000).toISOString(),
   demo:true,provider:'시연 모드 · 실제 관측 및 위험정보 아님'};
 }
@@ -148,8 +152,8 @@ export const DEMO_BREAKING_POSITION=.65;
 export function demoBreakingTiming(route){
  if(!route?.rainPath?.length||!Number.isFinite(route.duration))throw Error('시연용 구미 경로가 없습니다.');
  const p=demoNearPlace(route.rainPath,DEMO_PLACES.gumi);
- if(!p||p.distanceFromPlace>12000)throw Error('구미 부근의 실제 도로 경로를 찾지 못했습니다.');
- const seconds=Math.round(p.seconds),triggerSeconds=demoLeadSeconds(route.rainPath,seconds,25000);
+ if(!p||p.distanceFromPlace>30000)throw Error('구미 부근을 지나는 실제 도로 경로를 찾지 못했습니다. 위험구간 좌표를 확인해야 합니다.');
+ const seconds=Math.round(p.seconds),triggerSeconds=demoLeadSeconds(route.rainPath,seconds,30000);
  return{seconds,triggerSeconds,triggerPercent:100*triggerSeconds/route.duration,
   point:p,cityDistanceMeters:p.distanceFromPlace};
 }

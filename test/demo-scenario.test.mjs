@@ -152,6 +152,7 @@ test('Gumi warning and two regular events are geographically separate',()=>{
  const timing=demoBreakingTiming(route);
  assert.ok(timing.triggerSeconds<warning.seconds);
  assert.ok(timing.cityDistanceMeters<100);
+ assert.ok(Math.abs(demoDistanceMeters(route.rainPath,timing.triggerSeconds,timing.seconds)-30000)<150);
 });
 test('fastest safe Kakao result is selected, not the fastest route through the warning',()=>{
  const hazard={lat:36.11957,lng:128.34425};
@@ -163,7 +164,6 @@ test('fastest safe Kakao result is selected, not the fastest route through the w
  const choice=selectOptimalDemoDetour(cases,hazard);
  assert.equal(choice.candidate.id,'safe-fast');
  assert.ok(choice.clearance>=DEMO_MIN_CLEARANCE_METERS);
- assert.ok(choice.fogDistance<12000);
  assert.equal(selectOptimalDemoDetour([cases[0]],hazard),null);
  assert.equal(selectOptimalDemoDetour([{candidate:{id:'invalid'},route:{duration:0,rainPath:[]}}],hazard),null);
  assert.equal(DEMO_DETOUR_CANDIDATES.length,5);
@@ -171,10 +171,18 @@ test('fastest safe Kakao result is selected, not the fastest route through the w
 });
 test('simulator compares routes and does not show an extra sound-check button',()=>{
  assert.match(app,/Promise\.allSettled\(DEMO_DETOUR_CANDIDATES\.map/);
- assert.match(app,/selectOptimalDemoDetour\(completed,trip\.demoBreakingWarning\)/);
+ assert.match(app,/selectOptimalDemoDetour\(validRoadCandidates,trip\.demoBreakingWarning\)/);
  assert.match(app,/chosen\.candidate\.label/);
  assert.match(app,/clearance/);
  assert.doesNotMatch(app,/sunnyDemoSoundTest|소리 확인/);
  assert.doesNotMatch(ui,/id="sunnyDemoSoundTest"|🔊 소리 확인/);
  assert.match(app,/appPrefs\.voiceAlerts/);
+});
+
+test('ordinary Kakao route is not forced through extra demo city waypoints',()=>{
+ assert.match(app,/const d=await api\('\/api\/route',\{origin:start,destination:end,travelMode:'driving'/);
+ const direct={...route,rainPath:[route.rainPath[0],route.rainPath[4],route.rainPath.at(-1)]};
+ const x=makeDemoScenario(direct);
+ assert.equal(x.hazards.length,2);
+ assert.ok(x.hazards.every(h=>/현재 자동차 경로/.test(h.label)));
 });

@@ -99,24 +99,33 @@ export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
   message(coverage+' · '+records.length+'개 위치 검증 위험 '+(records.some(x=>x.kind==='ice')?'살얼음 ':'')+
    (records.some(x=>x.kind==='visibility')?'가시거리':'')+' 표출 · 기상청 예측, 실제 결빙 확정 아님');
  }
- async function load(){
-  clear();data=null;onChange?.();const request=++pending;loading=true;
-  if(!enabled()){loading=false;return;}
-  if(!available){loading=false;message('KMA_API_KEY 미설정');return;}
-  for(const id of ['navLayerroad','navLayerfog'])setLayerReception(id,'loading');
-  message('기상청 도로위험 노선별 ZIP 수신·위치 확인 중');
-  if(button)button.disabled=true;
+ // Fetching data for the route engine must not switch the basemap or draw layers.
+ async function load({forRisk=false}={}){
+  if(loading)return;
+  if(!forRisk){clear();data=null;onChange?.();}
+  const request=++pending;loading=true;
+  if(!enabled()&&!forRisk){loading=false;return;}
+  if(!available){loading=false;if(!forRisk)message('KMA_API_KEY 미설정');return;}
+  if(!forRisk){
+   for(const id of ['navLayerroad','navLayerfog'])setLayerReception(id,'loading');
+   message('기상청 도로위험 노선별 ZIP 수신·위치 확인 중');
+   if(button)button.disabled=true;
+  }
   try{
    const d=await query('all');
    if(request!==pending)return;
-   data=d;
-   for(const id of ['navLayerroad','navLayerfog'])setLayerReception(id,d.receivedRoads===0||d.status==='unsupported_format'?'failed':d.locations.some(item=>item.kind===(id==='navLayerroad'?'ice':'visibility'))?'received':d.status==='georeferenced'?'empty':'received');
-   await ensureMap();
-   if(request===pending)repaint();
+   data=d;routeMatch=null;
+   if(!forRisk){
+    for(const id of ['navLayerroad','navLayerfog'])setLayerReception(id,d.receivedRoads===0||d.status==='unsupported_format'?'failed':d.locations.some(item=>item.kind===(id==='navLayerroad'?'ice':'visibility'))?'received':d.status==='georeferenced'?'empty':'received');
+    await ensureMap();
+   }
+   if(request===pending){if(enabled())repaint();else onChange?.();}
   }catch(e){
    if(request===pending){
-    for(const id of ['navLayerroad','navLayerfog'])setLayerReception(id,e.reception||'failed');
-    message('위험정보 조회 불가 · '+String(e?.message||'API 활용신청·자료 제공기간 확인').slice(0,155));
+    if(!forRisk){
+     for(const id of ['navLayerroad','navLayerfog'])setLayerReception(id,e.reception||'failed');
+     message('위험정보 조회 불가 · '+String(e?.message||'API 활용신청·자료 제공기간 확인').slice(0,155));
+    }
    }
   }finally{if(request===pending){loading=false;if(button)button.disabled=!available;}}
  }
@@ -137,13 +146,16 @@ export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
  });
  button?.addEventListener('click',load);
  return {setAvailable,load,repaint,clear,hasData:()=>Boolean(data),
+  loadForRisk:()=>load({forRisk:true}),
   routeHazards(route){
-   if(!route||route.demo||!data||!enabled())return [];
-   const now=Date.now(),mask=Number(ice?.checked)+2*Number(visibility?.checked);
-   if(routeMatch?.route!==route||routeMatch.data!==data||routeMatch.mask!==mask){
-    const records=displayableRisks(data.locations,ice?.checked,visibility?.checked);
-    routeMatch={route,data,mask,hazards:matchRouteRoadRisks(records,route.rainPath,route.departure,now)};
+   if(!route||route.demo||!data)return [];
+   const now=Date.now();
+   if(routeMatch?.route!==route||routeMatch.data!==data){
+    // Only officially verified grades, road geometry and recent data reach risk scoring.
+    // Map-layer visibility must not change which road conditions the engine considers.
+    const records=displayableRisks(data.locations,true,true);
+    routeMatch={route,data,hazards:matchRouteRoadRisks(records,route.rainPath,route.departure,now)};
    }
-   return routeMatch.hazards.filter(h=>now-Date.parse(h.validTime)<=15*60000);
+   return routeMatch.hazards.filter(h=>now-Date.parse(h.validTime)>=0&&now-Date.parse(h.validTime)<=15*60000);
   }};
 }

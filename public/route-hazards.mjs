@@ -1,8 +1,8 @@
 import {assessRouteHazard,withRiskAssessment} from './risk-engine.mjs';
 // Real geolocated KMA forecast risks, shared between route search and live driving.
 // Do not infer flood/ice/fog or snowfall depth from precipitation type.
-const ICONS=Object.freeze({rain:'🌧️',snow:'❄️',mixed:'🌨️'});
-const TITLE=Object.freeze({rain:'강수 예보',snow:'눈 예보',mixed:'비·눈 혼합 예보'});
+const ICONS=Object.freeze({rain:'🌧️',snow:'❄️',mixed:'🌨️',heat:'☀️',cold:'🥶',wind:'💨'});
+const TITLE=Object.freeze({rain:'강수 예보',snow:'눈 예보',mixed:'비·눈 혼합 예보',heat:'고온 예보 주의',cold:'저온 예보 주의',wind:'강풍 예보 주의'});
 const safeValue=v=>Number.isFinite(v)?v:null;
 export function buildRouteHazards(samples,{limit=12}={}){
  if(!Array.isArray(samples))return [];
@@ -15,22 +15,32 @@ export function buildRouteHazards(samples,{limit=12}={}){
   const pty=f.precipitationType;
   const kind=[3,7].includes(pty)?'snow':[2,6].includes(pty)?'mixed':
     [1,4,5].includes(pty)||safeValue(f.rain)>0||safeValue(f.rainMin)>0?'rain':null;
-  if(!kind)continue;
   const label=String(s.label||'경로의 예보 지점').slice(0,50);
   const exactRain=safeValue(f.rain);
   const rainLabel=typeof f.rainLabel==='string'&&f.rainLabel.trim()?f.rainLabel.trim():exactRain!==null?exactRain+'mm':null;
   const exactSnow=safeValue(f.snowfall);
   const snowLabel=typeof f.snowfallLabel==='string'&&f.snowfallLabel.trim()?f.snowfallLabel.trim():
     exactSnow!==null?exactSnow+'cm':null;
-  events.push(withRiskAssessment({kind,icon:ICONS[kind],title:TITLE[kind],seconds:s.seconds,label,lat:safeValue(s.lat),lng:safeValue(s.lng),
+  const common={seconds:s.seconds,label,lat:safeValue(s.lat),lng:safeValue(s.lng),
    eta:typeof s.eta==='string'?s.eta:null,validTime:f.time||null,
-   rainLabel,rainMm:exactRain,rainMin:safeValue(f.rainMin),snowLabel,provider:'기상청 격자예보',grid:s.grid||null}));
+   provider:'기상청 격자예보',grid:s.grid||null};
+  if(kind)events.push(withRiskAssessment({...common,kind,icon:ICONS[kind],title:TITLE[kind],
+   rainLabel,rainMm:exactRain,rainMin:safeValue(f.rainMin),snowLabel}));
+  // These are app-level precaution thresholds, not official heat/cold/wind warnings.
+  const t=safeValue(f.temperature),w=safeValue(f.windSpeed);
+  if(t!==null&&t>=33)events.push(withRiskAssessment({...common,kind:'heat',icon:ICONS.heat,
+   title:TITLE.heat,temperature:t}));
+  if(t!==null&&t<=-12)events.push(withRiskAssessment({...common,kind:'cold',icon:ICONS.cold,
+   title:TITLE.cold,temperature:t}));
+  if(w!==null&&w>=14)events.push(withRiskAssessment({...common,kind:'wind',icon:ICONS.wind,
+   title:TITLE.wind,windSpeed:w}));
  }
  events.sort((a,b)=>a.seconds-b.seconds);
  const dedup=[];
  for(const event of events){
-  const last=dedup[dedup.length-1];
-  if(last?.kind===event.kind&&event.seconds-last.seconds<300)continue;
+  // A stale, mismatched or unsupported provider record is NOT a map hazard.
+  if(!Number.isFinite(event?.assessment?.score)||event.assessment.score<=0)continue;
+  if(dedup.some(last=>last.kind===event.kind&&Math.abs(event.seconds-last.seconds)<300))continue;
   dedup.push(event);if(dedup.length>=Math.max(1,Math.min(20,limit)))break;
  }
  return dedup;
@@ -43,7 +53,30 @@ export function hazardDetails(hazard,formatTime){
   '위험정보: '+hazard.measure,hazard.description,'출처: '+hazard.provider
  ];
  let details;
- if(hazard.kind==='warning')details=[
+ if(hazard.kind==='its-incident')details=[
+  hazard.title,'ITS 신고 위치: '+hazard.label,
+  '돌발내용: '+String(hazard.measure||'확인된 상세 내용 없음'),
+  '실제 경로와의 최단거리: '+hazard.distanceToPath+'m',
+  '발생·접수시각: '+format(hazard.validTime),
+  '예상 통과시각: '+format(hazard.eta),
+  '출처: 국가교통정보센터 ITS',
+  '같은 도로·진행방향·통제구간 일치 미확인 · 자동 우회 불가'
+ ];
+ else if(hazard.kind==='pedestrian-hotspot')details=[
+  hazard.title,'과거 사고 집중구역: '+hazard.label,
+  '자료연도: 2024년 · 한국도로교통공단 TAAS',
+  '과거 사고건수: '+hazard.accidentCount+'건',
+  '실제 경로와의 최단거리: '+(hazard.distanceToPath??'미확인')+'m',
+  '예상 통과: '+format(hazard.eta),
+  '현재 사고·도로 통제 정보가 아니며 안전한 우회경로를 보증하지 않습니다.'
+ ];
+ else if(['heat','cold','wind'].includes(hazard.kind))details=[
+  hazard.title,'예상 통과: '+format(hazard.eta),'구간: '+hazard.label,
+  '기상청 예보: '+(hazard.kind==='wind'?hazard.windSpeed+'m/s':hazard.temperature+'°C'),
+  '예보 유효시각: '+format(hazard.validTime),
+  '앱 내부 주의 기준이며 기상청 공식 특보가 아닙니다. 그늘·체감온도·실제 보행상태는 별도 확인이 필요합니다.'
+ ];
+ else if(hazard.kind==='warning')details=[
   hazard.title,'특보구역: '+hazard.label,'발효 시각: '+format(hazard.validTime),
   '자료: '+hazard.provider
  ];

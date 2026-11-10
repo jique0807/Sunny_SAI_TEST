@@ -9,6 +9,30 @@ export function assessRouteHazard(h,{now=Date.now()}={}){
   return assessment('unknown','자료 미수신','확인된 자료 없음','자료가 없다고 안전한 것은 아닙니다.',0);
  if(h.demo)return assessment('simulation','시연','가상의 기상위험','실제 위험판정이 아닙니다.',0);
  const source=String(h.provider||'');
+ // Historic crash clusters are cautionary context, NOT observed real-time collisions.
+ if(h.kind==='pedestrian-hotspot'){
+  if(source!=='한국도로교통공단 TAAS'||h.historic!==true||h.live!==false||
+     h.year!=='2024'||!located(h)||!Number.isFinite(h.seconds)||!validTime(h.eta)||
+     !Number.isInteger(h.accidentCount)||h.accidentCount<1)
+   return assessment('unknown','과거 보행 사고정보 검증 필요','원본·연도·위치·건수 미확인','근거 없는 사고 위험은 생성하지 않습니다.',0);
+  return assessment('notice','과거 보행 사고 집중구역',
+   '한국도로교통공단 TAAS · 2024년 과거 사고 '+h.accidentCount+'건 · 실제 경로 120m 이내',
+   '현재 사고가 발생했다는 뜻이 아니며 향후 사고확률이나 통제 여부는 알 수 없습니다.',42);
+ }
+
+ // ITS point-only reports may be near a parallel road; NEVER assert road blockage or automatic detour.
+ if(h.kind==='its-incident'){
+  const observed=validTime(h.validTime)?Date.parse(h.validTime):NaN;
+  const until=h.expiresAt&&validTime(h.expiresAt)?Date.parse(h.expiresAt):Infinity;
+  if(source!=='국가교통정보센터 ITS'||h.reportedFresh!==true||h.segmentVerified!==false||
+   !located(h)||!validTime(h.eta)||!Number.isFinite(h.distanceToPath)||h.distanceToPath>120||
+   !Number.isFinite(observed)||now-observed< -600000||now-observed>24*3600000||
+   Date.parse(h.eta)>until)
+   return assessment('unknown','ITS 돌발정보 검증 필요','발생시각·위치·경로 인접성 미확인',
+    '같은 도로·진행방향·통제 구간 일치 전에는 자동 우회하지 않습니다.',0);
+  return assessment('notice','ITS 경로 인접 돌발정보',source+' · 신고 위치 경로 약 '+h.distanceToPath+'m · 발생시각 확인',
+   '인접도로 가능성 있음 · 실제 주행 구간 통제 미확인 · 자동 우회 판단 불가',58);
+ }
  if(h.roadRisk!==undefined){
   const g=h.roadRisk,age=validTime(h.validTime)?now-Date.parse(h.validTime):Infinity;
   if(!source.includes('기상청 도로위험')||h.riskGradeVerified!==true||![1,2,3].includes(g)||!located(h)||!validTime(h.eta)||age<0||age>15*60000)
@@ -23,12 +47,31 @@ export function assessRouteHazard(h,{now=Date.now()}={}){
   return assessment('caution','기상특보 근접 참고',source+' · 경로 인접 관측지점 기준',
    '공식 특보구역 경계·도로 통제 확인은 아닙니다.',78);
  }
- if(!['rain','snow','mixed'].includes(h.kind)||source!=='기상청 격자예보')
+ if(!['rain','snow','mixed','heat','cold','wind'].includes(h.kind)||source!=='기상청 격자예보')
   return assessment('unknown','지원하지 않는 위험자료','검증된 기상청 위험 항목 아님','근거 없는 위험은 생성하지 않습니다.',0);
  if(!located(h)||!validTime(h.eta)||!validTime(h.validTime))
   return assessment('unknown','예보 위치·시각 검증 필요','경로좌표·통과시각·유효시각 미확인','미조회 구간은 안전하다고 판단하지 않습니다.',0);
  if(Math.abs(Date.parse(h.eta)-Date.parse(h.validTime))>90*60000)
   return assessment('unknown','예보 유효시각 불일치','통과 시각과 예보 유효시각이 90분 넘게 다름','잘못된 시간 예보를 위험판정에 쓰지 않습니다.',0);
+ // Source/time/position checks above apply equally to pedestrian exposure.
+ if(h.kind==='heat'){
+  const t=h.temperature;
+  if(!Number.isFinite(t)||t<33)return assessment('unknown','고온 기준 미확인','기온 예보 검증 필요','고온 예보가 없으면 위험 단정을 하지 않습니다.',0);
+  return assessment('caution','고온 예보 주의','기상청 격자예보 기온 '+t+'°C · 앱 주의 기준 33°C 이상',
+   '공식 폭염특보나 개인별 열질환 위험을 의미하지 않습니다.',64);
+ }
+ if(h.kind==='cold'){
+  const t=h.temperature;
+  if(!Number.isFinite(t)||t>-12)return assessment('unknown','저온 기준 미확인','기온 예보 검증 필요','실제 체감온도는 별도 확인이 필요합니다.',0);
+  return assessment('caution','저온 예보 주의','기상청 격자예보 기온 '+t+'°C · 앱 주의 기준 -12°C 이하',
+   '공식 한파특보나 체감온도 판정이 아닙니다.',60);
+ }
+ if(h.kind==='wind'){
+  const w=h.windSpeed;
+  if(!Number.isFinite(w)||w<14)return assessment('unknown','강풍 기준 미확인','풍속 예보 검증 필요','실제 순간돌풍은 별도 확인이 필요합니다.',0);
+  return assessment('caution','강풍 예보 주의','기상청 격자예보 풍속 '+w+'m/s · 앱 주의 기준 14m/s 이상',
+   '공식 강풍특보나 실제 구조물 낙하 위험 판정이 아닙니다.',58);
+ }
  if(h.kind==='snow'||h.kind==='mixed')
   return assessment('notice',h.kind==='snow'?'눈 예보':'비·눈 예보',
    '기상청 강수형태 · '+(h.snowLabel?'신적설 '+h.snowLabel:'적설량 확인 불가'),

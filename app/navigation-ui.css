@@ -529,6 +529,29 @@ body{background:var(--bg);color:var(--ink)}
  .studio-route-arrow{font-size:20px;color:#7a91af;flex-shrink:0}
  .studio-route-button{display:flex!important;align-items:center;justify-content:center;gap:12px;width:100%!important;min-height:49px!important;border:0!important;border-radius:13px!important;background:#1768e9!important;color:#fff!important;font-weight:800!important;font-size:15px!important}
  .studio-route-button span{font-size:20px}
+ .studio-route-status:not([hidden]){
+  display:block;
+  width:100%;
+  margin:9px 0 0!important;
+  border-radius:11px;
+  padding:10px 12px!important;
+  background:#eef5ff;
+  color:#23476f;
+  border:1px solid #c8ddfa;
+  font-size:12px!important;
+  line-height:1.5;
+  overflow-wrap:anywhere;
+ }
+ .studio-route-status[data-state="error"]:not([hidden]){
+  color:#8b2e28;
+  border-color:#efbab4;
+  background:#fff1ef;
+ }
+ .studio-route-status[data-state="success"]:not([hidden]){
+  color:#146547;
+  border-color:#b6dfca;
+  background:#ecf9f1;
+ }
  .nav-search-sheet #navFavoritesSection{margin-top:25px!important;border:0!important;padding-top:0!important}
  .nav-search-sheet #navFavoritesList{margin-top:12px!important}
  .nav-search-sheet .nav-favorite-tile,.nav-search-sheet .nav-favorite-empty{background:#fff!important;border:1px solid #e3eaf4!important;border-radius:14px!important;box-shadow:0 4px 12px #142d4a08}
@@ -2198,3 +2221,156 @@ body.sunny-guiding .sunny-demo-detour-popup{
 .sunny-travel-modes label:has(input:checked){background:#e8f3ff;border-color:#1870c8;color:#115796}
 .sunny-travel-modes input{accent-color:#1769dd;width:16px;height:16px;cursor:pointer}
 #walkExternalLink:not([hidden]){display:block;margin:5px 0 12px;font-size:13px;font-weight:700;color:#1365c8;text-decoration:underline}
+
+
+/* Integrated Sunny SAI mobility UX: progressive enhancement, one map and one route form.
+   Keep the legacy vehicle demo and fixed navigation footer untouched. */
+.sunny-mobile-mobility,.sunny-mobile-mobility-hint{display:none}
+.sunny-travel-modes{box-sizing:border-box;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0;margin:0 0 14px}
+.sunny-travel-modes legend{margin-bottom:8px}
+.sunny-travel-modes label{box-sizing:border-box;display:flex;align-items:center;justify-content:center;min-width:0;min-height:48px;
+ padding:10px 12px;border-radius:13px;font-size:14px;font-weight:750;transition:background-color .15s,border-color .15s}
+.sunny-travel-modes label:focus-within{outline:3px solid rgba(23,104,237,.37);outline-offset:2px}
+.sunny-route-mode-badge{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;
+ padding:5px 9px;border:1px solid #cfe2f9;background:#eef5ff;border-radius:999px;color:#195d9e;font-size:12px;font-weight:800}
+.sunny-walk-facilities:not([hidden]){display:block;padding:9px 11px;margin:8px 0;
+ background:#f0f8f7;border:1px solid #c7e7e3;border-radius:11px;color:#1f625d;
+ font-size:12px;font-weight:650;line-height:1.5}
+#navRouteDescription{overflow-wrap:anywhere}
+#navRouteModeBadge[hidden],#navRouteFacilitySummary[hidden]{display:none!important}
+@media(max-width:900px){
+ .nav-search-sheet:not([hidden]){padding-top:10px}
+ .nav-search-sheet .sunny-travel-modes{display:none!important}
+ .sunny-mobile-mobility{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;
+  box-sizing:border-box;background:#edf3fa;border:1px solid #d9e6f5;border-radius:16px;padding:5px;margin:2px 0 0}
+ .sunny-mobile-mobility button{display:flex;align-items:center;justify-content:center;gap:9px;
+  min-width:0;min-height:49px;border:1px solid transparent;border-radius:12px;padding:10px 12px;
+  background:transparent;color:#51687f;font-weight:800;font-size:15px;touch-action:manipulation;cursor:pointer}
+ .sunny-mobile-mobility button[aria-pressed="true"]{background:#fff;border-color:#a9cbf7;color:#145db2;
+  box-shadow:0 2px 9px rgba(18,68,123,.12)}
+ .sunny-mobile-mobility button:focus-visible{outline:3px solid #1768ed;outline-offset:2px}
+ .sunny-mobile-mobility-hint{display:block;min-height:18px;margin:8px 2px 15px;
+  color:#536c83;font-size:12px;line-height:1.5}
+ .nav-route-result:not([hidden]){box-sizing:border-box;max-height:calc(100dvh - 142px);
+  overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+ .nav-route-result-head{gap:8px}
+ #navRouteModeBadge{margin-left:auto}
+ .sunny-walk-facilities:not([hidden]){margin:6px 0;font-size:11.5px}
+ .nav-search-sheet #walkModeNotice:not([hidden]){display:block;padding:10px 12px;margin:10px 0;
+  border-radius:11px;background:#eff7ff;border:1px solid #d1e4fc;color:#365c83;line-height:1.5}
+ #navStartGuidance:focus-visible{outline:3px solid #ffbb54;outline-offset:3px}
+}
+@media(max-width:370px){
+ .nav-route-result-head{flex-wrap:wrap}
+ #navRouteModeBadge{margin-left:0}
+ .sunny-mobile-mobility button{font-size:14px;padding:9px 5px}
+}
+@media(prefers-reduced-motion:reduce){
+ .sunny-travel-modes label{transition:none}
+}
+
+/* Walking-only presentation trigger shares the existing safe-area-aware route sheet. */
+.sunny-walk-demo-launch{margin:7px 0 12px!important;background:#f0f9f6!important;border:1px solid #aadbc8!important;color:#176b52!important}
+.sunny-walk-demo-launch small{color:#327a68!important}
+.sunny-desktop-walk-demo{min-height:44px}
+@media(max-width:900px){
+ .sunny-route-studio .sunny-walk-demo-launch{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;min-height:48px}
+ .sunny-route-studio .sunny-walk-demo-launch small{flex:1 0 100%;text-align:center}
+}
+
+/* Server-owned provider settings help; no API keys or GPS values in the browser. */
+#settings .sunny-source-guide{margin:12px 0 7px;padding:11px 12px;border-radius:11px;border:1px solid #cee3f5;background:#edf6ff;
+ color:#28516e;font-size:11px;line-height:1.65;overflow-wrap:anywhere}
+#settings .sunny-source-guide strong{font-weight:800}
+#settings .sunny-source-guide code{font-family:ui-monospace,Consolas,monospace;
+ font-size:11px;padding:1px 4px;border-radius:4px;background:#fff}
+
+/* TMAP walking facility location markers; informational, never live hazard marks. */
+.sunny-optional-layer-status{display:block;padding:5px 4px 11px;color:#52677f;font-size:11px;line-height:1.5}
+.sunny-optional-layer-note{margin:8px 0 12px;color:#60758a;font-size:11px;line-height:1.5}
+.sunny-walk-facility-pin,.sunny-walk-facility-emoji{display:flex;align-items:center;justify-content:center;
+ width:34px;height:34px;box-sizing:border-box;border:2px solid #fff;border-radius:50%;background:#eaf8ef;box-shadow:0 2px 8px #174d3940;font-size:17px;line-height:1}
+.sunny-walk-facility-pin{cursor:pointer;touch-action:manipulation}
+.sunny-walk-facility-pin:focus-visible{outline:3px solid #1768ed;outline-offset:3px}
+.nav-layers-sheet .nav-layer-unavailable{opacity:.66}
+.nav-layers-sheet .nav-layer-unavailable input{cursor:not-allowed}
+
+/* Walking demo heat-redirect choice; display remains visibly identified as fictional. */
+.sunny-walk-heat-popup:not([hidden]){display:block;z-index:1600;border:2px solid #eab15d;background:#fffaf2}
+.sunny-walk-heat-popup .sunny-demo-detour-sign{font-size:24px}
+.sunny-walk-heat-popup .sunny-demo-detour-choices button:first-child{background:#ce6f21;color:#fff}
+.sunny-real-walk-launch{background:#eef6ff!important;border:1px solid #b4d4fd!important;color:#175a9b!important;min-height:48px}
+.sunny-real-walk-launch small{color:#496a99!important}
+@media(max-width:900px){
+ .sunny-walk-heat-popup:not([hidden]){max-width:calc(100vw - 24px);box-sizing:border-box}
+ .sunny-route-studio .sunny-real-walk-launch{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;width:100%;gap:6px}
+ .sunny-route-studio .sunny-real-walk-launch small{flex:1 0 100%;text-align:center}
+}
+
+/* Historical KOROAD data: intentionally distinct from real-time incident/warning pins. */
+.sunny-historic-hotspot-pin{display:flex;align-items:center;justify-content:center;width:34px;height:34px;
+ border:2px solid #fff;border-radius:50%;background:#fff2cc;box-shadow:0 3px 8px #83641a45;
+ font-size:17px;cursor:pointer;touch-action:manipulation}
+.sunny-historic-hotspot-pin:focus-visible{outline:3px solid #1768ed;outline-offset:3px}
+.nav-layers-sheet .nav-layer-row:has(#navLayerPedestrianHotspots:enabled){opacity:1}
+
+/* 2026-11-10 iOS fix: one continuous scroll surface for every road + walking layer.
+   Nested 43dvh list scrollboxes made the menu appear to stop at ITS.
+   Keep fixed bottom navigation and sticky layer header without clipping TAAS items. */
+@media(max-width:900px){
+ .nav-layers-sheet:not([hidden]){
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+  scroll-padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));
+  padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))!important;
+ }
+ .nav-layers-sheet .nav-layer-list{
+  max-height:none!important;
+  height:auto!important;
+  overflow:visible!important;
+  overscroll-behavior:auto!important;
+ }
+ .nav-layers-sheet .nav-layer-group{
+  display:block;
+  scroll-margin-top:70px;
+ }
+ .nav-layers-scroll-guide{
+  display:block;
+  margin:2px 0 8px!important;
+  padding:7px 10px!important;
+  background:#eff5ff;
+  border-radius:8px;
+  color:#315780!important;
+  font-size:11px!important;
+  line-height:1.5;
+ }
+ .nav-layers-sheet .nav-layers-head{
+  position:sticky;
+  top:-12px;
+ }
+}
+
+/* 2026-11-10: selected Sunny SAI display groups; satellite and REST stay disabled until verification. */
+.nav-layers-sheet .nav-layer-subgroup{display:block!important;padding:10px 11px 5px!important;margin:7px 0 2px!important;border-top:1px solid var(--sunny-border,#d8e2ee);color:#456a8c!important;font-size:11px!important;font-weight:750!important;letter-spacing:.015em;}
+.nav-layers-sheet .nav-layer-row.nav-layer-unavailable:has(input:disabled){opacity:.75;}
+.nav-layers-sheet .nav-layer-row.nav-layer-unavailable:has(input:disabled) small{color:#667b91!important;}
+
+/* Risk Engine 2.1: compact, evidence-only optional route comparison below route risk rail. */
+.nav-route-result .sunny-risk-compare:not([hidden]){display:flex!important;flex-direction:column;gap:5px;margin:8px 0;padding:10px;border:1px solid #c6d8e8;border-radius:12px;background:rgba(241,248,255,.97);}
+.sunny-risk-compare button{min-height:36px;border:1px solid #9bbad1;background:#fff;color:#184d78;border-radius:8px;font-size:12px;font-weight:750;padding:8px 10px;cursor:pointer;}
+.sunny-risk-compare button:disabled{opacity:.55;cursor:default;}
+.sunny-risk-compare #navRiskApply:not([hidden]){color:#fff;background:#1d5c90;}
+.sunny-risk-compare p{margin:0!important;font-size:11px!important;line-height:1.5!important;color:#425b6c!important;overflow-wrap:anywhere;}
+
+/* GK2A original-file verification — not a geographically aligned satellite map layer. */
+.sunny-gk2a-inspector{margin:7px 5px 10px;padding:9px;border:1px solid #cbd7e4;border-radius:10px;background:#f4f8fc;color:#254967;}
+.sunny-gk2a-inspector summary{font-size:12px;font-weight:750;cursor:pointer;}
+.sunny-gk2a-inspector-tools{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px;margin:10px 0 5px;align-items:center;}
+.sunny-gk2a-inspector-tools label{font-size:11px;color:#46627d;}
+.sunny-gk2a-inspector-tools select,.sunny-gk2a-inspector-tools button{width:100%;box-sizing:border-box;min-width:0;min-height:36px;padding:6px;border:1px solid #9bb5cc;border-radius:8px;background:white;color:#203d55;font-size:11px;}
+.sunny-gk2a-inspector-tools button{font-weight:700;}
+.sunny-gk2a-inspector-tools button:disabled{opacity:.55;}
+.sunny-gk2a-inspector p{margin:6px 0!important;font-size:11px!important;line-height:1.5!important;color:#536b7b!important;}
+.sunny-gk2a-inspector img:not([hidden]){display:block;max-width:100%;height:auto;margin:7px auto;border:1px solid #c7d4df;border-radius:6px;}

@@ -12,7 +12,7 @@ function harness(kma=true){
   drivingUI:{start(){},stop(){},update(){},setAhead(){},isActive(){return false;}},vectorDriving:{stop(){},isActive(){return false;},setRoute(){},refreshHazards(){}},startVectorGuidance:async()=>{},resetDrivingMapHeading(){},updateDrivingMapHeading(){return '북쪽 기준';},
   setNavTab(){},showMap:async()=>{},followDrivingGps(){},setInterval:fn=>{geo.tick=fn;return 1;},clearInterval:()=>{},api:async(path,data)=>{calls.push({path,data});return {samples:data.samples.map(p=>({...p,status:'forecast',forecast:{provider:'kma',product:'초단기예보',rain:0,precipitationType:0}})),fetchedAt:new Date(time).toISOString()};}});
  vm.runInContext(source.match(/^const routeWeatherEnabled=.*;$/m)[0],context);
- vm.runInContext(source.slice(source.indexOf('let rainWatch='),source.indexOf("\n$('departure').value")),context);
+ vm.runInContext(source.slice(source.indexOf('let rainWatch='),source.indexOf("\nconst departureInput=")),context);
  const fix=(lng=127.01,accuracy=10)=>geo.ok({coords:{latitude:37,longitude:lng,accuracy},timestamp:time});
  return {$,geo,context,calls,events,fix,advance:ms=>time+=ms};
 }

@@ -6,13 +6,26 @@ export const DATA_CONNECTION_SOURCES=[
  {id:'map',group:'지도·길찾기',name:'카카오맵 지도',description:'JavaScript SDK · 프리뷰 허용 도메인'},
  {id:'search',group:'지도·길찾기',name:'카카오 장소검색',description:'장소명·주소 찾기'},
  {id:'route',group:'지도·길찾기',name:'카카오 자동차 길찾기',description:'도로 경로·거리·예상 통과시각'},
- {id:'forecast',group:'강수·눈',name:'경로별 기상예보',description:'예상 통과시각의 기상청 예보'},
- {id:'rain',group:'강수·눈',name:'전국 강수량 격자 예보',description:'RN1 5km 격자 · 가장 가까운 정시의 1시간 강수량'},
- {id:'radar',group:'강수·눈',name:'HSR 레이더 실황',description:'실제 관측영상 · 10분 간격 표출'},
- {id:'road',group:'도로위험',name:'도로살얼음·안개',description:'도로 링크별 공식 위험기상정보'},
- {id:'warning',group:'기상특보',name:'기상특보 현황',description:'발효지역·특보등급 검증 필요'},
- {id:'floodNational',group:'침수',name:'국가하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 아님'},
- {id:'floodLocal',group:'침수',name:'지방하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 아님'}
+ {id:'walk',group:'지도·길찾기',name:'TMAP 도보 길찾기',description:'서울역 → 서울시청 실제 보행 경로 응답 검사'},
+ {id:'forecast',group:'기상 예보',name:'경로별 기상예보',description:'예상 통과시각의 기상청 예보'},
+ {id:'rain',group:'기상 예보',name:'초단기 강수예보 (RN1)',description:'전국 5km 격자 · 1시간 예측 간격 · 카카오맵 투명 레이어'},
+ {id:'snow',group:'기상 예보',name:'눈·진눈깨비 예보 (PTY)',description:'기상청 5km 초단기예보 · 실제 시각별 수신·표출 별도 검증'},
+ {id:'radar',group:'기상 예보',name:'HSR 레이더 실황',description:'실제 강수 관측영상 · 10분 간격'},
+ {id:'satelliteRR',group:'위성영상 · 신규',name:'위성영상(강우강도)',description:'GK2A RR · 신청 자료의 승인·실제영상·좌표정합 검증 전'},
+ {id:'satelliteCI',group:'위성영상 · 신규',name:'위성영상(대류운 발생탐지)',description:'GK2A CI · 신청 자료의 승인·실제영상·좌표정합 검증 전'},
+ {id:'satelliteFog',group:'위성영상 · 신규',name:'위성영상(안개)',description:'GK2A FOG · 신청 자료의 승인·실제영상·좌표정합 검증 전'},
+ {id:'road',group:'자동차 위험자료',name:'도로살얼음·안개',description:'도로 링크별 공식 위험기상정보 · 위치·시각 검증 필요'},
+ {id:'trafficIncident',group:'자동차 위험자료',name:'ITS 사고·공사·통제',description:'실제 자동차 경로 주변 돌발정보 · 도로 링크/차로 통제 미검증'},
+ {id:'itsTraffic',group:'자동차 위험자료',name:'ITS 교통소통정보',description:'공식 도로 링크·속도 정보 · 카카오 경로 링크 일치 검증 전'},
+ {id:'warning',group:'자동차 위험자료',name:'기상특보 현황',description:'발효지역·특보등급 확인 · 구역 경계 미검증'},
+ {id:'floodNational',group:'자동차 위험자료',name:'국가하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 관측 아님'},
+ {id:'floodLocal',group:'자동차 위험자료',name:'지방하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 관측 아님'},
+ {id:'walkSurface',group:'도보·교통안전 자료',name:'보행로 침수·결빙·통행 제한',description:'현장 관측 API 미연결 · 날씨 예보와 구분'},
+ {id:'walkFacilities',group:'도보·교통안전 자료',name:'횡단보도·지하보도·계단',description:'TMAP 실제 도보경로에서 위치정보 수신 시 표시 · 현장 안전상태 미확인'},
+ {id:'taasPedestrianRest',group:'도보·교통안전 자료',name:'보행자 사고다발지역 (REST)',description:'TAAS 과거 사고 좌표·건수 · 별도 지도 레이어 개발·수신 검증 전'},
+ {id:'taasChildRest',group:'도보·교통안전 자료',name:'어린이 보행사고 다발지역 (REST)',description:'TAAS 어린이 사고 REST · 이용승인·연동·좌표 검증 전'},
+ {id:'taasElderlyRest',group:'도보·교통안전 자료',name:'노인 보행사고 다발지역 (REST)',description:'TAAS 노인 사고 REST · 이용승인·연동·좌표 검증 전'},
+ {id:'pedestrianHotspots',group:'도보·교통안전 자료',name:'TAAS 경로 인접 보행사고 이력 REST',description:'과거 사고건수·좌표 기반 위험 근거 · 별도 이용승인 검증 필요'}
 ];
 export const CONNECTION_STATE_TEXT={
  unknown:'검사 전',unverified:'검사 보류',checking:'조회 중',configured:'검사 전',
@@ -36,13 +49,34 @@ export function applySessionConfiguration(current,session){
  const copy={...current},config=session?.connections||{};
  const configured={
   map:Boolean(session?.mapConfig?.kakao),
-  search:config.route,route:config.route,
+  search:config.route,route:config.route,walk:config.tmap,
   forecast:config.kma,rain:config.kma,radar:config.kma,
   road:config.roadRisk,warning:config.kma,floodNational:config.safemap,floodLocal:config.safemap
  };
  for(const [id,yes]of Object.entries(configured)){
-  copy[id]={...(yes?state('configured','실제 API 응답 검사 전'):state('missing','서버 인증키 미설정')),keyRegistered:Boolean(yes)};
+  copy[id]={...(yes?state('configured','실제 API 응답 검사 전'):state('missing',id==='walk'?'TMAP_API_KEY 미등록 · 카카오 대체 도보 제공자 실수신 별도 확인':'서버 인증키 미설정')),keyRegistered:Boolean(yes)};
  }
+ copy.walkSurface={...state('unverified','실제 보행로 침수·결빙·통제 관측 API 미연결 · Risk Engine은 기상예보로 주의를 판단'),keyRegistered:null};
+ copy.trafficIncident={...(config.its?state('configured','ITS 키 설정 · 사고·공사·통제 실제 발생 위치·시각 조회 전'):state('unverified','ITS ROAD_API_KEY 미설정')),keyRegistered:Boolean(config.its)};
+ copy.itsTraffic={...(config.its?state('configured','ITS 키 설정 · 도로 링크 속도 실수신 검사 전'):state('unverified','ITS ROAD_API_KEY 미설정')),keyRegistered:Boolean(config.its)};
+ // The registered KMA key is not proof that GK2A product access was approved.
+ for(const id of ['satelliteRR','satelliteCI','satelliteFog']){
+  copy[id]={...state('unverified',config.kma?
+   '기상청 키 등록 · 위성영상 상품별 API 승인·실제 수신·카카오맵 좌표정합 검증 전':
+   '신규 위성영상 API 연동 전 · 상품별 승인 및 키 등록 확인 필요'),keyRegistered:Boolean(config.kma)};
+ }
+ copy.snow={...state('unverified',config.kma?
+  '기상청 키 등록 · PTY 강수형태 자료의 시각별 지도표출 검증 전':
+  '기상청 키 미등록 · PTY 예보 연결 전'),keyRegistered:Boolean(config.kma)};
+ copy.walkFacilities={...state('unverified',config.tmap?
+  'TMAP 키 등록 · 실제 도보경로 시설 위치가 검증된 경우에만 표출':
+  'TMAP 키 미등록 · 시설 위치 수신 검사 전'),keyRegistered:Boolean(config.tmap)};
+ for(const id of ['taasPedestrianRest','taasChildRest','taasElderlyRest']){
+  copy[id]={...state('unverified',config.koroad?
+   'TAAS REST 키 등록 · 별도 상품 이용승인·좌표/사고건수 수신·레이어 개발 검증 전':
+   'TAAS REST API 연동 및 자료 승인·실수신 검사 전'),keyRegistered:Boolean(config.koroad)};
+ }
+ copy.pedestrianHotspots={...(config.koroad?state('configured','TAAS REST 키 설정 · WMS 승인과 별도 · 보행사고 좌표/건수 수신 확인 전'):state('unverified','KOROAD_API_KEY 미설정')),keyRegistered:Boolean(config.koroad)};
  return copy;
 }
 export function mapConnectionProbe(kind,data,previous){
@@ -66,6 +100,46 @@ export function mapConnectionProbe(kind,data,previous){
   put('forecast',forecast?.status==='received'?'ok':'error',
    forecast?.status==='received'?'기상청 경로 지점·예보시각 응답 확인':
     '기상청 경로 지점 예보 응답 미확인');
+ }
+ if(kind==='walk'){
+  const valid=data?.provider==='tmap'&&data?.status==='received'&&data?.geometryValid===true;
+  const message=valid?'TMAP 실제 보행경로 '+Math.round(data.distanceMeters)+'m · 약 '+Math.round(data.durationSeconds/60)+'분 확인 · 현장 위험 미검증':
+   [401,403].includes(data?.providerStatus)?'TMAP 인증키 또는 보행 경로 이용권한 확인 필요':
+   data?.providerStatus===429?'TMAP 공급기관 호출 제한':
+   data?.reason||'TMAP 실제 보행 경로 응답 미확인';
+  put('walk',valid?'ok':'error',message);
+ }
+ if(kind==='its'){
+  const eventStatus=data?.status;
+  const incidentTotal=Array.isArray(data?.items)?data.items.length:0;
+  const problem=data?.reason||'ITS 실제 돌발정보 조회 실패';
+  put('trafficIncident',eventStatus==='received'?'ok':eventStatus==='empty'?'empty':'error',
+   eventStatus==='received'?'ITS 돌발신고 '+incidentTotal+'건 수신 · 도로 링크·진행방향·차로통제는 미검증':
+   eventStatus==='empty'?'ITS 조회 구역에 돌발신고 없음 · 안전 판정 아님':problem);
+  const traffic=data?.traffic;
+  put('itsTraffic',traffic?.status==='received'?'ok':traffic?.status==='empty'?'empty':'error',
+   traffic?.status==='received'?'ITS 도로 링크 속도 '+(traffic.count||0)+'건 수신 · 카카오 경로 일치 전':
+   traffic?.reason||'ITS 소통정보 실제 수신 확인 필요');
+ }
+ if(kind==='koroad'){
+  const status=data?.status;
+  put('pedestrianHotspots',status==='received'?'ok':status==='empty'?'empty':'error',
+   status==='received'?'한국도로교통공단 2024년 서울 중구 과거 사고다발지역 '+(data.items?.length||0)+'곳 수신 · 실시간 사고 아님':
+   status==='empty'?'2024년 서울 중구 과거 사고다발지역 제공자료 없음':data?.reason||'KOROAD API 인증 또는 수신 실패');
+ }
+ if(kind==='gk2a'){
+  const kinds={satelliteRR:'RR',satelliteCI:'CI',satelliteFog:'FOG'};
+  for(const [id,product] of Object.entries(kinds)){
+   const item=data?.products?.[product];
+   const count=Array.isArray(item?.observationTimes)?item.observationTimes.length:0;
+   // A received catalog is only an index, not a geolocated map overlay.
+   const detail=count&&item?.state==='received'?
+    'GK2A '+product+' 실제 UTC 관측목록 '+count+'시각 확인 · 원본 영상/좌표정합·카카오맵 중첩 미검증':
+    item?.state==='approval_pending'?'위성 '+product+' 개별 API 활용승인 확인 필요':
+    item?.state==='empty'?'위성 '+product+' 조회기간에 관측목록 없음 · 자료 부재가 안전을 뜻하지 않음':
+    item?.detail||'위성 '+product+' 관측자료 형식·권한 확인 필요';
+   put(id,'unverified',detail);
+  }
  }
  if(kind==='rain'){
   const found=Array.isArray(data?.results)?data.results:[];
@@ -151,7 +225,7 @@ export function initConnectionStatusPanel({
    const entry=values[id]||state('unknown','검사 전');
    refs.row.dataset.connectionState=entry.state;
    refs.badge.textContent=CONNECTION_STATE_TEXT[entry.state]||'확인 불가';
-   refs.keyStatus.textContent='API 키 · '+(entry.keyRegistered===true?'등록됨':entry.keyRegistered===false?'미등록':'확인 불가');
+   refs.keyStatus.textContent=id==='walkSurface'?'실제 현장자료 연계 · 미완료':'API 키 · '+(entry.keyRegistered===true?'등록됨':entry.keyRegistered===false?'미등록':'확인 불가');
    refs.explanation.textContent=entry.state==='empty'?'자료없음 · '+entry.detail:entry.detail||'';
   }
   if(summary)summary.textContent=summarizeConnectionResults(values).text;
@@ -160,16 +234,19 @@ export function initConnectionStatusPanel({
     year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})+
    ' KST · 검사 시점의 서버 상태':'최종 검사: 없음';
  }
- async function requestJSON(path){
+ async function requestJSON(path,options={}){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
   try{
    const response=await fetchWithReception(fetcher,path,{credentials:'same-origin',
-    cache:'no-store',signal:controller.signal});
+    cache:'no-store',signal:controller.signal,...options});
    if(!response.ok){const err=Error(providerFailure(response.status));
     err.http=response.status;throw err;}
    return await response.json();
   }finally{clearTimeout(timer);}
  }
+ // Fixed, non-personal Seoul City Hall vicinity for provider connectivity checks only.
+ // Never send the user's GPS coordinates during settings diagnostics.
+ const ITS_TEST_POINTS=[{lat:37.5663,lng:126.9779},{lat:37.5548,lng:126.9708}];
  async function refresh(){
   if(busy)return false;
   busy=true;const run=++request;
@@ -180,21 +257,40 @@ export function initConnectionStatusPanel({
    if(run!==request)return false;
    values=applySessionConfiguration(initialConnectionResults(),session);
    for(const [ids]of [
-    [['map','search','route','forecast']],[['rain']],[['radar']],
-    [['road','warning','floodNational','floodLocal']]
+    [['map','search','route','forecast']],[['walk']],[['rain']],[['radar']],
+    [[ 'road','warning','floodNational','floodLocal' ]],[['pedestrianHotspots']]
    ])for(const id of ids)if(values[id]?.state==='configured')
     values[id]={...values[id],...state('checking','실제 공급기관 API 응답 확인 중')};
    render();
+   if(session.connections?.kma){
+    for(const id of ['satelliteRR','satelliteCI','satelliteFog'])
+     values[id]={...values[id],...state('checking','GK2A 실제 관측시각 목록 검증 중 · 지도좌표 검증 별도')};
+    render();
+   }
    const checks=[
     ['journey','/api/preview-journey-smoke',['map','search','route','forecast']],
+    ['walk','/api/pedestrian-route-diagnostic',['walk']],
+    ['koroad','/api/koroad-pedestrian-hotspots',['pedestrianHotspots']],
     ['rain','/api/rain-grid-diagnostic',['rain']],
     ['radar','/api/radar-latest-diagnostic',['radar']],
+    ['gk2a','/api/gk2a-diagnostic',['satelliteRR','satelliteCI','satelliteFog']],
     ['layers','/api/route-layer-feasibility',['road','warning','floodNational','floodLocal']]
    ];
-   await Promise.all(checks.map(async([kind,path,ids])=>{
+   // Inspect approved ITS/TAAS sources only with a valid same-origin CSRF session.
+   // The fixed diagnostic area is independent of the current map and user location.
+   if(session.csrf){
+    if(values.trafficIncident?.state==='configured'){
+     for(const id of ['trafficIncident','itsTraffic'])values[id]={...values[id],...state('checking','서울시청 인근 고정구간 ITS 응답 확인 중')};
+     checks.push(['its','/api/its-route-context',['trafficIncident','itsTraffic'],
+      {method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':session.csrf},
+       body:JSON.stringify({points:ITS_TEST_POINTS})}]);
+    }
+    render();
+   }
+   await Promise.all(checks.map(async([kind,path,ids,options])=>{
     if(!ids.some(id=>values[id]?.state==='checking'))return;
     try{
-     const data=await requestJSON(path);
+     const data=await requestJSON(path,options||{});
      if(run===request){values=mapConnectionProbe(kind,data,values);render();}
     }catch(e){
      if(run!==request)return;

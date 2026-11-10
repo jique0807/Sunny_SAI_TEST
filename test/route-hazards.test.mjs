@@ -10,7 +10,11 @@ const driving=readFileSync(new URL('../public/drive-guidance.mjs',import.meta.ur
 const css=readFileSync(new URL('../app/navigation-ui.css',import.meta.url),'utf8');
 const path=[{lat:37.1,lng:127.1,seconds:0},{lat:37.2,lng:127.15,seconds:600},{lat:37.25,lng:127.3,seconds:1200}];
 const sample=(seconds,pty,overrides={})=>({
- status:'forecast',seconds,label:'기상청 확인 경로 '+seconds,eta:'2026-11-06T12:00:00+09:00',
+ status:'forecast',seconds,
+ // Actual geolocation is mandatory before this is a drawable map hazard.
+ lat:seconds<=600?37.1+(37.2-37.1)*seconds/600:37.2+(37.25-37.2)*(seconds-600)/600,
+ lng:seconds<=600?127.1+(127.15-127.1)*seconds/600:127.15+(127.3-127.15)*(seconds-600)/600,
+ label:'기상청 확인 경로 '+seconds,eta:'2026-11-06T12:00:00+09:00',
  grid:{nx:60,ny:127},
  forecast:{provider:'kma',precipitationType:pty,rain:0,rainLabel:'강수없음',time:'2026-11-06T12:00:00+09:00',...overrides}
 });
@@ -158,6 +162,6 @@ test('mobile UI regression protects the guidance stop button and large close tar
  assert.match(css,/body\.sunny-guiding \.nav-layers-sheet:not\(\[hidden\]\)/);
  assert.match(css,/body\.sunny-guiding #driveControls\{display:none!important;\}/);
  assert.match(css,/min-width:44px!important;max-width:44px!important/);
- assert.match(driving,/title:item\.breaking\?'신규 호우특보 발효'/);
+ assert.match(driving,/title:item\.breaking\?\(route\.demoWalking\?'무더위 위험 알림':'신규 호우특보 발효'\)/);
  assert.doesNotMatch(driving,/title:item\.breaking\?'🚨 신규 호우특보 발효'/);
 });

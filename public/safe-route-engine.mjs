@@ -30,6 +30,16 @@ function onRoute(path,point,limit=1000){
  }
  return false;
 }
+// Comparison candidates must be genuinely different road geometries: different
+// priority names or journey times alone do not constitute an alternative.
+export function areRoutesSpatiallyDistinct(a,b,{minimumMeters=200}={}){
+ if(!validRoute(a)||!validRoute(b))return false;
+ const n=10;
+ const differs=(p,q)=>Array.from({length:n-1},(_,i)=>p.rainPath[
+  Math.min(p.rainPath.length-1,Math.floor((i+1)*(p.rainPath.length-1)/n))])
+  .some(point=>!onRoute(q.rainPath,point,minimumMeters));
+ return differs(a,b)||differs(b,a);
+}
 const validForecastSample=s=>s?.status==='forecast'&&s.forecast?.provider==='kma'&&
  geo(s)&&time(s.eta)&&time(s.forecast.time)&&Number.isFinite(s.seconds)&&
  Math.abs(Date.parse(s.eta)-Date.parse(s.forecast.time))<=90*60000;
@@ -49,27 +59,42 @@ export function evaluateRouteRisk(route,{weatherSamples=[],extraHazards=[],mode=
   return {...base,state:'unsupported',reason:'보행자 전용 경로 형상이 없어 자동차 경로를 보행 안전으로 평가하지 않습니다.'};
  const expected=Array.isArray(route.samples)?route.samples.filter(s=>Number.isFinite(s?.seconds)&&geo(s)):[];
  const incoming=Array.isArray(weatherSamples)?weatherSamples:[];
+ // A returned forecast must belong to the current route's actual passing time
+ // as well as its official KMA valid time; old route samples are never reused.
+ const started=Date.parse(route.departure);
+ const trustedForecasts=incoming.filter(s=>validForecastSample(s)&&Number.isFinite(started)&&
+  Math.abs(Date.parse(s.eta)-(started+s.seconds*1000))<=5*60000&&
+  expected.some(p=>Math.abs(p.seconds-s.seconds)<1&&distanceMeters(p,s)<=1500));
  // Only known route sample locations count towards forecast coverage.
  const expectedSeconds=new Set(expected.map(x=>Math.round(x.seconds)));
- const receivedSeconds=new Set(incoming.filter(s=>validForecastSample(s)&&
-  expected.some(p=>Math.abs(p.seconds-s.seconds)<1&&distanceMeters(p,s)<=1500))
+ const receivedSeconds=new Set(trustedForecasts
   .map(x=>Math.round(x.seconds)).filter(s=>expectedSeconds.has(s)));
  const covered=receivedSeconds.size,total=expectedSeconds.size,coverage=total?covered/total:0;
  // Extra hazards may be supplied by verified route-matching adapters. Unknown
  // or malformed records are excluded and counted, never treated as safe.
  const candidates=[
-  ...buildRouteHazards(incoming,{limit:20}),
+  ...buildRouteHazards(trustedForecasts,{limit:20}),
   ...(Array.isArray(extraHazards)?extraHazards:[])
  ];
+ // Separate data contracts: driving consumes road hazards, walking consumes pedestrian history.
+ // Weather exposures (rain, snow, heat, cold, wind) remain shared forecast context.
  const accepted=[],unknown=[];
  for(const h of candidates){
   if(!h||h.demo)continue;
+  const proximity=h.kind==='pedestrian-hotspot'||h.kind==='its-incident'?120:
+  h.roadRisk!==undefined?25:h.kind==='warning'?600:1500;
   if(!geo(h)||!Number.isFinite(h.seconds)||h.seconds<0||h.seconds>route.duration||
-     !onRoute(route.rainPath,h,h.kind==='warning'?600:1500)){unknown.push(h);continue;}
+     !onRoute(route.rainPath,h,proximity)||
+     (h.kind==='pedestrian-hotspot'&&(!Number.isFinite(h.distanceToPath)||h.distanceToPath>120))||
+     (h.kind==='its-incident'&&(!Number.isFinite(h.distanceToPath)||h.distanceToPath>120))){unknown.push(h);continue;}
   const a=assessRouteHazard(h,{now});
   if(!a.score||a.level==='unknown'){unknown.push(h);continue;}
-  if(mode==='walking'&&h.roadRisk!==undefined){
-   // KMA road-link risk grades refer to vehicle roads, not pedestrian access.
+  if(mode==='walking'&&(h.roadRisk!==undefined||h.kind==='its-incident')){
+   // Live road-event points and road-link icing are vehicle-only evidence.
+   unknown.push(h);continue;
+  }
+  if(mode==='driving'&&h.kind==='pedestrian-hotspot'){
+   // Historical pedestrian accident clusters cannot become motor-vehicle risk scores.
    unknown.push(h);continue;
   }
   if(accepted.some(x=>x.kind===h.kind&&Math.abs(x.seconds-h.seconds)<600&&x.provider===h.provider))continue;
@@ -95,6 +120,25 @@ export function evaluateRouteRisk(route,{weatherSamples=[],extraHazards=[],mode=
   signalCount:accepted.length,signalIndex:Math.min(100,index),
   unknownSignals:unknown.length,signals:accepted,sources,riskLevel:level,
   routeMinutes:Math.ceil(route.duration/60)};
+}
+
+// Dedicated entrypoints: do not mix pedestrian traffic history with driving hazards.
+export const RISK_SOURCE_GROUPS=Object.freeze({
+ driving:Object.freeze({name:'자동차 위험판단',displayGroup:'지도에 표시',roadFeeds:['ITS 돌발상황','기상청 도로위험','기상특보'],shared:['강수·눈·풍속 예보']}),
+ walking:Object.freeze({name:'도보 위험판단',displayGroup:'교통·보행 정보',walkingFeeds:['TAAS 과거 보행사고','TMAP 보행시설(위치정보)'],shared:['강수·폭염·기상특보 예보']})
+});
+export function evaluateDrivingRisk(route,{weatherSamples=[],extraHazards=[],now=Date.now()}={}){
+ const accepted=Array.isArray(extraHazards)?extraHazards.filter(h=>
+  h?.roadRisk!==undefined||['its-incident','warning'].includes(h?.kind)):[];
+ return {...evaluateRouteRisk(route,{weatherSamples,extraHazards:accepted,mode:'driving',now}),
+  riskSystem:'driving',sourceGroup:RISK_SOURCE_GROUPS.driving.displayGroup};
+}
+export function evaluateWalkingRisk(route,{weatherSamples=[],extraHazards=[],now=Date.now()}={}){
+ // WMS PNG and TMAP crossings/steps are visual/context data, not validated hazard points.
+ const accepted=Array.isArray(extraHazards)?extraHazards.filter(h=>
+  ['pedestrian-hotspot','warning'].includes(h?.kind)):[];
+ return {...evaluateRouteRisk(route,{weatherSamples,extraHazards:accepted,mode:'walking',now}),
+  riskSystem:'walking',sourceGroup:RISK_SOURCE_GROUPS.walking.displayGroup};
 }
 
 export function compareRouteRiskCandidates(candidates,{mode='driving',minCoverage=80,maxDetourRatio=1.25,now=Date.now()}={}){
@@ -125,11 +169,14 @@ export function compareRouteRiskCandidates(candidates,{mode='driving',minCoverag
 }
 
 export function formatRouteRiskSummary(profile){
+ const modeLabel=profile?.mode==='walking'?'도보 위험판단':'자동차 위험판단';
+ const historical=profile?.signals?.filter(h=>h.kind==='pedestrian-hotspot').length||0;
+ const historyNote=historical?' · 2024년 과거 보행사고 집중구역 '+historical+'곳 참고 (실시간 사고 아님)':'';
  if(!profile||profile.state==='simulation')return '시연용 위험정보 · 실제 위험판정 아님';
  if(profile.state==='unsupported')return '위험분석 보류 · 이동수단별 경로 미지원';
- if(profile.state==='insufficient-data')return '위험분석 보류 · 실제 기상청 경로 예보 미확인 (안전하다는 뜻 아님)';
+ if(profile.state==='insufficient-data')return '위험분석 보류 · 실제 기상청 경로 예보 미확인 (안전하다는 뜻 아님)'+historyNote;
  const portion='예보 조회 '+profile.coveredSamples+'/'+profile.totalSamples+'지점';
- if(profile.state==='partial')return 'Risk Engine 2.0 · '+portion+' · 일부 자료 미확인 (안전 판정 불가)';
+ if(profile.state==='partial')return 'Risk Engine 2.0 · '+modeLabel+' · '+portion+' · 일부 자료 미확인 (안전 판정 불가)'+historyNote;
  const risk=profile.signalCount?profile.signalCount+'건의 위험 신호':'조회 지점에 확인된 위험 신호 없음';
- return 'Risk Engine 2.0 · '+portion+' · '+risk+' · 미조회 구간 판단 불가';
+ return 'Risk Engine 2.0 · '+modeLabel+' · '+portion+' · '+risk+' · 미조회 구간 판단 불가'+historyNote;
 }

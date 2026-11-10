@@ -13,9 +13,9 @@ export function warningRouteHazards(warnings,path,departure){
  }
  return hazards;
 }
-export function initWarningOverlay({query,getMap,ensureMap,onChange}){
+export function initWarningOverlay({query,getMap,ensureMap,onChange,now=()=>Date.now()}){
  const toggle=document.getElementById('navLayerWarning'),status=document.getElementById('navWarningStatus');
- let data=null,items=[],request=0,timer=null;
+ let data=null,items=[],request=0,timer=null,lastVerifiedAt=0;
  const say=text=>{if(status)status.textContent=text;};
  const clear=()=>{for(const item of items)item.setMap(null);items=[];};
  const repaint=()=>{
@@ -34,32 +34,39 @@ export function initWarningOverlay({query,getMap,ensureMap,onChange}){
     content:button,zIndex:23,clickable:true}));
   }
  };
- async function load(){
-  if(!toggle?.checked)return;
+ // Route risk ingestion is independent of the user's map-layer switch.
+ // Official station proximity is a caution only, never a verified warning polygon.
+ async function load({forRisk=false}={}){
+  if(!forRisk&&!toggle?.checked)return;
   const run=++request;
-  say('발효 특보 확인 중');
-  setLayerReception('navLayerWarning','loading');
+  if(!forRisk){say('발효 특보 확인 중');setLayerReception('navLayerWarning','loading');}
   try{
    const result=await query();
-   if(run!==request||!toggle.checked)return;
-   data=result;
+   if(run!==request||(!forRisk&&!toggle?.checked))return;
+   data=result;lastVerifiedAt=now();
    const matched=data.warnings.filter(w=>w.points.length).length;
-   say('발효 특보 '+data.warnings.length+'건 · 지도 표시 '+matched+'건'+
-    (data.stationError?' · 관측지점 조회 실패':' · 관측지점 위치'));
-   setLayerReception('navLayerWarning',data.warnings.length?'received':'empty');
-   if(matched)await ensureMap();
+   if(!forRisk){
+    say('발효 특보 '+data.warnings.length+'건 · 지도 표시 '+matched+'건'+
+     (data.stationError?' · 관측지점 조회 실패':' · 관측지점 위치'));
+    setLayerReception('navLayerWarning',data.warnings.length?'received':'empty');
+    if(matched)await ensureMap();
+   }
   }catch(e){
    if(run!==request)return;
-   setLayerReception('navLayerWarning',e.reception||'failed');
-   data=null;say('기상특보 수신 실패 · '+e.message);
+   if(!forRisk)setLayerReception('navLayerWarning',e.reception||'failed');
+   data=null;lastVerifiedAt=0;
+   if(!forRisk)say('기상특보 수신 실패 · '+e.message);
   }
   if(run===request){repaint();onChange();}
  }
  toggle?.addEventListener('change',()=>{
   clearInterval(timer);
   if(toggle.checked){void load();timer=setInterval(()=>{if(!document.hidden)void load();},120000);}
-  else{request++;data=null;clear();say('');onChange();}
+  else{request++;clear();say('');onChange();}
  });
- return {load,repaint,routeHazards:route=>route&&!route.demo&&toggle?.checked&&data?
-  warningRouteHazards(data.warnings,route.rainPath??[],route.departure):[]};
+ return {load,repaint,loadForRisk:()=>load({forRisk:true}),
+  // An old "active warning" response is NOT authoritative forever.
+  routeHazards:route=>route&&!route.demo&&data&&lastVerifiedAt>0&&
+   now()>=lastVerifiedAt&&now()-lastVerifiedAt<=10*60000?
+   warningRouteHazards(data.warnings,route.rainPath??[],route.departure):[]};
 }

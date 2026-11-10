@@ -61,7 +61,7 @@ test('screenshot: rain forecast and radar sheet is wide and shorter without repl
   'navRainGridRefresh','navRainGridReset'])
   assert.equal(ui.split('id="'+id+'"').length-1,1,id);
  assert.match(ui,/초단기 예보/);
- assert.doesNotMatch(ui,/id="navNationalRadar"/);
+ assert.match(ui,/id="navNationalRadar"/);
 });
 test('driving panel fills the configured slots with distinct status or weather cards',()=>{
  const original=globalThis.document;
@@ -118,6 +118,6 @@ test('reroute uses live GPS point, does not replace route on stale response, and
  assert.match(app,/origin,destination,departure:new Date\(\)\.toISOString\(\)/);
  assert.match(app,/sessionRun!==rainRun\|\|route!==previous/);
  assert.match(app,/drivingUI\.start\(route,null\);renderRoute\(\)/);
- assert.match(app,/Promise\.all\(\[loadWeather\(\),showMap\('kakao'\)\]\)/);
+ assert.match(app,/Promise\.allSettled\(\[loadWeather\(\),showMap\('kakao'\)\]\)/);
  assert.match(ui,/id="sunnyDriveReroute" type="button" hidden/);
 });
