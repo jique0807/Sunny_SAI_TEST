@@ -60,7 +60,7 @@ export function hazardDetails(hazard,formatTime){
   '출처: 국가교통정보센터 ITS',
   '같은 도로·진행방향·통제구간 일치 미확인 · 자동 우회 불가'
  ];
- elseif(hazard.kind==='pedestrian-hotspot')details=[
+ else if(hazard.kind==='pedestrian-hotspot')details=[
   hazard.title,'과거 사고 집중구역: '+hazard.label,
   '자료연도: 2024년 · 한국도로교통공단 TAAS',
   '과거 사고건수: '+hazard.accidentCount+'건',
