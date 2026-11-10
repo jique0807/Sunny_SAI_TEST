@@ -33,7 +33,7 @@ test('rain popup has compact controls and preserves verified forecast states',()
  assert.match(rain,/quick\.dataset\.rainState=enabled\?'on':'off'/);
  assert.match(ui,/navRainSwitchBadge/);
  assert.match(css,/sunny-radar-quick\[data-rain-state="on"\]/);
- assert.match(ui,/미수신|결측/);
+ assert.match(rain,/data\.valid\+data\.missing!==37697/);
 });
 test('route start/current/destination are separate accessible markers with no guessed location',()=>{
  assert.deepEqual(Object.keys(ROUTE_PINS),['start','current','destination']);
