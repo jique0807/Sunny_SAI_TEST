@@ -2271,3 +2271,15 @@ body.sunny-guiding .sunny-demo-detour-popup{
 .sunny-walk-facility-pin:focus-visible{outline:3px solid #1768ed;outline-offset:3px}
 .nav-layers-sheet .nav-layer-unavailable{opacity:.66}
 .nav-layers-sheet .nav-layer-unavailable input{cursor:not-allowed}
+
+/* Walking demo heat-redirect choice; display remains visibly identified as fictional. */
+.sunny-walk-heat-popup:not([hidden]){display:block;z-index:1600;border:2px solid #eab15d;background:#fffaf2}
+.sunny-walk-heat-popup .sunny-demo-detour-sign{font-size:24px}
+.sunny-walk-heat-popup .sunny-demo-detour-choices button:first-child{background:#ce6f21;color:#fff}
+.sunny-real-walk-launch{background:#eef6ff!important;border:1px solid #b4d4fd!important;color:#175a9b!important;min-height:48px}
+.sunny-real-walk-launch small{color:#496a99!important}
+@media(max-width:900px){
+ .sunny-walk-heat-popup:not([hidden]){max-width:calc(100vw - 24px);box-sizing:border-box}
+ .sunny-route-studio .sunny-real-walk-launch{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;width:100%;gap:6px}
+ .sunny-route-studio .sunny-real-walk-launch small{flex:1 0 100%;text-align:center}
+}
