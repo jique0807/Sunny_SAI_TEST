@@ -39,7 +39,7 @@ test('mobile quick buttons change original shared radio state and reject changes
  const elements=new Map();
  const element=id=>{if(!elements.has(id)){const handlers={};elements.set(id,{
   checked:false,hidden:false,disabled:false,textContent:'',attributes:{},value:'',
-  addEventListener(name,fn){handlers[name]=fn},dispatchEvent(e){handlers[e.type]?.(e)},
+  addEventListener(name,fn){handlers[name]=fn},dispatchEvent(e){handlers[e.type]?.(e)},replaceChildren(){},
   setAttribute(k,v){this.attributes[k]=v},removeAttribute(k){delete this.attributes[k]},
   click(){handlers.click?.()}
  })}return elements.get(id)};
@@ -57,7 +57,7 @@ test('mobile quick buttons change original shared radio state and reject changes
     const match=selector.match(/value="(driving|walking)"/);return match?element(match[1]):null;},
   querySelectorAll:()=>radios
  };
- const context={document:doc,originPlace:null,destPlace:null,kakaoRouteLink:()=>'',playing:false,
+ const context={document:doc,originPlace:null,destPlace:null,kakaoRouteLink:()=>'',playing:false,routePolyline:null,
   drivingUI:{isActive:()=>guiding},route:{travelMode:'driving',demo:false},
   toast:msg=>{warning=msg},reply:msg=>{replyText=msg},
   Event:class{constructor(type){this.type=type}}};
@@ -67,7 +67,7 @@ test('mobile quick buttons change original shared radio state and reject changes
  assert.equal(element('navModeWalking').attributes['aria-pressed'],'true');
  assert.equal(element('navModeDriving').attributes['aria-pressed'],'false');
  assert.equal(element('navStartGuidance').disabled,true);
- assert.match(replyText,/새 경로/);
+ assert.match(replyText,/도보 경로를 새로/);
  guiding=true;element('navModeDriving').click();
  assert.equal(radios[1].checked,true);
  assert.match(warning,/안내를 종료/);

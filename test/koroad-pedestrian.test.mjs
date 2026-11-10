@@ -45,7 +45,7 @@ test('session exposes only availability, not KOROAD secret',async()=>{
  assert.equal(j.connections.koroad,true);assert.ok(!JSON.stringify(j).includes(env.KOROAD_API_KEY));
 });
 test('real KOROAD toggle is conditional, UTIC remains disabled, walking demo remains separate',()=>{
- assert.match(app,/koroadHotspots.setAvailable\(connections.koroad\)/);
+ assert.match(app,/koroadHotspots\.setData\(result\)/);
  assert.match(ui,/id="navLayerPedestrianHotspots" type="checkbox" disabled/);
  assert.match(ui,/id="navLayerTrafficIncidents" type="checkbox" disabled/);
  assert.match(app,/buildPedestrianHistoryHazards/);
