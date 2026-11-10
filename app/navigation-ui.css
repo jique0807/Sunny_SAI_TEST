@@ -2502,3 +2502,10 @@ body.sunny-guiding .sunny-demo-detour-popup{
 .nav-layers-sheet .sunny-layer-health-tag[data-health="error"]{background:#ffe8e8;color:#9d2b2b;border-color:#f3c8c8}
 .nav-layers-sheet #navLayerStatusCheckedAt{display:block;font-size:10px;color:#62758b;margin-top:2px}
 .nav-layers-sheet #navLayerStatusRefresh[disabled]{opacity:.5;cursor:progress}
+
+/* Existing Sunny SAI layer sheet: keep a short status visible even when toggle is OFF.
+   API and actual reception badges remain independent and only use verified provider data. */
+.nav-layers-sheet .nav-layer-row .nav-layer-reception:not(:empty){display:inline-block}
+.nav-layers-sheet .nav-layer-row .nav-layer-reception[data-state="waiting"]{
+ border:0;background:transparent;color:#738499;padding:0;font-weight:500
+}

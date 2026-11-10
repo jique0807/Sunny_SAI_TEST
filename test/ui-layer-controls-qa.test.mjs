@@ -66,6 +66,19 @@ test('main layer menu omits generic temperature/wind and does not fake hazard av
  assert.doesNotMatch(menu,/미구현/);
  assert.match(menu,/id="navLayerWarning" type="checkbox"/);
 });
+test('display menu keeps all seventeen toggles, no decorative emojis or TAAS in item names',()=>{
+ const menu=ui.slice(ui.indexOf('id="navLayersSheet"'),ui.indexOf('id="navRainGridTimeBar"'));
+ const rows=[...menu.matchAll(/<label class="nav-layer-row[^"]*"[^>]*><span><b>([^<]+)<\/b><small[^>]*>([^<]+)<\/small><\/span><input\s+id="([^"]+)"/g)];
+ assert.equal(rows.length,17);
+ assert.ok(rows.every(x=>x[2].trim().length>0),'each menu item has a short status line');
+ assert.ok(rows.every(x=>!/[\\u{1F300}-\\u{1FAFF}]/u.test(x[1])),'menu titles must not include emoji');
+ const walking=menu.slice(menu.indexOf('>교통·보행 정보<'));
+ const names=[...walking.matchAll(/<b>([^<]+)<\/b><small/g)].map(x=>x[1]);
+ assert.ok(names.length>=5);
+ for(const name of names)assert.doesNotMatch(name,/TAAS|REST/);
+ assert.doesNotMatch(menu,/sunny-optional-layer-note/);
+ assert.match(css,/\.nav-layers-sheet \.nav-layer-row \.nav-layer-reception:not\(:empty\)\{display:inline-block\}/);
+});
 test('rain panel close and reload trigger the same state machine in simple DOM',async()=>{
  const original={document:globalThis.document,window:globalThis.window,fetch:globalThis.fetch};
  const elements=new Map(),classSet=new Set();
