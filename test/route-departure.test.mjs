@@ -33,4 +33,6 @@ test('walking UI uses search-time departure and does not equate weather/map fail
  assert.match(app,/경로는 찾았습니다/);
  assert.doesNotMatch(app,/new Date\(\$\('departure'\)\.value\)\.toISOString\(\)/);
  assert.match(app,/d\.travelMode!==mode\|\|d\.mode!==mode/);
+ assert.match(app,/if\(playing\|\|routeSearchPending\)return/);
+ assert.match(app,/studioRouteSearch'\)\)\$('studioRouteSearch'\)\.disabled=true/);
 });
