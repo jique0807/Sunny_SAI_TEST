@@ -76,11 +76,13 @@ test('shared HSR mesh draws true source image exclusively over Kakao with WGS84 
   if(original===undefined)delete globalThis.kakao;else globalThis.kakao=original;
  }
 });
-test('forecast popup exposes forecast only',()=>{
+test('shared popup keeps HSR and RN1 source selection visible',()=>{
  for(const id of ['navRainGridMinimize','navRainSourceTitle',
   'navRainGridLead','navRainGridTicks','navRainLegendTitle','navRainGridDisclaimer'])
   assert.equal(ui.split('id="'+id+'"').length-1,1,id);
- assert.match(ui,/초단기 예보/);
+ assert.match(ui,/HSR 레이더 실황 <small>10분 간격/);
+  assert.match(ui,/초단기 강수예보 <small>1시간 간격/);
+  assert.match(ui,/id="navRainMapStatus"/);
  assert.match(ui,/id="navNationalRadar"/);
  assert.match(overlay,/source='grid'/);
  assert.match(overlay,/setSource\('grid'\)/);

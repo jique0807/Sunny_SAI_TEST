@@ -60,7 +60,7 @@ test('screenshot: rain forecast and radar sheet is wide and shorter without repl
  for(const id of ['navRainGridMinimize','navRainGridClose',
   'navRainGridRefresh','navRainGridReset'])
   assert.equal(ui.split('id="'+id+'"').length-1,1,id);
- assert.match(ui,/초단기 예보/);
+ assert.match(ui,/초단기 강수예보/);
  assert.match(ui,/id="navNationalRadar"/);
 });
 test('driving panel fills the configured slots with distinct status or weather cards',()=>{

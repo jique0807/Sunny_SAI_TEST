@@ -89,7 +89,7 @@ test('non-home map switch is suppressed and full-country grid is drawn on Kakao 
  assert.match(css,/body:not\(\[data-sunny-nav="home"\]\) \.nav-map-layer-control/);
  assert.match(css,/\.sunny-rain-grid-canvas/);
  assert.match(app,/rainGridOverlay\.setMap\(kmap\)/);
- assert.match(ui,/초단기 예보/);
+ assert.match(ui,/초단기 강수예보/);
  assert.doesNotMatch(ui,/id="navRadarImage"/);
 });
 
