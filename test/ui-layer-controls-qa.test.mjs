@@ -155,3 +155,25 @@ test('rain panel close and reload trigger the same state machine in simple DOM',
   }
  }
 });
+
+test('mobile layer sheet uses a single scroll region and does not hide TAAS after ITS',()=>{
+ const sheetStart=ui.indexOf('id="navLayersSheet"');
+ const sheetEnd=ui.indexOf('id="navRainGridTimeBar"',sheetStart);
+ const sheet=ui.slice(sheetStart,sheetEnd);
+ assert.ok(sheetStart>=0&&sheetEnd>sheetStart);
+ assert.match(sheet,/nav-layers-scroll-guide/);
+ assert.match(sheet,/아래로 스크롤/);
+ const incident=sheet.indexOf('id="navLayerTrafficIncidents"');
+ const walk=sheet.indexOf('교통·보행 정보');
+ assert.ok(incident>=0&&walk>incident,'walking category must remain below ITS');
+ for(const id of ['navLayerWalkFacilities','navLayerPedestrianWms','navLayerChildWms','navLayerElderlyWms','navLayerPedestrianHotspots']){
+  assert.ok(sheet.indexOf('id="'+id+'"')>walk,id+' must exist in walking category');
+ }
+ const latest=css.lastIndexOf('.nav-layers-sheet .nav-layer-list{');
+ assert.ok(latest>0,'mobile override is missing');
+ const lastRule=css.slice(latest,css.indexOf('}',latest)+1);
+ assert.match(lastRule,/max-height:none!important/);
+ assert.match(lastRule,/overflow:visible!important/);
+ assert.match(css.slice(latest-700,latest),/overflow-y:auto!important/);
+ assert.match(css,/one continuous scroll surface/);
+});
