@@ -877,7 +877,7 @@ async function demoRoute(){
  try{
   // Fixed endpoints and fictional risk layers: NEVER borrow a user's GPS or real weather.
   const start={...DEMO_SEOUL_BUSAN.origin},end={...DEMO_SEOUL_BUSAN.destination};
-  const d=await api('/api/route',{origin:start,destination:end,waypoints:DEMO_INITIAL_WAYPOINTS,departure:new Date().toISOString()});
+  const d=await api('/api/route',{origin:start,destination:end,travelMode:'driving',departure:new Date().toISOString()});
   if(run!==routeSeq)return;
   if(!d.vertices?.length||!d.rainPath?.length)throw Error('시연용 실제 도로 좌표를 받지 못했습니다.');
   originPlace=start;destPlace=end;
@@ -1109,14 +1109,15 @@ async function chooseDemoDetourYes(trip,resumePlayback){
   })));
   if(route!==trip||!drivingUI.isActive())return;
   const completed=candidates.filter(item=>item.status==='fulfilled').map(item=>item.value);
-  const chosen=selectOptimalDemoDetour(completed,trip.demoBreakingWarning);
+  const validRoadCandidates=completed.filter(item=>item.route?.travelMode==='driving'&&
+   item.route?.mode==='driving'&&Array.isArray(item.route?.rainPath)&&item.route.rainPath.length>1);
+  const chosen=selectOptimalDemoDetour(validRoadCandidates,trip.demoBreakingWarning);
   if(!chosen)
-   throw Error('특보지점에서 3km 이상 떨어지고 밀양 안개 지점을 지나는 적합한 우회경로를 찾지 못했습니다. 기존 경로를 유지합니다.');
+   throw Error('위험 구간에서 3km 이상 떨어지는 실제 도로 우회경로를 찾지 못했습니다. 기존 경로를 안전하다고 판단하지 않고 안내를 중단합니다.');
   const result=chosen.route,clearance=chosen.clearance;
-  const fog=demoEventAtPlace(result,'miryang');
-  const samples=[{...fog,status:'demo',demoHazard:fog,forecast:null}];
+  const samples=[];
   const updated={...result,demo:true,demoWarningIssued:true,demoDetourSelected:true,
-   demoHazards:[fog],samples,demoDetourClearanceMeters:Math.round(clearance),
+   demoHazards:[],samples,demoDetourClearanceMeters:Math.round(clearance),
    demoArchivedHazards:trip.demoHazards||[],demoBreakingWarning:trip.demoBreakingWarning};
   // Replace the actual provider polyline, timeline, vehicle path and map line.
   route=updated;weather={samples,source:'우회경로 시연 · 가상 기상 이벤트',fetchedAt:new Date().toISOString()};
