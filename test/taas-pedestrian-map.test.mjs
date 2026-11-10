@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {PEDESTRIAN_WMS_KINDS,validTaasMapBounds,centerFromBounds,districtFromKakao,buildTaasMapUrl,fetchTaasMapImage} from '../lib/taas-pedestrian-wms-map.mjs';
 import {visibleTaasBounds} from '../public/taas-pedestrian-wms-overlay.mjs';
-import {evaluateRouteRisk} from '../public/safe-route-engine.mjs';
+import {evaluateRouteRisk,evaluateDrivingRisk,evaluateWalkingRisk,RISK_SOURCE_GROUPS} from '../public/safe-route-engine.mjs';
 import {handle} from '../lib/api.mjs';
 const bbox={west:126.965,south:37.552,east:127.010,north:37.576};
 const kakaoDistrict={documents:[{region_type:'H',code:'1114055000'},{region_type:'B',code:'1114010100',region_1depth_name:'서울특별시',region_2depth_name:'중구'}]};
@@ -91,6 +91,14 @@ test('separate risk engines do not conflate ITS motor incidents and TAAS pedestr
  assert.deepEqual(walk.signals.map(x=>x.kind),['pedestrian-hotspot']);
  assert.equal(drive.unknownSignals,1);
  assert.equal(walk.unknownSignals,1);
+ const dedicatedDriving=evaluateDrivingRisk({...route,travelMode:'driving'},{extraHazards:[incidents,pedestrian],now});
+ const dedicatedWalking=evaluateWalkingRisk({...route,travelMode:'walking'},{extraHazards:[incidents,pedestrian],now});
+ assert.equal(dedicatedDriving.riskSystem,'driving');assert.equal(dedicatedDriving.sourceGroup,'지도에 표시');
+ assert.equal(dedicatedWalking.riskSystem,'walking');assert.equal(dedicatedWalking.sourceGroup,'교통·보행 정보');
+ assert.deepEqual(dedicatedDriving.signals.map(x=>x.kind),['its-incident']);
+ assert.deepEqual(dedicatedWalking.signals.map(x=>x.kind),['pedestrian-hotspot']);
+ assert.equal(RISK_SOURCE_GROUPS.driving.name,'자동차 위험판단');
+ assert.equal(RISK_SOURCE_GROUPS.walking.name,'도보 위험판단');
 });
 test('pedestrian WMS controls are in the walking category and ITS control in the road category',()=>{
  const ui=readFileSync(new URL('../lib/ui.ts',import.meta.url),'utf8');
