@@ -76,3 +76,40 @@ test('mobile quick buttons change original shared radio state and reject changes
  assert.equal(radios[0].checked,true);
  assert.equal(element('navModeDriving').attributes['aria-pressed'],'true');
 });
+
+
+test('mobile route button dispatches to actual route handler rather than silently failing hidden-form validation',()=>{
+ const begin=app.indexOf("$('studioRouteSearch')?.addEventListener('click',()=>{");
+ const end=app.indexOf("\n$('origin')?.addEventListener('change',studioSync);",begin);
+ assert.ok(begin>0&&end>begin);
+ const snippet=app.slice(begin,end);
+ assert.doesNotMatch(snippet,/requestSubmit\(\)/);
+ assert.match(snippet,/dispatchEvent\(new Event\('submit'/);
+ const registry={},updates=[];
+ const elements={
+  studioRouteSearch:{addEventListener(type,fn){registry[type]=fn;}},
+  searchForm:{dispatchEvent(e){updates.push(['submit',e.type]);return true;}},
+  origin:{value:''},studioQuery:{focus(){updates.push(['focus'])}}
+ };
+ const get=id=>elements[id]||null;
+ const sandbox={
+  $:get,routeSearchPending:false,originPlace:{name:'국가기상위성센터',lat:36.991,lng:127.430},
+  destPlace:{name:'바늘말',lat:36.995,lng:127.44},
+  studioCurrent:()=>null,studioSync:()=>updates.push(['sync']),
+  studioRouteMessage:(message,state)=>updates.push(['notice',message,state]),
+  toast:message=>updates.push(['toast',message]),
+  Event:class{constructor(type){this.type=type;}}
+ };
+ vm.runInNewContext(snippet,sandbox);
+ registry.click();
+ assert.ok(updates.some(x=>x[0]==='submit'&&x[1]==='submit'));
+ assert.ok(updates.some(x=>x[0]==='notice'&&/탐색하고/.test(x[1])));
+ updates.length=0;sandbox.routeSearchPending=true;registry.click();
+ assert.ok(!updates.some(x=>x[0]==='submit'));
+});
+test('mobile walking errors and progress remain visible without opening hidden planner',()=>{
+ assert.match(ui,/id="studioRouteStatus"[^>]*role="status"/);
+ assert.match(app,/studioRouteMessage\(\(walking\?'도보':'자동차'\)\+' 경로 탐색 실패:/);
+ assert.match(app,/studioRouteMessage\(\(selectedTravelMode\(\)==='walking'\?'TMAP 도보'/);
+ assert.match(css,/\.studio-route-status\[data-state="error"\]/);
+});
