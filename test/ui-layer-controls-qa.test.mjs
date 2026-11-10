@@ -196,3 +196,18 @@ test('mobile layer sheet uses a single scroll region and does not hide TAAS afte
  assert.match(css.slice(latest-700,latest),/overflow-y:auto!important/);
  assert.match(css,/one continuous scroll surface/);
 });
+
+test('layer header distinguishes API refresh from settings reset without changing click handlers',()=>{
+ const menu=ui.slice(ui.indexOf('id="navLayersSheet"'),ui.indexOf('id="navRainGridTimeBar"'));
+ const refresh=menu.match(/<button id="navLayerStatusRefresh"[^>]*>[\\s\\S]*?<\\/button>/)?.[0]||'';
+ const reset=menu.match(/<button id="navLayersReset"[^>]*>[\\s\\S]*?<\\/button>/)?.[0]||'';
+ assert.match(refresh,/aria-label="표출 API 및 자료 수신 상태 확인"/);
+ assert.match(refresh,/M3 12a9 9/);
+ assert.match(reset,/aria-label="표출 설정 초기화"/);
+ assert.match(reset,/title="표출 설정 초기화"/);
+ assert.match(reset,/<circle cx="15" cy="7" r="2"\\/>/);
+ assert.match(reset,/<circle cx="9" cy="17" r="2"\\/>/);
+ assert.doesNotMatch(reset,/M3 11a9 9/);
+ assert.match(app,/getElementById\\('navLayersReset'\\)\\?\\.addEventListener\\('click',[\\s\\S]*?disableMapLayers\\(\\)/);
+ assert.match(app,/\\$\\('navLayerStatusRefresh'\\)\\?\\.addEventListener\\('click'/);
+});
