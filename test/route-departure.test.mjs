@@ -34,5 +34,5 @@ test('walking UI uses search-time departure and does not equate weather/map fail
  assert.doesNotMatch(app,/new Date\(\$\('departure'\)\.value\)\.toISOString\(\)/);
  assert.match(app,/d\.travelMode!==mode\|\|d\.mode!==mode/);
  assert.match(app,/if\(playing\|\|routeSearchPending\)return/);
- assert.match(app,/studioRouteSearch'\)\)\$('studioRouteSearch'\)\.disabled=true/);
+ assert.ok(app.includes("if($('studioRouteSearch'))$('studioRouteSearch').disabled=true;"));
 });
