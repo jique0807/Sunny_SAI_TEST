@@ -53,7 +53,8 @@ export function initArchitecturePanel({document,fetcher=globalThis.fetch,waitFor
    if(catalog){
     catalog.replaceChildren();
     for(const source of report.sources){
-     row(catalog,source.name+' · '+(source.configuration==='configured'?'키 등록':'키 미설정'),
+     row(catalog,source.name+' · '+(source.configuration==='configured'?'키 등록':
+       source.configuration==='no-key-required'?'별도 키 없음':'키 미설정'),
       source.slot+' · '+source.apiPath+' · '+source.keys.join(', ')+
       ' · 실수신 별도 검증'+(source.swapInApp?' · 제공자 선택 가능':''));
     }

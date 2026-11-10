@@ -9,6 +9,13 @@ export const EXPLANATION_CONTRACT=Object.freeze({
 });
 const ID=/^[a-z][a-z0-9-]{2,40}$/;
 const policy=(id,name,refine)=>Object.freeze({id,name,refine});
+function freezeDeep(value){
+ if(value&&typeof value==='object'&&!Object.isFrozen(value)){
+  for(const nested of Object.values(value))freezeDeep(nested);
+  Object.freeze(value);
+ }
+ return value;
+}
 export function createRiskModelRegistry(){
  const adapters=new Map([
   [DEFAULT_RISK_MODEL,policy(DEFAULT_RISK_MODEL,'Risk Engine 2.0 기본 검증',()=>({abstain:false}))],
@@ -35,8 +42,7 @@ export function createRiskModelRegistry(){
    if(!['unsupported','simulation'].includes(baseline.state)){
     try{
      // Keep the accepted evidence immutable from an adapter's point of view.
-     const vetted=Object.freeze({...baseline,signals:Object.freeze(
-      (baseline.signals||[]).map(x=>Object.freeze({...x})))});
+     const vetted=freezeDeep(JSON.parse(JSON.stringify(baseline)));
      const answer=selected.refine(vetted);
      if(!answer||typeof answer.abstain!=='boolean')throw Error('invalid policy response');
      withhold=answer.abstain;

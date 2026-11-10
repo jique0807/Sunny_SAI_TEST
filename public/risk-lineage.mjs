@@ -3,6 +3,8 @@
 export const RISK_LINEAGE_SCHEMA='sunny-risk-lineage-v1';
 const states=new Set(['received','partial','empty','failed','missing','checking','unavailable','not-checked','simulation']);
 const state=s=>states.has(s)?s:'not-checked';
+const stageStatus=s=>s==='evaluated'?'received':
+ s==='insufficient-data'||s==='unsupported'?'unavailable':state(s);
 export function buildRiskLineage({route=null,weather=null,profile=null,now=Date.now()}={}){
  const demo=route?.demo===true,walking=route?.travelMode==='walking';
  const samples=Array.isArray(weather?.samples)?weather.samples:[];
@@ -44,7 +46,7 @@ export function buildRiskLineage({route=null,weather=null,profile=null,now=Date.
    {id:'route',status:routeStatus},
    {id:'acquire',status:demo?'simulation':sources.some(x=>x.status==='received')?'partial':'not-checked'},
    {id:'validate',status:demo?'simulation':profile?.state==='evaluated'?'received':profile?.state==='partial'?'partial':'not-checked'},
-   {id:'decide',status:state(decision)},
+   {id:'decide',status:stageStatus(decision)},
    {id:'present',status:'not-checked'}
   ],
   caution:'자료 미수신·결측·위치 정합 미검증은 안전함이 아닙니다. 실제 위험확률이 아닌 제한된 근거의 판단입니다.'

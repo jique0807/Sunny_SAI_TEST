@@ -22,7 +22,7 @@ test('provider manifest distinguishes key configured from verified real data wit
  assert.ok(SOURCE_ADAPTERS.length>=10&&PIPELINE_STAGES.length>=6);
  assert.equal(out.sources.find(x=>x.id==='kma-forecast').configuration,'configured');
  assert.equal(out.sources.find(x=>x.id==='its').configuration,'missing-key');
- assert.equal(out.sources.find(x=>x.id==='open-meteo').configuration,'configured');
+ assert.equal(out.sources.find(x=>x.id==='open-meteo').configuration,'no-key-required');
  assert.equal(out.sources.find(x=>x.id==='kma-forecast').reception,'not-checked-by-catalog');
  assert.equal(out.sources.find(x=>x.id==='gk2a').verifiedRiskEvidence,false);
  assert.ok(!JSON.stringify(out).includes(secret));
@@ -54,6 +54,13 @@ test('an injected policy may abstain but cannot replace verified evidence with i
  assert.equal(profile.riskLevel,'unknown');
  assert.equal(profile.signalCount,1);
  assert.throws(()=>registry.register({id:'optional-policy',name:'Duplicate',refine:()=>({abstain:false})}));
+ registry.register({id:'tamper-policy',name:'Mutation attempt',refine:p=>{
+  p.signals[0].assessment.score=999;return {abstain:false};
+ }});
+ const tamper=registry.evaluate(route,{modelId:'tamper-policy',weatherSamples:[sample]});
+ assert.equal(tamper.policyAdapterFailed,true);
+ assert.equal(tamper.riskLevel,'unknown');
+ assert.equal(tamper.signals[0].assessment.score,70);
  registry.register({id:'throwing-policy',name:'Throwing',refine:()=>{throw Error('secret data');}});
  const error=registry.evaluate(route,{modelId:'throwing-policy',weatherSamples:[sample]});
  assert.equal(error.policyAdapterFailed,true);
@@ -67,6 +74,7 @@ test('lineage reports route evidence stages without leaking location or credenti
  assert.equal(out.sources.find(x=>x.id==='its').status,'failed');
  assert.equal(out.sources.find(x=>x.id==='weather').status,'received');
  assert.equal(out.acceptedRiskSignals,1);
+ assert.equal(out.stages.find(s=>s.id==='decide').status,'received');
  assert.ok(!JSON.stringify(out).includes('37.56'));
  assert.ok(!JSON.stringify(out).includes('126.97'));
  const demo=buildRiskLineage({route:{...route,demo:true},weather:{samples:[sample]},profile});
