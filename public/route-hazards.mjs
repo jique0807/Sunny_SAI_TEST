@@ -38,6 +38,8 @@ export function buildRouteHazards(samples,{limit=12}={}){
  events.sort((a,b)=>a.seconds-b.seconds);
  const dedup=[];
  for(const event of events){
+  // A stale, mismatched or unsupported provider record is NOT a map hazard.
+  if(!Number.isFinite(event?.assessment?.score)||event.assessment.score<=0)continue;
   if(dedup.some(last=>last.kind===event.kind&&Math.abs(event.seconds-last.seconds)<300))continue;
   dedup.push(event);if(dedup.length>=Math.max(1,Math.min(20,limit)))break;
  }
