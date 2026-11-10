@@ -15,7 +15,7 @@ export function warningRouteHazards(warnings,path,departure){
 }
 export function initWarningOverlay({query,getMap,ensureMap,onChange}){
  const toggle=document.getElementById('navLayerWarning'),status=document.getElementById('navWarningStatus');
- let data=null,items=[],request=0,timer=null;
+ let data=null,items=[],request=0,timer=null,lastVerifiedAt=0;
  const say=text=>{if(status)status.textContent=text;};
  const clear=()=>{for(const item of items)item.setMap(null);items=[];};
  const repaint=()=>{
@@ -43,7 +43,7 @@ export function initWarningOverlay({query,getMap,ensureMap,onChange}){
   try{
    const result=await query();
    if(run!==request||(!forRisk&&!toggle?.checked))return;
-   data=result;
+   data=result;lastVerifiedAt=Date.now();
    const matched=data.warnings.filter(w=>w.points.length).length;
    if(!forRisk){
     say('발효 특보 '+data.warnings.length+'건 · 지도 표시 '+matched+'건'+
@@ -54,7 +54,7 @@ export function initWarningOverlay({query,getMap,ensureMap,onChange}){
   }catch(e){
    if(run!==request)return;
    if(!forRisk)setLayerReception('navLayerWarning',e.reception||'failed');
-   data=null;
+   data=null;lastVerifiedAt=0;
    if(!forRisk)say('기상특보 수신 실패 · '+e.message);
   }
   if(run===request){repaint();onChange();}
@@ -65,6 +65,8 @@ export function initWarningOverlay({query,getMap,ensureMap,onChange}){
   else{request++;clear();say('');onChange();}
  });
  return {load,repaint,loadForRisk:()=>load({forRisk:true}),
-  routeHazards:route=>route&&!route.demo&&data?
+  // An old "active warning" response is NOT authoritative forever.
+  routeHazards:route=>route&&!route.demo&&data&&lastVerifiedAt>0&&
+   Date.now()-lastVerifiedAt<=10*60000?
    warningRouteHazards(data.warnings,route.rainPath??[],route.departure):[]};
 }
