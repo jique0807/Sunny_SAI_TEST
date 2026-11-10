@@ -1,5 +1,5 @@
 // 서울역 -> 서울시청 Sunny SAI pedestrian presentation.
-// Geometry is always provided by the TMAP/Kakao walking provider.
+// The presentation uses a clearly labeled synthetic route; no routing API is required.
 // Every weather/hazard event below is invented for a demo, never an observation.
 import {demoPointAtSeconds,demoDistanceMeters} from './demo-scenario.mjs';
 export const WALK_DEMO=Object.freeze({
@@ -7,9 +7,49 @@ export const WALK_DEMO=Object.freeze({
  destination:Object.freeze({name:'서울시청',lat:37.5662952,lng:126.9779451})
 });
 export const WALK_DEMO_TRIGGER=69;
-export const WALK_DEMO_SHELTER=Object.freeze({name:'소공동 주민센터',query:'소공동 주민센터',addressPart:'서소문로12길 36'});
+export const WALK_DEMO_SHELTER=Object.freeze({name:'무더위쉼터(가상)',lat:37.56415,lng:126.9742});
 const valid=p=>Number.isFinite(p?.lat)&&Number.isFinite(p?.lng)&&p.lat>=32&&p.lat<=40&&p.lng>=123&&p.lng<=133;
 const gap=(a,b)=>Math.hypot((a.lat-b.lat)*111195,(a.lng-b.lng)*111195*Math.cos((a.lat+b.lat)*Math.PI/360));
+// Geographic coordinates are only illustrative: these are NOT checked pedestrian paths.
+const scenePoints=[
+ WALK_DEMO.origin,
+ {lat:37.5557,lng:126.97095},
+ {lat:37.55655,lng:126.97165},
+ {lat:37.5580,lng:126.97165},
+ {lat:37.5589,lng:126.97285},
+ {lat:37.5601,lng:126.97305},
+ {lat:37.5610,lng:126.97405},
+ {lat:37.5621,lng:126.9742},
+ {lat:37.5632,lng:126.97535},
+ {lat:37.5646,lng:126.97605},
+ WALK_DEMO.destination
+];
+function buildVirtualWalk(points,at=Date.now()){
+ if(!Array.isArray(points)||points.length<2||!points.every(valid))throw Error('가상 도보 경로 좌표 오류');
+ const lengths=[0];
+ for(let i=1;i<points.length;i++)lengths.push(lengths.at(-1)+gap(points[i-1],points[i]));
+ const distance=lengths.at(-1),duration=Math.max(180,Math.round(distance/1.25));
+ const started=Number.isFinite(Number(at))?Number(at):Date.parse(at);
+ if(!Number.isFinite(started)||distance<10)throw Error('가상 도보 경로 시간 또는 거리 오류');
+ const rainPath=points.map((p,i)=>({...p,seconds:Math.round(duration*lengths[i]/distance),label:'가상 도보 경로'}));
+ rainPath[0].seconds=0;rainPath.at(-1).seconds=duration;
+ return {rainPath,vertices:points.map(p=>({lat:p.lat,lng:p.lng})),samples:[],
+  distance,duration,departure:new Date(started).toISOString(),source:'Sunny SAI 가상 보행 이동',
+  provider:'Sunny SAI virtual',travelMode:'walking',mode:'walking',demo:true,
+  etaMethod:'시나리오 진행시간 (실제 도보 소요시간 아님)',
+  caution:'지도상의 선은 가상 이동 궤적이며 실제 보행로가 아닙니다. 사고와 무더위는 가상 이벤트입니다.'};
+}
+export function makeVirtualWalkingDemoRoute(at=Date.now()){
+ return buildVirtualWalk(scenePoints,at);
+}
+export function makeVirtualShelterRoute(current,at=Date.now()){
+ if(!valid(current))throw Error('현재 보행자 좌표를 확인하지 못했습니다.');
+ const shelter={lat:WALK_DEMO_SHELTER.lat,lng:WALK_DEMO_SHELTER.lng};
+ return buildVirtualWalk([current,
+  {lat:current.lat+0.00036,lng:current.lng-0.0003},
+  {lat:(current.lat+shelter.lat)/2,lng:shelter.lng-0.00025},
+  shelter],at);
+}
 export function validateWalkingDemoRoute(route){
  const path=route?.rainPath;
  if(route?.travelMode!=='walking'||!Array.isArray(path)||path.length<2||!Array.isArray(route?.vertices)||route.vertices.length<2||
@@ -18,7 +58,7 @@ export function validateWalkingDemoRoute(route){
    path.some(p=>!valid(p)||!Number.isFinite(p.seconds))||
    path.some((p,i)=>i&&p.seconds<path[i-1].seconds)||
    gap(path[0],WALK_DEMO.origin)>1200||gap(path.at(-1),WALK_DEMO.destination)>1200)
-  throw new Error('서울역 → 서울시청의 실제 보행 경로를 확인하지 못했습니다. TMAP 권한 또는 경로 제공 범위를 점검해주세요.');
+  throw new Error('서울역 → 서울시청의 가상 보행 시나리오 경로가 올바르지 않습니다.');
  return true;
 }
 function event(route,fraction,{id,kind,icon,title,measure,description}){
