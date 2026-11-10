@@ -870,7 +870,7 @@ studioQuery?.addEventListener('input',()=>{clearTimeout(studioTimer);studioRun++
 studioQuery?.addEventListener('focus',()=>{if(!studioResults.hidden)return;const q=studioQuery.value.trim();if(q.length>=2)studioSearch(q);else studioShow();});
 $('studioSearchClear')?.addEventListener('click',()=>{studioQuery.value='';studioRun++;studioShow();studioQuery.focus();});
 $('studioSwap')?.addEventListener('click',()=>{if(!originPlace||!destPlace){toast('출발지와 목적지를 모두 선택한 뒤 바꿀 수 있습니다.');return;}const prev=originPlace;originPlace=destPlace;destPlace=prev;$('origin').value=originPlace.name;$('destination').value=destPlace.name;studioSync();});
-$('studioRouteSearch')?.addEventListener('click',()=>{if(!originPlace){const pos=studioCurrent();if(pos){originPlace=pos;$('origin').value=pos.name;}else{toast('출발지를 선택하거나 현재 위치 권한을 허용해주세요.');studioQuery.focus();return;}}if(!destPlace){toast('목적지를 먼저 선택해주세요.');studioQuery.focus();return;}studioSync();$('searchForm')?.requestSubmit();});
+$('studioRouteSearch')?.addEventListener('click',()=>{if(routeSearchPending)return;if(!originPlace){const pos=studioCurrent();if(pos){originPlace=pos;$('origin').value=pos.name;}else{toast('출발지를 선택하거나 현재 위치 권한을 허용해주세요.');studioQuery.focus();return;}}if(!destPlace){toast('목적지를 먼저 선택해주세요.');studioQuery.focus();return;}studioSync();$('searchForm')?.requestSubmit();});
 $('origin')?.addEventListener('change',studioSync);$('destination')?.addEventListener('change',studioSync);
 function readFavorites(){try{const a=JSON.parse(localStorage.getItem(favoritesKey)||'[]');return Array.isArray(a)?a.filter(p=>p&&typeof p.name==='string'&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)).slice(0,6):[];}catch{return [];}}
 function saveFavorites(a){try{localStorage.setItem(favoritesKey,JSON.stringify(a.slice(0,6)));}catch{}renderFavorites();}
@@ -910,7 +910,17 @@ async function choose(field){
  const token=++searchSeq;reply((field==='origin'?'출발지':'도착지')+' 검색 결과에서 장소를 선택해주세요.');
  return new Promise((resolve,reject)=>showSuggestions(field,places,p=>{if(token!==searchSeq){reject(Error('검색이 변경되었습니다.'));return;}setPlace(field,p);resolve(p);}));
 }
-$('searchForm').onsubmit=async e=>{e.preventDefault();stopRain();if(playing)return;const run=++routeSeq;$('routeSearch').disabled=true;pauseDrive();try{
+let routeSearchPending=false;
+$('searchForm').onsubmit=async e=>{
+ e.preventDefault();
+ if(playing||routeSearchPending)return;
+ routeSearchPending=true;
+ stopRain();
+ const run=++routeSeq;
+ $('routeSearch').disabled=true;
+ if($('studioRouteSearch'))$('studioRouteSearch').disabled=true;
+ pauseDrive();
+ try{
  if(!originPlace&&/현재 위치 확인 중|위치 확인 실패|^현재 위치$/.test($('origin').value.trim())){
   showNavSearch(true);
   throw Error('출발지가 선택되지 않았습니다. 출발지 검색 버튼 또는 현재 위치 버튼으로 먼저 위치를 정해주세요.');
@@ -951,7 +961,14 @@ $('searchForm').onsubmit=async e=>{e.preventDefault();stopRain();if(playing)retu
   // walking view. Do not substitute car-road geometry.
   if(selectedTravelMode()==='walking')updateTravelModeUI();
  }
- }finally{if(run===routeSeq)$('routeSearch').disabled=false;}};
+  }finally{
+  routeSearchPending=false;
+  if(run===routeSeq){
+   $('routeSearch').disabled=false;
+   if($('studioRouteSearch'))$('studioRouteSearch').disabled=false;
+  }
+ }
+};
 $('locate').onclick=()=>{if(!navigator.geolocation){toast('위치를 지원하지 않는 기기입니다. 출발지를 입력해주세요.');return;}$('locate').disabled=true;navigator.geolocation.getCurrentPosition(p=>{originPlace={lat:p.coords.latitude,lng:p.coords.longitude,name:'현재 위치'};homePosition={lat:p.coords.latitude,lng:p.coords.longitude};updateRouteCurrentMarker();$('origin').value='현재 위치';$('origin').readOnly=true;$('locate').disabled=false;toast('현재 위치를 출발지로 설정했어요. 검색 시 지도·기상 제공자에게 전달됩니다.');},()=>{$('locate').disabled=false;$('origin').value='위치 확인 실패 · 검색 버튼 사용';toast('위치를 확인하지 못했습니다. 출발지를 검색해주세요.');},{timeout:12000,maximumAge:30000,enableHighAccuracy:true});};
 async function demoRoute(){
  const drivingRadio=document.querySelector('input[name="travelMode"][value="driving"]');if(drivingRadio)drivingRadio.checked=true;updateTravelModeUI();
