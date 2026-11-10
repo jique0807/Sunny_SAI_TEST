@@ -2290,3 +2290,31 @@ body.sunny-guiding .sunny-demo-detour-popup{
  font-size:17px;cursor:pointer;touch-action:manipulation}
 .sunny-historic-hotspot-pin:focus-visible{outline:3px solid #1768ed;outline-offset:3px}
 .nav-layers-sheet .nav-layer-row:has(#navLayerPedestrianHotspots:enabled){opacity:1}
+
+/* 2026-11-10 iOS fix: one continuous scroll surface for every road + walking layer.
+   Nested 43dvh list scrollboxes made the menu appear to stop at ITS.
+   Keep fixed bottom navigation and sticky layer header without clipping TAAS items. */
+@media(max-width:900px){
+ .nav-layers-sheet:not([hidden]){
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+  scroll-padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));
+  padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))!important;
+ }
+ .nav-layers-sheet .nav-layer-list{
+  max-height:none!important;
+  height:auto!important;
+  overflow:visible!important;
+  overscroll-behavior:auto!important;
+ }
+ .nav-layers-sheet .nav-layer-group{
+  display:block;
+  scroll-margin-top:70px;
+ }
+ .nav-layers-sheet .nav-layers-head{
+  position:sticky;
+  top:-12px;
+ }
+}
