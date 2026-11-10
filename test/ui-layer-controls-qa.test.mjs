@@ -14,7 +14,7 @@ test('all panel close/reload/reset buttons appear exactly once and are accessibl
  assert.ok(rain.indexOf('id="navRainGridRefresh"')<rain.indexOf('id="navRainGridReset"'));
  assert.ok(rain.indexOf('id="navRainGridReset"')<rain.indexOf('id="navRainGridClose"'));
  assert.match(rain,/id="navRainGridRefresh"[^>]*aria-label="[^"]*다시 조회"/);
- assert.doesNotMatch(rain,/id="navRainGridRefresh"[^>]*\bhidden\b/);
+ assert.match(rain,/id="navRainGridRefresh"[^>]*\bhidden\b/);
  assert.match(ui,/id="navRainGridClose"[^>]*aria-label="[^"]*닫기"/);
  assert.match(ui,/id="navLayersClose"[^>]*aria-label="[^"]*닫기"/);
  assert.match(ui,/id="navWeatherTimeClose"[^>]*aria-label="[^"]*닫기"/);

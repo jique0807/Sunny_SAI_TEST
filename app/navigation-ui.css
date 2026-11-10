@@ -2481,3 +2481,12 @@ body.sunny-guiding .sunny-demo-detour-popup{
   max-height:min(300px,42dvh)!important;
  }
 }
+
+/* Keep the HSR and nationwide RN1 popup limited to two visible header actions.
+   The hidden legacy controls remain in DOM for internal compatibility only. */
+#navRainGridTimeBar #navRainGridRefresh,
+#navRainGridTimeBar #navRainGridReset,
+#navRainGridTimeBar #navRainSourceSub,
+#navRainGridTimeBar #navRainGridLegend[data-mode="radar"],
+#navRainGridTimeBar #navRainGridLegend[hidden],
+#navRainGridTimeBar #navRainGridDisclaimer[hidden]{display:none!important}

@@ -106,7 +106,7 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
  };
  const syncSourceUI=()=>{
   const radar=source==='radar',grid=source==='grid';
-  const legend=get('navRainGridLegend');if(legend)legend.dataset.mode=source;
+  const legend=get('navRainGridLegend');if(legend){legend.dataset.mode=source;legend.hidden=radar;}
   panel?.classList?.toggle('sunny-grid-active',grid);
   for(const control of [slider,ticks,get('navRainGridPlay')?.parentElement]){
    if(control)control.hidden=!(radar||grid);
@@ -116,18 +116,20 @@ export function initNationalRainOverlay({onEnable,waitForSession}={}){
   renderReception();
   panel?.classList?.toggle('sunny-hsr-active',radar);
   if(sourceTitle)sourceTitle.textContent=source==='radar'?'HSR 레이더 실황':'초단기 강수예측';
-  if(sourceSub)sourceSub.textContent=source==='radar'?'HSR 10분 관측':'전국 5km 격자 · 1시간 간격 · 최대 6시간';
+  if(sourceSub){sourceSub.textContent='';sourceSub.hidden=true;}
   if(slider){
    slider.style.direction=radar?'rtl':'ltr';
    slider.max=source==='radar'?String(HSR_MAX_FRAME):'5';
    slider.setAttribute('aria-label',source==='radar'?
     '레이더 관측 10분 단위 과거시각 선택 (0~60분 전)':'초단기 강수예측 유효시각 선택 (1시간 간격, 최대 6시간)');
   }
-  if(legendTitle)legendTitle.textContent=radar?'레이더 영상':'강수량 mm/1h';
-  if(legendScale)legendScale.textContent=radar?'영상 색상은 강수량으로 환산하지 않음':'0.1 · 1 · 3 · 7 · 15 · 30+';
-  if(disclaimer)disclaimer.textContent=source==='radar'?
-   'HSR 실제 레이더 관측 · 10분 간격 선택 · 최신 자료는 약 30분 지연 조회 · 영상 색으로 강수량 추정 불가':
-   '실제 5km 예보 · 결측은 무강수가 아닙니다.';
+  if(legendTitle)legendTitle.textContent=radar?'':'강수량 mm/1h';
+  if(legendScale)legendScale.textContent=radar?'':'0.1 · 1 · 3 · 7 · 15 · 30+';
+  if(disclaimer){
+   disclaimer.hidden=!radar;
+   disclaimer.textContent=radar?
+    'HSR 실제 레이더 관측 · 최신 자료는 약 30분 지연 조회 · 영상 색으로 강수량 추정 불가':'';
+  }
   syncLead();
  };
  const pausePlayback=()=>{
