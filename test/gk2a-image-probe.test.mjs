@@ -22,6 +22,8 @@ test('GK2A RR CI FOG API uses key but returns no secrets or request URLs',async(
  const result=await probeGk2aImages('private-test-key',fetcher,Date.parse('2026-11-10T15:00:00Z'));
  assert.equal(result.status,'all_images_received');
  assert.equal(result.imagesReceived,3);
+ assert.ok(result.results.every(x=>x.list.status==='files_listed'));
+ assert.ok(result.results.every(x=>x.image.requestedUTC==='202611101200'));
  assert.deepEqual(result.results.map(x=>x.product),['RR','CI','FOG']);
  assert.ok(result.results.every(x=>x.image.width===400&&x.image.height===300));
  assert.equal(calls.length,6);
