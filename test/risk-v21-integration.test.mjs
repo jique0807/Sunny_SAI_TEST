@@ -97,7 +97,7 @@ test('risk engine ingestion does not use individual map-layer checkboxes',()=>{
  assert.match(app,/navRiskApply'\)\?\.addEventListener\('click'/);
  assert.match(ui,/id="navRiskCompare"/);
  assert.match(ui,/id="navRiskApply"/);
- assert.match(api,/!\\['RECOMMEND','TIME','DISTANCE'\\]\.includes\(drivingPriority\)/);
+ assert.ok(api.includes("!['RECOMMEND','TIME','DISTANCE'].includes(drivingPriority)"));
  assert.match(api,/url\.searchParams\.set\('priority',drivingPriority\)/);
  assert.doesNotMatch(app,/compareDrivingRouteRisk[\s\S]*?automatic:\s*true/);
 });
