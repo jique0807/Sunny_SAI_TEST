@@ -20,6 +20,19 @@ export function assessRouteHazard(h,{now=Date.now()}={}){
    '현재 사고가 발생했다는 뜻이 아니며 향후 사고확률이나 통제 여부는 알 수 없습니다.',42);
  }
 
+ // ITS point-only reports may be near a parallel road; NEVER assert road blockage or automatic detour.
+ if(h.kind==='its-incident'){
+  const observed=validTime(h.validTime)?Date.parse(h.validTime):NaN;
+  const until=h.expiresAt&&validTime(h.expiresAt)?Date.parse(h.expiresAt):Infinity;
+  if(source!=='국가교통정보센터 ITS'||h.reportedFresh!==true||h.segmentVerified!==false||
+   !located(h)||!validTime(h.eta)||!Number.isFinite(h.distanceToPath)||h.distanceToPath>120||
+   !Number.isFinite(observed)||now-observed< -600000||now-observed>24*3600000||
+   Date.parse(h.eta)>until)
+   return assessment('unknown','ITS 돌발정보 검증 필요','발생시각·위치·경로 인접성 미확인',
+    '같은 도로·진행방향·통제 구간 일치 전에는 자동 우회하지 않습니다.',0);
+  return assessment('notice','ITS 경로 인접 돌발정보',source+' · 신고 위치 경로 약 '+h.distanceToPath+'m · 발생시각 확인',
+   '인접도로 가능성 있음 · 실제 주행 구간 통제 미확인 · 자동 우회 판단 불가',58);
+ }
  if(h.roadRisk!==undefined){
   const g=h.roadRisk,age=validTime(h.validTime)?now-Date.parse(h.validTime):Infinity;
   if(!source.includes('기상청 도로위험')||h.riskGradeVerified!==true||![1,2,3].includes(g)||!located(h)||!validTime(h.eta)||age<0||age>15*60000)
