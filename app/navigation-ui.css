@@ -2494,3 +2494,11 @@ body.sunny-guiding .sunny-demo-detour-popup{
 /* GK2A raster canvas sits above Kakao basemap tiles and below route/risk pins.
    Child satellite imagery remains pointer-transparent for route interaction. */
 #kakaoMap > .sunny-gk2a-map-overlay{position:absolute!important;inset:0!important;z-index:13!important;pointer-events:none!important}
+
+/* Existing sheet compact dual-state labels: API key/response separate from actual data. */
+.nav-layers-sheet .sunny-layer-health{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 6px;font-size:10px;line-height:1.25;margin:0;max-width:100%}
+.nav-layers-sheet .sunny-layer-health-tag{display:inline-block;font-style:normal;font-size:10px;font-weight:650;padding:2px 6px;border:1px solid #d8e1ec;border-radius:7px;background:#f1f5f9;color:#536277;white-space:normal}
+.nav-layers-sheet .sunny-layer-health-tag[data-health="ok"]{background:#e3f7e8;color:#116b35;border-color:#c9eed3}
+.nav-layers-sheet .sunny-layer-health-tag[data-health="error"]{background:#ffe8e8;color:#9d2b2b;border-color:#f3c8c8}
+.nav-layers-sheet #navLayerStatusCheckedAt{display:block;font-size:10px;color:#62758b;margin-top:2px}
+.nav-layers-sheet #navLayerStatusRefresh[disabled]{opacity:.5;cursor:progress}

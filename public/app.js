@@ -29,6 +29,7 @@ const {resolveDrivingHeading,angleStep,compassBearing}=await import('/heading-up
 const {initVectorDriving}=await import('/vector-driving.mjs');
 const {DEFAULT_APP_SETTINGS,initAppSettings}=await import('/app-settings.mjs');
 const {initConnectionStatusPanel}=await import('/connection-status.mjs');
+const {initLayerHealth}=await import('/layer-health-status.mjs');
 let demoOverlays=[],carOverlay=null,initialDemoRoute=null,initialWalkingDemoRoute=null;
 // Bind the DOM selector before any top-level UI event wiring (prevent TDZ startup crash).
 const $=id=>document.getElementById(id);
@@ -92,6 +93,7 @@ function showNavSearch(show){
 navOpen?.addEventListener('click',()=>showNavSearch(true));
 navClose?.addEventListener('click',()=>showNavSearch(false));
 const navLayersSheet=document.getElementById('navLayersSheet');
+const layerHealth=initLayerHealth({document});
 const gk2aOverlay=initGk2aOverlay({document,getMap:()=>['kakao','skyview'].includes(activeMap)?kmap:null,
  ensureMap:()=>showMap('kakao'),waitForSession:()=>sessionPromise});
 // Provider-rendered forecast image: standalone view until georeferencing is validated.
@@ -799,7 +801,19 @@ function connectionStatus(){$('weatherConnection').textContent=connections.kma?'
 sessionPromise=session().catch(e=>{$('keyStatus').textContent=e.message;connectionStatus();});
 // The environment settings now contain a real, read-only source health dashboard.
 // Tests only run when the user presses refresh, avoiding extra provider/API usage.
-const connectionPanel=initConnectionStatusPanel({document,waitForSession:async()=>{await sessionPromise;}});
+const connectionPanel=initConnectionStatusPanel({document,waitForSession:async()=>{await sessionPromise;},
+ onUpdate:(values,meta)=>{
+  layerHealth.update(values);
+  const label=$('navLayerStatusCheckedAt');
+  if(label)label.textContent=meta.checking?'실제 공급기관 자료 확인 중…':meta.checkedAt?
+   '마지막 확인: '+new Date(meta.checkedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})+' KST':
+   'API 키 상태만 확인 · 실제 수신은 검사 전';
+ }});
+$('navLayerStatusRefresh')?.addEventListener('click',async()=>{
+ const button=$('navLayerStatusRefresh');if(connectionPanel.isChecking())return;
+ if(button)button.disabled=true;
+ try{await connectionPanel.refresh();}finally{if(button)button.disabled=false;}
+});
 void sessionPromise.then(session=>connectionPanel.setSession(session));
 $('settingNationalWalkCheck')?.addEventListener('click',async()=>{
  const btn=$('settingNationalWalkCheck'),label=$('settingNationalWalkStatus');

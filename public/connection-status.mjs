@@ -10,6 +10,9 @@ export const DATA_CONNECTION_SOURCES=[
  {id:'forecast',group:'기상 예보',name:'경로별 기상예보',description:'예상 통과시각의 기상청 예보'},
  {id:'rain',group:'기상 예보',name:'전국 강수량 격자 예보',description:'RN1 5km 격자 · 정시별 강수예보'},
  {id:'radar',group:'기상 예보',name:'HSR 레이더 실황',description:'실제 강수 관측영상 · 10분 간격'},
+ {id:'gk2aRr',group:'위성 영상',name:'GK2A 강우강도 RR',description:'L2 PNG · 영상 픽셀/지도 정합 검증은 별도'},
+ {id:'gk2aCi',group:'위성 영상',name:'GK2A 대류운 탐지 CI',description:'ELA/LC 영역 수신 여부 · 좌표 정합 별도'},
+ {id:'gk2aFog',group:'위성 영상',name:'GK2A 안개 FOG',description:'L2 PNG · 영상 픽셀/지도 정합 검증은 별도'},
  {id:'road',group:'자동차 위험자료',name:'도로살얼음·안개',description:'도로 링크별 공식 위험기상정보 · 위치·시각 검증 필요'},
  {id:'trafficIncident',group:'자동차 위험자료',name:'ITS 사고·공사·통제',description:'실제 자동차 경로 주변 돌발정보 · 도로 링크/차로 통제 미검증'},
  {id:'itsTraffic',group:'자동차 위험자료',name:'ITS 교통소통정보',description:'공식 도로 링크·속도 정보 · 카카오 경로 링크 일치 검증 전'},
@@ -17,9 +20,9 @@ export const DATA_CONNECTION_SOURCES=[
  {id:'floodNational',group:'자동차 위험자료',name:'국가하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 관측 아님'},
  {id:'floodLocal',group:'자동차 위험자료',name:'지방하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 관측 아님'},
  {id:'walkSurface',group:'도보·교통안전 자료',name:'보행로 침수·결빙·통행 제한',description:'현장 관측 API 미연결 · 날씨 예보와 구분'},
- {id:'taasPedestrianWms',group:'도보·교통안전 자료',name:'TAAS 보행자 사고다발지역 지도',description:'2024년 과거 사고지도 WMS · 실시간 사고 아님'},
- {id:'taasChildWms',group:'도보·교통안전 자료',name:'TAAS 어린이 보행사고 지도',description:'2024년 과거 사고지도 WMS · 실시간 사고 아님'},
- {id:'taasElderlyWms',group:'도보·교통안전 자료',name:'TAAS 노인 보행사고 지도',description:'2024년 과거 사고지도 WMS · 실시간 사고 아님'},
+ {id:'taasPedestrianWms',group:'도보·교통안전 자료',name:'TAAS 보행자 사고다발지역 REST',description:'2024년 과거 좌표 REST · 실시간 사고 아님'},
+ {id:'taasChildWms',group:'도보·교통안전 자료',name:'TAAS 어린이 보행사고 REST',description:'2024년 과거 좌표 REST · 실시간 사고 아님'},
+ {id:'taasElderlyWms',group:'도보·교통안전 자료',name:'TAAS 노인 보행사고 REST',description:'2024년 과거 좌표 REST · 실시간 사고 아님'},
  {id:'pedestrianHotspots',group:'도보·교통안전 자료',name:'TAAS 경로 인접 보행사고 이력 REST',description:'과거 사고건수·좌표 기반 위험 근거 · 별도 이용승인 검증 필요'}
 ];
 export const CONNECTION_STATE_TEXT={
@@ -46,6 +49,7 @@ export function applySessionConfiguration(current,session){
   map:Boolean(session?.mapConfig?.kakao),
   search:config.route,route:config.route,walk:config.tmap,
   forecast:config.kma,rain:config.kma,radar:config.kma,
+  gk2aRr:config.gk2a,gk2aCi:config.gk2a,gk2aFog:config.gk2a,
   road:config.roadRisk,warning:config.kma,floodNational:config.safemap,floodLocal:config.safemap
  };
  for(const [id,yes]of Object.entries(configured)){
@@ -55,7 +59,8 @@ export function applySessionConfiguration(current,session){
  copy.trafficIncident={...(config.its?state('configured','ITS 키 설정 · 사고·공사·통제 실제 발생 위치·시각 조회 전'):state('unverified','ITS ROAD_API_KEY 미설정')),keyRegistered:Boolean(config.its)};
  copy.itsTraffic={...(config.its?state('configured','ITS 키 설정 · 도로 링크 속도 실수신 검사 전'):state('unverified','ITS ROAD_API_KEY 미설정')),keyRegistered:Boolean(config.its)};
  for(const id of ['taasPedestrianWms','taasChildWms','taasElderlyWms']){
-  copy[id]={...(config.taasWms?state('configured','TAAS 2024 WMS 서버 인증키 설정 · 실제 PNG 응답 확인 전'):state('unverified','TAAS WMS 또는 카카오 서버 키 미설정')),keyRegistered:Boolean(config.taasWms)};
+  const usable=Boolean(config.koroad&&config.route);
+  copy[id]={...(usable?state('configured','TAAS 2024 REST 인증키 설정 · 실제 좌표 응답 확인 전'):state('unverified','TAAS REST 또는 카카오 서버 키 미설정')),keyRegistered:usable};
  }
  copy.pedestrianHotspots={...(config.koroad?state('configured','TAAS REST 키 설정 · WMS 승인과 별도 · 보행사고 좌표/건수 수신 확인 전'):state('unverified','KOROAD_API_KEY 미설정')),keyRegistered:Boolean(config.koroad)};
  return copy;
@@ -102,11 +107,29 @@ export function mapConnectionProbe(kind,data,previous){
    traffic?.status==='received'?'ITS 도로 링크 속도 '+(traffic.count||0)+'건 수신 · 카카오 경로 일치 전':
    traffic?.reason||'ITS 소통정보 실제 수신 확인 필요');
  }
- if(kind==='taas-wms'){
-  const id={pedestrian:'taasPedestrianWms',child:'taasChildWms',elderly:'taasElderlyWms'}[data?.kind];
-  if(id)put(id,data.status==='received'?'ok':'error',data.status==='received'?
-   'TAAS 2024 WMS 실제 PNG 수신 · 지도 표출 가능, 사고 좌표·건수 판정 불가':
-   data.reason||'TAAS WMS PNG 수신 확인 필요');
+ if(kind==='satellite'){
+  const byCode={rr:'gk2aRr',ci:'gk2aCi',fog:'gk2aFog'};
+  for(const item of data?.results||[]){
+   const id=byCode[String(item.product||'').toLowerCase()];
+   if(!id)continue;
+   const exists=item.status==='received';
+   const geo=exists&&item.georeference==='verified_ko_lcc_900';
+   const dims=exists&&item.width&&item.height?item.width+'×'+item.height:'';
+   put(id,exists?geo?'ok':'partial':item.status==='key_missing'?'missing':'unverified',
+    exists?'실제 L2 PNG '+dims+' 수신 · '+(geo?'KO LCC 자료 형식 확인 (지도 정합 별도 검증)':'좌표·영상 영역 미검증'):
+     '해당 시각 위성영상 수신 미확인 · 잘못된 지도 중첩 방지');
+  }
+ }
+ if(kind==='taas-rest'){
+  const byCode={pedestrian:'taasPedestrianWms',child:'taasChildWms',elderly:'taasElderlyWms'};
+  for(const item of data?.results||[]){
+   const id=byCode[item.kind];if(!id)continue;
+   const ok=item.status==='received',empty=item.status==='empty';
+   put(id,ok?'ok':empty?'empty':item.status==='failed'?'error':'unverified',
+    ok?'2024년 REST 실제 사고다발지역 좌표 '+item.count+'곳 수신 · 실시간 사고 아님':
+    empty?'기관 API 정상 · 해당 지역 사고다발지역 자료 없음':
+    item.reason||'2024년 사고자료 수신 미확인');
+  }
  }
  if(kind==='koroad'){
   const status=data?.status;
@@ -163,7 +186,7 @@ export function summarizeConnectionResults(results){
 }
 export function initConnectionStatusPanel({
  document,fetcher=globalThis.fetch,waitForSession=async()=>{},
- timeoutMs=25000,now=()=>Date.now()
+ timeoutMs=25000,now=()=>Date.now(),onUpdate=()=>{}
 }={}){
  const $=id=>document.getElementById(id);
  const items=$('settingConnectionItems'),button=$('settingConnectionRefresh'),
@@ -202,6 +225,7 @@ export function initConnectionStatusPanel({
    refs.explanation.textContent=entry.state==='empty'?'자료없음 · '+entry.detail:entry.detail||'';
   }
   if(summary)summary.textContent=summarizeConnectionResults(values).text;
+  onUpdate({...values},{checking:busy,checkedAt:lastChecked});
   if(stamp)stamp.textContent=lastChecked?
    '최종 검사: '+new Date(lastChecked).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',
     year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})+
@@ -219,26 +243,7 @@ export function initConnectionStatusPanel({
  }
  // Fixed, non-personal Seoul City Hall vicinity for provider connectivity checks only.
  // Never send the user's GPS coordinates during settings diagnostics.
- const TAAS_TEST_BOUNDS={west:126.971,south:37.555,east:126.986,north:37.575};
  const ITS_TEST_POINTS=[{lat:37.5663,lng:126.9779},{lat:37.5548,lng:126.9708}];
- async function requestImage(kind,csrfToken){
-  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),timeoutMs);
-  try{
-   const response=await fetchWithReception(fetcher,'/api/taas-pedestrian-map',{
-    method:'POST',credentials:'same-origin',cache:'no-store',signal:ctrl.signal,
-    headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},
-    body:JSON.stringify({kind,bounds:TAAS_TEST_BOUNDS})
-   });
-   if(!response.ok){const err=Error(providerFailure(response.status));err.http=response.status;throw err;}
-   const bytes=new Uint8Array(await response.arrayBuffer());
-   const valid=response.headers.get('content-type')?.includes('image/png')&&
-    response.headers.get('X-TAAS-Year')==='2024'&&response.headers.get('X-TAAS-Layer')===kind&&
-    bytes.length>=24&&bytes.length<=2500000&&
-    [137,80,78,71,13,10,26,10].every((c,i)=>bytes[i]===c);
-   if(!valid)throw Error('기관의 2024년 PNG 영상 형식이 검증되지 않았습니다.');
-   return {kind,status:'received'};
-  }finally{clearTimeout(timer);}
- }
  async function refresh(){
   if(busy)return false;
   busy=true;const run=++request;
@@ -262,6 +267,16 @@ export function initConnectionStatusPanel({
     ['radar','/api/radar-latest-diagnostic',['radar']],
     ['layers','/api/route-layer-feasibility',['road','warning','floodNational','floodLocal']]
    ];
+   if(values.gk2aRr?.keyRegistered){
+    for(const id of ['gk2aRr','gk2aCi','gk2aFog'])
+     values[id]={...values[id],...state('checking','GK2A 공식 위성 L2 영상 실제 수신 검사 중')};
+    checks.push(['satellite','/api/gk2a-live-diagnostic',['gk2aRr','gk2aCi','gk2aFog']]);
+   }
+   if(values.taasPedestrianWms?.keyRegistered){
+    for(const id of ['taasPedestrianWms','taasChildWms','taasElderlyWms'])
+     values[id]={...values[id],...state('checking','2024년 TAAS REST 실제 좌표 수신 검사 중')};
+    checks.push(['taas-rest','/api/taas-rest-diagnostic',['taasPedestrianWms','taasChildWms','taasElderlyWms']]);
+   }
    // Inspect approved ITS/TAAS sources only with a valid same-origin CSRF session.
    // The fixed diagnostic area is independent of the current map and user location.
    if(session.csrf){
@@ -271,21 +286,12 @@ export function initConnectionStatusPanel({
       {method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':session.csrf},
        body:JSON.stringify({points:ITS_TEST_POINTS})}]);
     }
-    if(values.taasPedestrianWms?.state==='configured'){
-     for(const [kind,id] of [
-      ['pedestrian','taasPedestrianWms'],['child','taasChildWms'],['elderly','taasElderlyWms']
-     ]){
-      values[id]={...values[id],...state('checking','2024년 TAAS WMS PNG 실제 수신 확인 중')};
-      checks.push(['taas-wms','/api/taas-pedestrian-map',[id],{kind,csrfToken:session.csrf}]);
-     }
-    }
     render();
    }
    await Promise.all(checks.map(async([kind,path,ids,options])=>{
     if(!ids.some(id=>values[id]?.state==='checking'))return;
     try{
-     const data=kind==='taas-wms'?await requestImage(options.kind,options.csrfToken):
-      await requestJSON(path,options||{});
+     const data=await requestJSON(path,options||{});
      if(run===request){values=mapConnectionProbe(kind,data,values);render();}
     }catch(e){
      if(run!==request)return;

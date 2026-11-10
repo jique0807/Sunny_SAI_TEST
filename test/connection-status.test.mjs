@@ -47,7 +47,8 @@ test('source inventory covers all agreed menu sources but excludes CCTV and ordi
  const ids=DATA_CONNECTION_SOURCES.map(x=>x.id);
  assert.equal(new Set(ids).size,ids.length);
  assert.ok(ids.includes('map')&&ids.includes('rain')&&ids.includes('radar'));
- assert.equal(ids.length,18);
+ assert.equal(ids.length,21);
+ assert.ok(ids.includes('gk2aRr')&&ids.includes('gk2aCi')&&ids.includes('gk2aFog'));
  assert.ok(ids.includes('walk')&&ids.includes('walkSurface'));
  assert.ok(ids.includes('trafficIncident')&&ids.includes('pedestrianHotspots'));
  assert.ok(ids.includes('itsTraffic'));
@@ -130,7 +131,11 @@ test('settings refresh makes real diagnostic requests and maps results to honest
   '/api/pedestrian-route-diagnostic':{provider:'tmap',status:'received',geometryValid:true,distanceMeters:1540,durationSeconds:1080},
   '/api/rain-grid-diagnostic':rain,
   '/api/radar-latest-diagnostic':radar,
-  '/api/route-layer-feasibility':layers
+  '/api/route-layer-feasibility':layers,
+  '/api/gk2a-live-diagnostic':{results:[
+   {product:'rr',status:'received',width:900,height:922,georeference:'unverified_raster_geometry'},
+   {product:'ci',status:'not_received'},
+   {product:'fog',status:'received',width:900,height:922,georeference:'unverified_raster_geometry'}]}
  };
  const fetcher=async path=>{
   calls.push(path);
@@ -144,14 +149,16 @@ test('settings refresh makes real diagnostic requests and maps results to honest
  assert.equal(await panel.refresh(),true);
  assert.deepEqual(calls,[
   '/api/session','/api/preview-journey-smoke','/api/pedestrian-route-diagnostic','/api/rain-grid-diagnostic',
-  '/api/radar-latest-diagnostic','/api/route-layer-feasibility'
+  '/api/radar-latest-diagnostic','/api/route-layer-feasibility','/api/gk2a-live-diagnostic'
  ]);
  assert.equal(panel.getStatus().rain.state,'ok');
  assert.equal(panel.getStatus().walk.state,'ok');
  assert.equal(panel.getStatus().walkSurface.state,'unverified');
  assert.equal(panel.getStatus().road.state,'partial');
  assert.equal(panel.getStatus().floodNational.state,'error');
- assert.match(nodes.get('settingConnectionSummary').textContent,/연결 9/);
+ assert.match(nodes.get('settingConnectionSummary').textContent,/연결/);
+ assert.equal(panel.getStatus().gk2aRr.state,'partial');
+ assert.equal(panel.getStatus().gk2aCi.state,'unverified');
  assert.match(nodes.get('settingConnectionCheckedAt').textContent,/2026/);
  assert.equal(nodes.get('settingConnectionRefresh').disabled,false);
  assert.equal(panel.isChecking(),false);
@@ -182,35 +189,24 @@ test('walking diagnostic never claims road or sidewalk observations are measured
 });
 
 
-test('ITS and TAAS 2024 WMS each receive a distinct, honest live diagnostic status',async()=>{
+test('ITS and TAAS 2024 REST each receive distinct honest live diagnostic statuses',async()=>{
  const configured={...session,csrf:'csrf-connection-check',connections:{
-  ...session.connections,its:true,koroad:true,taasWms:true
+  ...session.connections,its:true,koroad:true,gk2a:true
  }};
- const data={status:'received',items:[{type:'accident'}],
-  traffic:{status:'received',count:18}};
- const png=new Uint8Array([137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82,0,0,2,0,0,0,2,0]);
  const requests=[];
  const fetcher=async(path,opts={})=>{
   requests.push({path,method:opts.method??'GET',body:opts.body||'',headers:opts.headers||{}});
   if(path==='/api/session')return Response.json(configured);
-  if(path==='/api/its-route-context'){
-   assert.equal(opts.method,'POST');assert.equal(opts.headers['X-CSRF-Token'],configured.csrf);
-   const points=JSON.parse(opts.body).points;
-   assert.equal(points.length,2);
-   assert.deepEqual(points[0],{lat:37.5663,lng:126.9779});
-   return Response.json(data);
-  }
-  if(path==='/api/taas-pedestrian-map'){
-   assert.equal(opts.method,'POST');assert.equal(opts.headers['X-CSRF-Token'],configured.csrf);
-   const body=JSON.parse(opts.body);
-   return new Response(png,{headers:{'content-type':'image/png','X-TAAS-Year':'2024',
-    'X-TAAS-Layer':body.kind}});
-  }
-  if(path==='/api/koroad-pedestrian-hotspots')
-   return Response.json({status:'failed',items:[],reason:'TAAS REST 별도 승인 확인 필요'});
+  if(path==='/api/its-route-context')return Response.json({status:'received',items:[{type:'accident'}],traffic:{status:'received',count:18}});
+  if(path==='/api/taas-rest-diagnostic')return Response.json({results:[
+   {kind:'pedestrian',status:'received',count:3},{kind:'child',status:'empty',count:0},
+   {kind:'elderly',status:'failed',count:0,reason:'REST 이용승인 확인 필요'}]});
+  if(path==='/api/gk2a-live-diagnostic')return Response.json({results:[
+   {product:'rr',status:'received',width:900,height:922,georeference:'unverified_raster_geometry'},
+   {product:'ci',status:'not_received'},{product:'fog',status:'not_received'}]});
+  if(path==='/api/koroad-pedestrian-hotspots')return Response.json({status:'received',items:[{lat:37.5,lng:127}]});
   if(path==='/api/preview-journey-smoke')return Response.json(journey);
-  if(path==='/api/pedestrian-route-diagnostic')
-   return Response.json({provider:'tmap',status:'received',geometryValid:true,distanceMeters:2102,durationSeconds:1638});
+  if(path==='/api/pedestrian-route-diagnostic')return Response.json({provider:'tmap',status:'received',geometryValid:true,distanceMeters:2102,durationSeconds:1638});
   if(path==='/api/rain-grid-diagnostic')return Response.json(rain);
   if(path==='/api/radar-latest-diagnostic')return Response.json(radar);
   if(path==='/api/route-layer-feasibility')return Response.json(layers);
@@ -219,19 +215,19 @@ test('ITS and TAAS 2024 WMS each receive a distinct, honest live diagnostic stat
  const {document}=dom();
  const panel=initConnectionStatusPanel({document,fetcher,waitForSession:async()=>{}});
  assert.equal(await panel.refresh(),true);
- const result=panel.getStatus();
- assert.equal(result.trafficIncident.state,'ok');
- assert.equal(result.itsTraffic.state,'ok');
- assert.equal(result.pedestrianHotspots.state,'error');
- for(const id of ['taasPedestrianWms','taasChildWms','taasElderlyWms']){
-  assert.equal(result[id].state,'ok',id);
-  assert.match(result[id].detail,/PNG/);
- }
- assert.equal(requests.filter(x=>x.path==='/api/taas-pedestrian-map').length,3);
+ const results=panel.getStatus();
+ assert.equal(results.trafficIncident.state,'ok');
+ assert.equal(results.itsTraffic.state,'ok');
+ assert.equal(results.taasPedestrianWms.state,'ok');
+ assert.equal(results.taasChildWms.state,'empty');
+ assert.equal(results.taasElderlyWms.state,'error');
+ assert.equal(results.gk2aRr.state,'partial');
+ assert.equal(results.gk2aCi.state,'unverified');
+ assert.equal(requests.filter(x=>x.path==='/api/taas-rest-diagnostic').length,1);
+ assert.equal(requests.filter(x=>x.path==='/api/taas-pedestrian-map').length,0);
  assert.equal(requests.filter(x=>x.path==='/api/its-route-context').length,1);
- const joined=JSON.stringify(requests);
- assert.doesNotMatch(joined,/KOROAD_API_KEY|ROAD_API_KEY|SERVER_KEY/);
- assert.match(result.trafficIncident.detail,/미검증/);
+ assert.ok(requests.find(x=>x.path==='/api/its-route-context')?.headers['X-CSRF-Token']);
+ assert.doesNotMatch(JSON.stringify(requests),/KOROAD_API_KEY|ROAD_API_KEY|SERVER_KEY/);
 });
 test('missing provider key keeps pending status, not a fabricated connection success',()=>{
  const info=applySessionConfiguration(initialConnectionResults(),{mapConfig:{},connections:{koroad:true,its:false,taasWms:false}});

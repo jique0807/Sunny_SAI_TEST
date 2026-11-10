@@ -52,6 +52,8 @@ test('main layer menu omits generic temperature/wind and does not fake hazard av
  assert.match(menu,/navGk2aRr/);
  assert.match(menu,/navGk2aCi/);
  assert.match(menu,/navGk2aFog/);
+ assert.match(menu,/id="navLayerStatusRefresh"/);
+ assert.match(menu,/id="navLayerStatusCheckedAt"/);
   // Three historical TAAS REST layers become available only after the keys are configured.
   for(const id of ['navLayerPedestrianWms','navLayerChildWms','navLayerElderlyWms'])
    assert.ok(menu.includes('id="'+id+'" type="checkbox" disabled'),id);
