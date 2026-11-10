@@ -37,7 +37,7 @@ export const ui = `
   <div class="sunny-demo-detour-header"><span class="sunny-demo-detour-sign" aria-hidden="true">☀️</span><span id="sunnyWalkHeatTitle">무더위 위험 알림</span></div>
   <p id="sunnyWalkHeatDescription">가까운 무더위쉼터로 이동하시겠습니까?</p>
   <div id="sunnyWalkHeatChoices" class="sunny-demo-detour-choices"><button id="sunnyWalkHeatYes" type="button">예 · 쉼터 경로 안내</button><button id="sunnyWalkHeatNo" type="button">아니오</button></div>
-  <small>시연 전용 · 무더위 및 사고다발지역은 가상 상황입니다. 무더위쉼터 위치와 이동 경로는 가상 설정입니다. ‘예’가 자동 선택됩니다.</small>
+  <small>시연 전용 · 무더위 및 사고다발지역은 가상 상황입니다. 무더위쉼터 위치와 가상 이동 경로를 표시합니다. ‘예’가 자동 선택됩니다.</small>
  </div>
  <div id="sunnyDemoDetourPopup" class="sunny-demo-detour-popup" role="dialog" aria-modal="false" aria-label="시연용 우회경로 선택" hidden>
     <div class="sunny-demo-detour-header"><span class="sunny-demo-detour-sign" aria-hidden="true">🚨</span><span id="sunnyDemoDetourTitle">구미 부근 긴급 호우특보 발생</span></div>
