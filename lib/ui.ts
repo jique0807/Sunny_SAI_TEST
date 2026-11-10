@@ -69,6 +69,7 @@ export const ui = `
 </section>
 <section class="sunny-settings-section" aria-labelledby="weatherPreferencesHeading">
  <h3 id="weatherPreferencesHeading">전방 기상안내</h3>
+ <label class="sunny-setting-option"><span><b>위험판단 정책</b><small>규칙 기반 Risk Engine 2.0 · 연결된 LLM 없이 판단하며 강화 모드는 미검증 근거가 있으면 등급 결정을 보류합니다.</small></span><select id="settingRiskModel"><option value="rules-v2">기본 검증 정책</option><option value="rules-v2-strict">강화 검증 · 결측 시 보류</option></select></label>
  <label class="sunny-setting-option"><span><b>차량·도보 기상 알림 개수</b><small>경로 결과와 이동 안내 화면에서 표시할 기상 알림 수입니다.</small></span><select id="settingAlertCount"><option value="2">최대 2개</option><option value="1">최대 1개</option></select></label>
  <label class="sunny-setting-option"><span><b>이동 중 예보 재조회 최소 간격</b><small>너무 자주 조회하면 API 사용량이 증가합니다. 정지·느린 이동 시에는 최소 5분 간격을 적용합니다.</small></span><select id="settingRefreshMinutes"><option value="1">1분 (기본)</option><option value="3">3분</option><option value="5">5분</option><option value="10">10분</option></select></label>
  <label class="sunny-setting-option sunny-setting-slider"><span><b>지도 기상영역 투명도</b><small>표출 메뉴와 같은 투명도 설정입니다.</small></span><output id="settingOverlayOpacityValue" for="settingOverlayOpacity">45%</output><input id="settingOverlayOpacity" type="range" min="0" max="100" step="5" value="45"/></label>
@@ -114,6 +115,18 @@ export const ui = `
  <p id="settingConnectionCheckedAt" class="sunny-source-checked">최종 검사: 없음</p>
  <p class="sunny-source-guide"><strong>도보:</strong> 전국 TMAP 보행자 경로 조회를 우선 사용합니다. TAAS 보행자·어린이·노인 사고지도는 2024년 WMS PNG를 지도에 표시하고, 경로 사고건수는 별도 REST 응답 검증 후 판단합니다. 무더위쉼터와 보호구역은 별도 승인·연동이 필요합니다. TMAP 보행자 길찾기는 서버의 <code>TMAP_API_KEY</code>를 우선 사용합니다. 인증키는 Vercel 환경변수에서만 등록·수정합니다. TMAP 미등록 시 카카오 도보 대체 제공자의 실제 이용 가능 여부는 별도 확인이 필요합니다. <strong>위험 판단:</strong> Risk Engine 2.0은 기상예보를 분석하며, 현장 보행로 침수·결빙·통행 제한 자료는 아직 미연결입니다.</p>
  <p class="sunny-source-caution">인증키 등록 ≠ 실제 수신 성공. 연결 검사는 서울시청 인근 고정 좌표를 사용하며 GPS를 전송하지 않습니다. ITS 도로 링크, TAAS 과거 사고건수, 위험등급·유효시각은 검증되기 전까지 확정 위험으로 사용하지 않습니다. API 키나 GPS 위치는 표시하지 않습니다.</p>
+ </details>
+</section>
+<section class="sunny-settings-section" aria-label="자료 흐름 및 연동 구조">
+ <details id="settingArchitectureDetails" class="sunny-source-fold">
+  <summary><strong>자료 처리 흐름·연결 구성</strong><small>실제 경로의 수집·검증·판단 근거 및 API 어댑터</small></summary>
+  <p class="sunny-source-guide">실제 경로 형상 → 예상 통과시각 → 자료 수집 → 출처·좌표·시각 검증 → 위험정책 → 안내의 순서로 처리합니다. 표출 스위치는 위험자료 수집과 별개입니다.</p>
+  <p id="settingPipelineSummary" class="sunny-source-summary" role="status">실제 경로를 탐색하면 자료 흐름이 표시됩니다.</p>
+  <div id="settingPipelineStages" class="sunny-source-items" role="list" aria-label="실제 경로 자료 흐름"></div>
+  <p class="sunny-source-guide"><strong>서버 API 어댑터 목록</strong> · 등록키와 실제 수신·정합 검증은 서로 다릅니다. 아래 목록은 연결 구성이지 실시간 장애 진단이 아닙니다.</p>
+  <button id="settingCapabilityRefresh" type="button" class="sunny-source-check-button">API·모델 구성 다시 확인</button>
+  <div id="settingCapabilitySources" class="sunny-source-items" role="list" aria-label="교체 가능한 데이터 공급자 목록"></div>
+  <p class="sunny-source-caution">API 키 등록·갱신은 Vercel 환경변수에서 관리합니다. 임의 기관 주소나 비밀키를 브라우저에서 입력받지 않습니다. 외부 LLM 설명 어댑터는 아직 연결되지 않았으며 위험판단은 검증된 규칙 엔진이 수행합니다.</p>
  </details>
 </section>
 <div class="sunny-settings-bottom">

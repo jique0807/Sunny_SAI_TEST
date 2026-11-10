@@ -30,6 +30,8 @@ const {initVectorDriving}=await import('/vector-driving.mjs');
 const {DEFAULT_APP_SETTINGS,initAppSettings}=await import('/app-settings.mjs');
 const {initConnectionStatusPanel}=await import('/connection-status.mjs');
 const {initLayerHealth}=await import('/layer-health-status.mjs');
+const {createRiskModelRegistry}=await import('/risk-model-adapters.mjs');
+const {initArchitecturePanel}=await import('/architecture-panel.mjs');
 let demoOverlays=[],carOverlay=null,initialDemoRoute=null,initialWalkingDemoRoute=null;
 // Bind the DOM selector before any top-level UI event wiring (prevent TDZ startup crash).
 const $=id=>document.getElementById(id);
@@ -94,6 +96,7 @@ navOpen?.addEventListener('click',()=>showNavSearch(true));
 navClose?.addEventListener('click',()=>showNavSearch(false));
 const navLayersSheet=document.getElementById('navLayersSheet');
 const layerHealth=initLayerHealth({document});
+const riskModels=createRiskModelRegistry();
 const gk2aOverlay=initGk2aOverlay({document,getMap:()=>['kakao','skyview'].includes(activeMap)?kmap:null,
  ensureMap:()=>showMap('kakao'),waitForSession:()=>sessionPromise});
 // Provider-rendered forecast image: standalone view until georeferencing is validated.
@@ -325,7 +328,7 @@ async function loadItsRouteEvidence(activeRoute){
  const seq=++itsLoadSeq;
  const points=(activeRoute.samples||[]).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng))
   .slice(0,24).map(p=>({lat:p.lat,lng:p.lng}));
- if(points.length<2){itsSay('실제 자동차 경로좌표 부족 · ITS 조회하지 않음');return;}
+ if(points.length<2){activeRoute.itsEvidenceStatus='unavailable';itsSay('실제 자동차 경로좌표 부족 · ITS 조회하지 않음');return;}
  itsSay('국가교통정보센터 ITS 사고·공사·통제 조회 중…');
  try{
   const result=await api('/api/its-route-context',{points});
@@ -535,7 +538,7 @@ const appSettings=initAppSettings({
  onChange:next=>{
   const old=appPrefs;appPrefs=next;
   drivingUI.setPreferences(next);
-  if(old.alertCount!==next.alertCount)renderRouteHazards();
+  if(old.alertCount!==next.alertCount||old.riskModel!==next.riskModel)renderRouteHazards();
   const slider=$('navDemoOpacity');
   if(slider){slider.value=String(next.overlayOpacity);updateMapLayerOpacity();}
   if(!next.voiceAlerts)stopVoice();
@@ -807,6 +810,7 @@ function connectionStatus(){$('weatherConnection').textContent=connections.kma?'
 sessionPromise=session().catch(e=>{$('keyStatus').textContent=e.message;connectionStatus();});
 // The environment settings now contain a real, read-only source health dashboard.
 // Tests only run when the user presses refresh, avoiding extra provider/API usage.
+const architecturePanel=initArchitecturePanel({document,waitForSession:async()=>{await sessionPromise;}});
 const connectionPanel=initConnectionStatusPanel({document,waitForSession:async()=>{await sessionPromise;},
  onUpdate:(values,meta)=>{
   layerHealth.update(values);
@@ -954,14 +958,23 @@ $('searchForm').onsubmit=async e=>{
     !Array.isArray(d.vertices)||d.vertices.length<2||
     !Array.isArray(d.rainPath)||d.rainPath.length<2)
   throw Error('도보/차량 경로 제공자 또는 경로 좌표가 요청한 이동수단과 일치하지 않습니다. 잘못된 노선을 표시하지 않습니다.');
- route={...d,demo:false,walkingPriority:mode==='walking'?$('walkingPriority').value:null};weather=null;progress=0;gate.reset();koroadHotspots.setData(null);route.itsRiskEvents=[];renderRoute();rememberDestination(destPlace);showNavSearch(false);showNavRouteResult();reply((mode==='walking'?'보행로':'차량')+' 경로를 찾았어요. 구간별 예보를 확인합니다.');
+ route={...d,demo:false,walkingPriority:mode==='walking'?$('walkingPriority').value:null,
+  itsEvidenceStatus:mode==='driving'?'checking':'not-checked',
+  roadEvidenceStatus:mode==='driving'?'checking':'not-checked',
+  warningEvidenceStatus:'checking',
+  pedestrianEvidenceStatus:mode==='walking'?'checking':'not-checked'};weather=null;progress=0;gate.reset();koroadHotspots.setData(null);route.itsRiskEvents=[];renderRoute();rememberDestination(destPlace);showNavSearch(false);showNavRouteResult();reply((mode==='walking'?'보행로':'차량')+' 경로를 찾았어요. 구간별 예보를 확인합니다.');
  if(mode==='walking')void loadPedestrianRouteEvidence(route);
+ const activeRiskRoute=route;
  if(mode==='driving'){
   void loadItsRouteEvidence(route);
-  void roadRiskOverlay.collectForRisk();
+  void roadRiskOverlay.collectForRisk().then(result=>{
+   if(route===activeRiskRoute){route.roadEvidenceStatus=result.status;renderRouteHazards();}
+  }).catch(()=>{if(route===activeRiskRoute){route.roadEvidenceStatus='failed';renderRouteHazards();}});
  }
  // Official warnings are collected for the risk engine independently of map visibility.
- void warningOverlay.collectForRisk();
+ void warningOverlay.collectForRisk().then(result=>{
+  if(route===activeRiskRoute){route.warningEvidenceStatus=result.status;renderRouteHazards();}
+ }).catch(()=>{if(route===activeRiskRoute){route.warningEvidenceStatus='failed';renderRouteHazards();}});
  const afterRoute=await Promise.allSettled([loadWeather(),showMap('kakao')]);
  if(run===routeSeq&&afterRoute.some(task=>task.status==='rejected')){
   // Routing succeeded; weather/map rendering failures must not be shown as a TMAP failure.
@@ -1053,10 +1066,11 @@ async function loadPedestrianRouteEvidence(activeRoute){
  if(activeRoute?.demo||activeRoute?.travelMode!=='walking')return;
  if(status){status.hidden=false;status.textContent='전국 보행자 과거 사고집중구역 조회 중…';}
  const points=routeHistoryQueryPoints(activeRoute);
- if(points.length<2){if(status)status.textContent='경로의 구간좌표가 부족해 사고이력을 확인하지 못했습니다.';return;}
+ if(points.length<2){activeRoute.pedestrianEvidenceStatus='unavailable';if(status)status.textContent='경로의 구간좌표가 부족해 사고이력을 확인하지 못했습니다.';return;}
  try{
   const result=await api('/api/pedestrian-route-context',{points});
   if(route!==activeRoute)return;
+  activeRoute.pedestrianEvidenceStatus=result.status;
   activeRoute.pedestrianRiskEvents=buildPedestrianHistoryHazards(activeRoute,result);
   koroadHotspots.setAvailable(['received','partial','empty'].includes(result.status));
   koroadHotspots.setData(result);
@@ -1067,6 +1081,7 @@ async function loadPedestrianRouteEvidence(activeRoute){
   drawWeatherOverlays();renderRouteHazards();drivingUI.render();
  }catch(e){
   if(route!==activeRoute)return;
+  activeRoute.pedestrianEvidenceStatus='failed';
   koroadHotspots.setAvailable(false);
   koroadHotspots.setData(null);
   if(status)status.textContent='과거 사고이력 미확인 · '+String(e.message||'조회 실패')+' · 안전 판정 아님';
@@ -1087,7 +1102,8 @@ function renderRouteHazards(){
  });
  // Risk assessment reads the received provider samples regardless of whether
  // the user hides hazard icons. Sources not yet collected still remain unknown.
- const riskProfile=isDemo?null:(route?.travelMode==='walking'?evaluateWalkingRisk:evaluateDrivingRisk)(route,{
+ const riskProfile=isDemo?null:riskModels.evaluate(route,{
+  modelId:appPrefs.riskModel,mode:route?.travelMode||'driving',
   weatherSamples:weather?.samples||[],
   extraHazards:[
    ...(route?.travelMode==='walking'?[]:roadRiskOverlay.routeHazards(route,{forRisk:true})),
@@ -1096,6 +1112,7 @@ function renderRouteHazards(){
    ...(route?.travelMode==='walking'?(route?.pedestrianRiskEvents||[]):[])],
   // Each dedicated risk entrypoint supplies the correct mobility mode and provider filter.
  });
+ architecturePanel.update({route,weather,profile:riskProfile});
  if(isDemo)status.textContent=route.demoWalking?'도보 시연 위험지점 '+count+'개 · 🌧️ 강수 / ⚠️ 빗길 주의'+(route.demoBreakingWarning?' / 🚨 강수 강화':' · 보행 중 🚨 상황 변화')+' · 아이콘 선택':'시연 위험지점 '+count+'개 · 🌧️ 강수 / 🌫️ 안개'+(route.demoBreakingWarning?' / 🚨 긴급특보':' · 주행 중 🚨 특보 추가')+' · 아이콘 선택';
  else{
   const summary=formatRouteRiskSummary(riskProfile);

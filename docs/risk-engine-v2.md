@@ -68,3 +68,13 @@ The existing Seoul–Busan emergency example remains a synthetic demo and contin
 `npm run check`
 
 Preview review should cover: live Kakao route with KMA data, forecast not received, stale forecast, display layer OFF, demo isolation, and numeric road grade withheld.
+
+
+## 자료·모델 확장 인터페이스 (2026-11-11)
+
+- `lib/capability-catalog.mjs`: 출처별 API 키 **이름**, 호출 경로, 교체 슬롯, 위험판단/지도 용도를 선언한 읽기 전용 목록. `GET /api/capability-catalog`은 세션을 요구하며 인증키 값·위치·실측 결과를 반환하지 않는다. 'configured'는 키 등록만 의미한다.
+- `public/risk-model-adapters.mjs`: 기본 `rules-v2`와 `rules-v2-strict` 선택을 지원하는 결정정책 인터페이스. 둘 모두 기존 Risk Engine 2.0의 검증 결과를 소비하며, 확장 정책은 판단을 보류할 수 있지만 위험 지점이나 관측값을 추가할 수 없다.
+- `public/risk-lineage.mjs`: 실제 경로 데이터 수집·검증·판단 상태를 위치나 인증키 없이 요약하는 v1 JSON 계약. 환경설정의 '자료 처리 흐름·연결 구성'에서 확인 가능하다.
+- LLM 기반 설명자는 현재 **미연결**. 별도 설명 어댑터를 연동하더라도 관측/위험판정은 재계산하지 못한다. API를 바꾸려면 기존과 동일한 출처·시간·좌표·등급·결측 계약시험과 운영자 설정이 필요하다.
+
+자세한 개발 계약은 `docs/modular-architecture.md` 참조.
