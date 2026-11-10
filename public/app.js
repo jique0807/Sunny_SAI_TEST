@@ -956,7 +956,12 @@ $('searchForm').onsubmit=async e=>{
   throw Error('도보/차량 경로 제공자 또는 경로 좌표가 요청한 이동수단과 일치하지 않습니다. 잘못된 노선을 표시하지 않습니다.');
  route={...d,demo:false,walkingPriority:mode==='walking'?$('walkingPriority').value:null};weather=null;progress=0;gate.reset();koroadHotspots.setData(null);route.itsRiskEvents=[];renderRoute();rememberDestination(destPlace);showNavSearch(false);showNavRouteResult();reply((mode==='walking'?'보행로':'차량')+' 경로를 찾았어요. 구간별 예보를 확인합니다.');
  if(mode==='walking')void loadPedestrianRouteEvidence(route);
- if(mode==='driving')void loadItsRouteEvidence(route);
+ if(mode==='driving'){
+  void loadItsRouteEvidence(route);
+  void roadRiskOverlay.collectForRisk();
+ }
+ // Official warnings are collected for the risk engine independently of map visibility.
+ void warningOverlay.collectForRisk();
  const afterRoute=await Promise.allSettled([loadWeather(),showMap('kakao')]);
  if(run===routeSeq&&afterRoute.some(task=>task.status==='rejected')){
   // Routing succeeded; weather/map rendering failures must not be shown as a TMAP failure.
@@ -1084,9 +1089,11 @@ function renderRouteHazards(){
  // the user hides hazard icons. Sources not yet collected still remain unknown.
  const riskProfile=isDemo?null:(route?.travelMode==='walking'?evaluateWalkingRisk:evaluateDrivingRisk)(route,{
   weatherSamples:weather?.samples||[],
-  extraHazards:[...routeExtraHazards(route),
-   ...(route?.travelMode==='driving'&&!$('navLayerTrafficIncidents')?.checked?(route?.itsRiskEvents||[]):[]),
-   ...(route?.travelMode==='walking'&&!$('navLayerPedestrianHotspots')?.checked?(route?.pedestrianRiskEvents||[]):[])],
+  extraHazards:[
+   ...(route?.travelMode==='walking'?[]:roadRiskOverlay.routeHazards(route,{forRisk:true})),
+   ...warningOverlay.routeHazards(route,{forRisk:true}),
+   ...(route?.travelMode==='driving'?(route?.itsRiskEvents||[]):[]),
+   ...(route?.travelMode==='walking'?(route?.pedestrianRiskEvents||[]):[])],
   // Each dedicated risk entrypoint supplies the correct mobility mode and provider filter.
  });
  if(isDemo)status.textContent=route.demoWalking?'도보 시연 위험지점 '+count+'개 · 🌧️ 강수 / ⚠️ 빗길 주의'+(route.demoBreakingWarning?' / 🚨 강수 강화':' · 보행 중 🚨 상황 변화')+' · 아이콘 선택':'시연 위험지점 '+count+'개 · 🌧️ 강수 / 🌫️ 안개'+(route.demoBreakingWarning?' / 🚨 긴급특보':' · 주행 중 🚨 특보 추가')+' · 아이콘 선택';

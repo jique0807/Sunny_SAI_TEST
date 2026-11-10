@@ -109,3 +109,15 @@ test('all supported roads share a cached batch and report partial coverage',asyn
  assert.equal(a.totalRoads,12);
  assert.equal(a.locations.length,2);
 });
+
+test('road-risk collection and scoring are independent of map visibility',()=>{
+ const src=readFileSync(new URL('../public/road-risk-overlay.mjs',import.meta.url),'utf8');
+ const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+ assert.match(src,/async function collectForRisk\(\)/);
+ assert.match(src,/forRisk\?3:Number\(ice\?\.checked\)/);
+ assert.match(src,/if\(!route\|\|route\.demo\|\|!data\|\|\(!forRisk&&!enabled\(\)\)\)return \[\]/);
+ assert.match(app,/roadRiskOverlay\.collectForRisk\(\)/);
+ assert.match(app,/warningOverlay\.collectForRisk\(\)/);
+ assert.match(app,/roadRiskOverlay\.routeHazards\(route,\{forRisk:true\}\)/);
+ assert.match(app,/warningOverlay\.routeHazards\(route,\{forRisk:true\}\)/);
+});

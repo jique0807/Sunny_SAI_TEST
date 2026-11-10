@@ -50,7 +50,7 @@ Outputs:
 
 ## Current UI connection
 
-The real-route risk rail summarizes KMA data coverage and verified risk evidence independently of the visibility toggle for icons. ITS event reception is now attempted on every real vehicle route regardless of the ITS map toggle; the toggle only hides or reveals its map/rail markers. Historical pedestrian route evidence already has an independent collector. Other feeds (notably KMA road-risk and warning overlays) still depend on their collection controls and remain **unknown** if not checked. Full source/visibility separation is future work.
+The real-route risk rail summarizes KMA data coverage and verified risk evidence independently of the visibility toggle for icons. ITS event reception is now attempted on every real vehicle route regardless of the ITS map toggle; the toggle only hides or reveals its map/rail markers. Historical pedestrian route evidence already has an independent collector. KMA road-risk and KMA warning data are also now fetched in the background when an actual route is selected; the visibility toggles only control their map markings. The risk engine still rejects unknown severity codes, missing link geometry, stale time or unsupported modes. Background requests can fail or return unverified records and must remain **unknown** in that case. Other optional providers are not all wired as autonomous risk inputs yet.
 
 The existing Seoul–Busan emergency example remains a synthetic demo and continues using its own Kakao waypoint comparison, not live autonomous rerouting.
 
