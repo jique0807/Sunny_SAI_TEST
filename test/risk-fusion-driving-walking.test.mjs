@@ -128,5 +128,5 @@ test('route guidance actively rechecks warnings, road and ITS independent of map
  assert.match(app,/if\(connections\.kma\)void warningOverlay\.loadForRisk\(\)/);
  assert.match(app,/if\(route\.travelMode==='driving'&&connections\.roadRisk\)void roadRiskOverlay\.loadForRisk\(\)/);
  assert.match(app,/if\(route\.travelMode==='driving'&&connections\.its\)void loadItsRouteEvidence\(route\)/);
- assert.match(app,/if\(!routeWeatherEnabled\(\)\)return;\n collectRouteRiskEvidence\(\);/);
+ assert.match(app,/if\(!routeWeatherEnabled\(\)\)return;\n if\(typeof collectRouteRiskEvidence==='function'\)collectRouteRiskEvidence\(\);/);
 });
