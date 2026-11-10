@@ -54,9 +54,9 @@ test('screenshot: four bottom tabs are fixed and accessible even during active g
  assert.ok(!activeHandler.includes('if(drivingUI.isActive()){showNavLayers(false);setNavTab'), 'driving search tab must not be inert');
 });
 test('screenshot: rain forecast and radar sheet is wide and shorter without replacing real modes',()=>{
- assert.match(css,/left:env\(safe-area-inset-left,0px\)!important;\s*right:env\(safe-area-inset-right,0px\)!important;transform:none!important;\s*width:auto!important/);
- assert.match(css,/max-height:min\(210px,42dvh\)!important/);
- assert.match(css,/body\.sunny-rain-grid-active\.sunny-guiding \.sunny-rain-grid-timeline/);
+ assert.match(css,/#navRainGridTimeBar:not\(\[hidden\]\)\{[\s\S]*?width:min\(900px,calc\(100vw - 24px\)\)!important/);
+ assert.match(css,/max-height:min\(330px,52dvh\)!important/);
+ assert.match(css,/body\.sunny-rain-grid-active\.sunny-guiding #navRainGridTimeBar/);
  for(const id of ['navRainGridMinimize','navRainGridClose',
   'navRainGridRefresh','navRainGridReset'])
   assert.equal(ui.split('id="'+id+'"').length-1,1,id);

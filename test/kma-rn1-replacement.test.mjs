@@ -65,9 +65,11 @@ test('the same UI button queries 5km KMA RN1 leads 0 and 1 and never fetches pro
   element('navRainGridLead').dispatch('change');
   await wait();
   assert.deepEqual(calls,['/api/rain-grid?lead=0','/api/rain-grid?lead=1']);
+  // Re-selecting a tab does not turn off either real Kakao precipitation layer.
   element('navForecastImageToggle').dispatch('click');
-  assert.equal(element('navRainGridTimeBar').hidden,true);
-  assert.equal(element('navForecastImageToggle').attributes['aria-pressed'],'false');
+  assert.equal(element('navRainGridTimeBar').hidden,false);
+  assert.equal(element('navForecastImageToggle').attributes['aria-pressed'],'true');
+  assert.equal(calls.length,2);
  }finally{
   overlay?.disable();
   for(const [k,v]of Object.entries(prior)){
