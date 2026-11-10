@@ -127,6 +127,20 @@ export function mapConnectionProbe(kind,data,previous){
    status==='received'?'한국도로교통공단 2024년 서울 중구 과거 사고다발지역 '+(data.items?.length||0)+'곳 수신 · 실시간 사고 아님':
    status==='empty'?'2024년 서울 중구 과거 사고다발지역 제공자료 없음':data?.reason||'KOROAD API 인증 또는 수신 실패');
  }
+ if(kind==='gk2a'){
+  const kinds={satelliteRR:'RR',satelliteCI:'CI',satelliteFog:'FOG'};
+  for(const [id,product] of Object.entries(kinds)){
+   const item=data?.products?.[product];
+   const count=Array.isArray(item?.observationTimes)?item.observationTimes.length:0;
+   // A received catalog is only an index, not a geolocated map overlay.
+   const detail=count&&item?.state==='received'?
+    'GK2A '+product+' 실제 UTC 관측목록 '+count+'시각 확인 · 원본 영상/좌표정합·카카오맵 중첩 미검증':
+    item?.state==='approval_pending'?'위성 '+product+' 개별 API 활용승인 확인 필요':
+    item?.state==='empty'?'위성 '+product+' 조회기간에 관측목록 없음 · 자료 부재가 안전을 뜻하지 않음':
+    item?.detail||'위성 '+product+' 관측자료 형식·권한 확인 필요';
+   put(id,'unverified',detail);
+  }
+ }
  if(kind==='rain'){
   const found=Array.isArray(data?.results)?data.results:[];
   const empty=found.length>0&&found.every(x=>x.status==='received'&&x.valid===0);
@@ -248,12 +262,18 @@ export function initConnectionStatusPanel({
    ])for(const id of ids)if(values[id]?.state==='configured')
     values[id]={...values[id],...state('checking','실제 공급기관 API 응답 확인 중')};
    render();
+   if(session.connections?.kma){
+    for(const id of ['satelliteRR','satelliteCI','satelliteFog'])
+     values[id]={...values[id],...state('checking','GK2A 실제 관측시각 목록 검증 중 · 지도좌표 검증 별도')};
+    render();
+   }
    const checks=[
     ['journey','/api/preview-journey-smoke',['map','search','route','forecast']],
     ['walk','/api/pedestrian-route-diagnostic',['walk']],
     ['koroad','/api/koroad-pedestrian-hotspots',['pedestrianHotspots']],
     ['rain','/api/rain-grid-diagnostic',['rain']],
     ['radar','/api/radar-latest-diagnostic',['radar']],
+    ['gk2a','/api/gk2a-diagnostic',['satelliteRR','satelliteCI','satelliteFog']],
     ['layers','/api/route-layer-feasibility',['road','warning','floodNational','floodLocal']]
    ];
    // Inspect approved ITS/TAAS sources only with a valid same-origin CSRF session.
