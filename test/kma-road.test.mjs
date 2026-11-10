@@ -1,5 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {extractZipFiles,geolocatedRisks,kmaRoadRisk,kmaAllRoadRisks,ROAD_NAMES} from '../lib/kma-road.mjs';
 import {displayableRisks} from '../public/road-risk-overlay.mjs';
 import {handle} from '../lib/api.mjs';
