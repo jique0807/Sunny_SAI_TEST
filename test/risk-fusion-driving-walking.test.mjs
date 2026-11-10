@@ -41,7 +41,7 @@ test('car and walk enforce independent evidence source contracts and KMA route E
  assert.equal(b.coverage,100);
  assert.equal(b.signals.filter(x=>x.kind==='its-incident').length,0);
  assert.equal(b.signals.filter(x=>x.kind==='pedestrian-hotspot').length,1);
- assert.equal(b.signals.filter(x=>x.kind==='rain').length,2);
+ assert.equal(b.signals.filter(x=>x.kind==='rain').length,1); // one rain episode; nearby KMA points are merged
 });
 test('stale route weather cannot be treated as current coverage even when ETA equals forecast valid time',()=>{
  const r=route(),stray=weather(r).map(p=>({...p,
