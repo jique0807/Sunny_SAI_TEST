@@ -599,6 +599,7 @@ const appSettings=initAppSettings({
   const old=appPrefs;appPrefs=next;
   drivingUI.setPreferences(next);
   if(old.alertCount!==next.alertCount||old.riskModel!==next.riskModel)renderRouteHazards();
+   if(old.llmMode!==next.llmMode)llmUI?.setMode();
   const slider=$('navDemoOpacity');
   if(slider){slider.value=String(next.overlayOpacity);updateMapLayerOpacity();}
   if(!next.voiceAlerts)stopVoice();
@@ -1151,7 +1152,7 @@ async function syntheticRiskDemoRoute(config){
  finally{if(run===routeSeq)for(const id of ['demoLiveRisk','navDemoLiveRisk','routeSearch','studioRouteSearch'])if($(id))$(id).disabled=false;}
 }
 dummyUI=initDummyScenarioUI({document,storage:(()=>{try{return window.localStorage}catch{return null}})(),search:async query=>(await api('/api/search',{query})).places||[],onStart:syntheticRiskDemoRoute,isActive:()=>drivingUI.isActive(),onInject:()=>{if(route?.syntheticRiskDemo&&drivingUI.isActive())injectSyntheticRiskWarning();}});
-llmUI=initLLMExplanation({document,api,onSpeak:text=>reply(text,true),onEvent:(value,automatic)=>{if(route?.syntheticRiskDemo)dummyUI.brief(value.status==='llm'?'LLM 브리핑: '+value.text:'정형 근거 설명: '+value.text,{llm:value,automatic});}});
+llmUI=initLLMExplanation({document,api,getMode:()=>appSettings.get().llmMode,onSpeak:text=>reply(text,true),onEvent:(value,automatic)=>{if(route?.syntheticRiskDemo)dummyUI.brief(value.status==='llm'?'LLM 브리핑: '+value.text:'정형 근거 설명: '+value.text,{llm:value,automatic});}});
 void llmUI.refresh();
 for(const id of ['demoLiveRisk','navDemoLiveRisk'])$(id)?.addEventListener('click',async()=>{if(!await dummyUI.open())toast('안내를 종료한 뒤 더미 시나리오를 설정해주세요.');});
 $('realTrip').onclick=()=>{if(playing||$('routeSearch').disabled)return;originPlace={name:'진천군청',lat:36.855,lng:127.436};destPlace={name:'서울시청',lat:37.566,lng:126.978};$('origin').value=originPlace.name;$('destination').value=destPlace.name;$('departure').value=localInput(new Date(Date.now()+120000));$('searchForm').requestSubmit();};

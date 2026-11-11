@@ -1,9 +1,10 @@
 import {buildExplanationContext,templateExplanation} from './risk-explanation-context.mjs';
-export function initLLMExplanation({document,api,onEvent=()=>{},onSpeak=()=>{}}){
+export function initLLMExplanation({document,api,getMode=()=> 'off',onEvent=()=>{},onSpeak=()=>{}}){
  let current=null,identity=null,revision=0,busy=false,timer=null,lastRequest=0,lastAuto='',configured=false,answerText='';
+ const mode=()=>['off','gemma','gpt-oss','custom'].includes(getMode())?getMode():'off';
  const section=document.createElement('section');section.className='sunny-settings-section';
  section.innerHTML=`<h3>LLM 상황 브리핑·근거 설명</h3><p class="hint">엔진이 확인한 근거 문장을 모델이 선택·배열합니다. 위험판정과 경로를 변경하지 않습니다. 요청 시 최소 판정 근거와 입력 질문이 선택한 모델 제공자에게 전송됩니다. 정확한 GPS·목적지·도로 형상은 보내지 않습니다.</p>
- <label class="checklabel"><input id="llmAuto" type="checkbox"/> 새 위험판정 시 자동 브리핑</label>
+ <p class="hint">환경설정의 ‘LLM 설명 모델’에서 사용할 모델을 선택합니다. 연결 모델이 없어도 정형 설명을 요청할 수 있습니다.</p><label class="checklabel"><input id="llmAuto" type="checkbox"/> 새 위험판정 시 자동 브리핑</label>
  <label for="llmProvider">모델 연결 방식</label><select id="llmProvider"><option value="gemini">Google Gemini</option><option value="compatible">서버에 등록된 호환 API</option></select>
  <label for="llmModel">모델 ID</label><input id="llmModel" maxlength="120" placeholder="계정에서 사용 가능한 모델 ID"/>
  <label for="llmKey">개인 LLM API 키</label><input id="llmKey" type="password" autocomplete="off" placeholder="임시 연결용 API 키"/>
@@ -19,7 +20,19 @@ export function initLLMExplanation({document,api,onEvent=()=>{},onSpeak=()=>{}})
  const floating=document.createElement('details');floating.className='sunny-llm-floating';floating.hidden=true;floating.innerHTML='<summary>LLM 상황 브리핑</summary><p></p>';document.body.append(floating);
  const $=id=>document.getElementById(id);
  const status=text=>{$('llmConfigStatus').textContent=text;};
- async function refresh(){try{const d=await api('/api/llm/status',null,'GET');configured=d.configured===true;$('llmProvider').value=d.provider||'gemini';$('llmModel').value=d.model||'';status(configured?'키·모델 등록됨 · 실제 설명 응답 검사 전':'미연결 · 정형 근거 설명을 사용할 수 있습니다.');}catch{configured=false;status('연결 상태 미확인 · 정형 근거 설명 사용');}}
+ async function refresh(){
+  try{
+   const d=await api('/api/llm/status',null,'GET'),selected=mode();
+   configured=selected==='custom'?d.configured===true:
+    selected!=='off'&&d.modes?.some(item=>item.id===selected&&item.configured===true)===true;
+   $('llmProvider').value=d.provider||'gemini';$('llmModel').value=d.model||'';
+   if(selected==='off')status('LLM 미사용 · 정형 근거 설명 사용');
+   else if(!configured)status((selected==='gemma'?'Gemma':selected==='gpt-oss'?'GPT-OSS':'개인 연결')+' 미설정 · 정형 설명으로 대체');
+   else status('모델 설정 확인 · 실제 설명 응답 검증 전');
+   $('llmAuto').disabled=selected==='off';
+   if(selected==='off')floating.hidden=true;
+  }catch{configured=false;status('모델 연결 상태 미확인 · 정형 설명 사용');}
+ }
  $('llmConnect').onclick=async()=>{const key=$('llmKey').value;$('llmKey').value='';$('llmConnect').disabled=true;revision++;answerText='';$('llmRead').disabled=true;
   try{await api('/api/llm/key',{key,provider:$('llmProvider').value,model:$('llmModel').value.trim()});await refresh();lastAuto='';}
   catch(e){status('연결 설정 실패: '+e.message);}finally{$('llmConnect').disabled=false;}};
@@ -27,11 +40,11 @@ export function initLLMExplanation({document,api,onEvent=()=>{},onSpeak=()=>{}})
  $('llmAuto').onchange=()=>{clearTimeout(timer);if(!$('llmAuto').checked)floating.hidden=true;else if(current&&configured)void generate(true);};
  document.getElementById('settings')?.addEventListener('close',()=>{$('llmKey').value='';});
  async function generate(automatic=false){
-  if(!current||busy)return;const snapshot=current,version=revision,routeIdentity=identity;
+  if(!current||busy||(automatic&&!configured))return;const snapshot=current,version=revision,routeIdentity=identity;
   busy=true;$('llmGenerate').disabled=true;lastRequest=Date.now();
   $('llmAnswer').textContent='현재 판정 근거로 설명을 준비합니다.';
   let d;
-  try{d=await api('/api/llm/explain',{profile:snapshot,question:$('llmQuestion').value});}
+  try{d=await api('/api/llm/explain',{profile:snapshot,question:$('llmQuestion').value,mode:mode()});}
   catch{const context=buildExplanationContext(snapshot);d={status:'template',text:templateExplanation(context),reason:'request-failed'};}
   finally{busy=false;$('llmGenerate').disabled=false;}
   if(version!==revision||identity!==routeIdentity||(automatic&&!$('llmAuto').checked))return;
@@ -44,7 +57,11 @@ export function initLLMExplanation({document,api,onEvent=()=>{},onSpeak=()=>{}})
  function open(){if(!current){$('llmAnswer').textContent='경로를 탐색해 위험판정 근거를 먼저 준비해주세요.';dialog.showModal();return;}
   dialog.showModal();void generate();}
  routeButton.onclick=open;driveButton.onclick=open;$('llmGenerate').onclick=()=>void generate();$('llmRead').disabled=true;$('llmRead').onclick=()=>{if(current&&answerText)onSpeak(answerText);};
- return {refresh,update(profile,routeIdentity){
+ return {refresh,setMode(){
+  revision++;lastAuto='';clearTimeout(timer);floating.hidden=true;answerText='';$('llmRead').disabled=true;
+  $('llmAnswerSource').textContent='';$('llmAnswer').textContent='설명 모델이 변경되었습니다. 새 설명을 요청해주세요.';
+  void refresh();
+ },update(profile,routeIdentity){
   let next=null;try{if(profile){buildExplanationContext(profile);next={engine:profile.engine,mode:profile.mode,state:profile.state,coverage:profile.coverage,
    simulation:profile.simulation===true,decisionWithheld:profile.decisionWithheld===true,signals:profile.signals.map(h=>({kind:h.kind,roadRisk:h.roadRisk,
     validTime:h.validTime,impact:h.impact,affectedRadiusMeters:h.affectedRadiusMeters,rainMm:h.rainMm,temperature:h.temperature,windSpeed:h.windSpeed,
@@ -52,6 +69,6 @@ export function initLLMExplanation({document,api,onEvent=()=>{},onSpeak=()=>{}})
   const fingerprint=JSON.stringify(next),changed=fingerprint!==JSON.stringify(current)||routeIdentity!==identity;
   if(!changed)return;current=next;identity=routeIdentity;revision++;clearTimeout(timer);floating.hidden=true;answerText='';$('llmRead').disabled=true;$('llmAnswerSource').textContent='';$('llmAnswer').textContent='판정 근거가 변경되었습니다. 새 설명을 요청해주세요.';
   if(!next)return;
-  if($('llmAuto').checked&&configured&&fingerprint!==lastAuto){lastAuto=fingerprint;timer=setTimeout(()=>void generate(true),Math.max(1000,60000-(Date.now()-lastRequest)));}
+  if($('llmAuto').checked&&configured&&mode()!=='off'&&fingerprint!==lastAuto){lastAuto=fingerprint;timer=setTimeout(()=>void generate(true),Math.max(1000,60000-(Date.now()-lastRequest)));}
  },clear(){current=null;revision++;clearTimeout(timer);floating.hidden=true;answerText='';$('llmRead').disabled=true;$('llmAnswer').textContent='현재 경로의 판정 근거가 없습니다.';$('llmAnswerSource').textContent='';}};
 }

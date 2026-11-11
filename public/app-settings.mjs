@@ -3,7 +3,7 @@
 export const SETTINGS_KEY='sunnySai:preferences:v1';
 export const DEFAULT_APP_SETTINGS=Object.freeze({
  followGps:true,headingMode:'course',alertCount:2,refreshMinutes:1,
- overlayOpacity:45,voiceAlerts:true,voiceSpeed:1,riskModel:'rules-v2'
+ overlayOpacity:45,voiceAlerts:true,voiceSpeed:1,riskModel:'rules-v2',llmMode:'off'
 });
 const isValue=(value,allowed)=>allowed.includes(value);
 export function sanitizeAppSettings(value){
@@ -17,7 +17,8 @@ export function sanitizeAppSettings(value){
   overlayOpacity:Number.isFinite(opacity)?Math.round(Math.min(100,Math.max(0,opacity))):45,
   voiceAlerts:typeof x.voiceAlerts==='boolean'?x.voiceAlerts:true,
   voiceSpeed:isValue(speed,[.7,.8,.9,1,1.1,1.2,1.3])?speed:1,
-  riskModel:isValue(x.riskModel,['rules-v2','rules-v2-strict'])?x.riskModel:'rules-v2'
+  riskModel:isValue(x.riskModel,['rules-v2','rules-v2-strict'])?x.riskModel:'rules-v2',
+  llmMode:isValue(x.llmMode,['off','gemma','gpt-oss','custom'])?x.llmMode:'off'
  };
 }
 export function readAppSettings(storage){
@@ -36,6 +37,7 @@ export function initAppSettings({document,storage,onChange=()=>{}}){
   ['settingRefreshMinutes','refreshMinutes','value'],
   ['settingOverlayOpacity','overlayOpacity','value'],
   ['settingRiskModel','riskModel','value'],
+  ['settingExplanationMode','llmMode','value'],
   ['autoVoice','voiceAlerts','checked'],
   ['speed','voiceSpeed','value']
  ];
