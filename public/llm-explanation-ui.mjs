@@ -10,6 +10,8 @@ export function initLLMExplanation({document,api,getMode=()=> 'off',onEvent=()=>
  <label for="llmKey">개인 LLM API 키</label><input id="llmKey" type="password" autocomplete="off" placeholder="임시 연결용 API 키"/>
  <div class="buttonrow"><button id="llmConnect" type="button">임시 연결·모델 변경</button><button id="llmDisconnect" type="button">연결 삭제</button></div>
  <p class="hint">키는 암호화된 HttpOnly 쿠키에 최대 30분 보관합니다. 같은 연결에서 모델 ID만 바꿀 때는 키를 다시 입력하지 않아도 됩니다. 모델 사용료가 발생할 수 있습니다. 호환 API 주소는 운영자가 서버 환경변수로 관리합니다.</p><p id="llmConfigStatus" role="status">연결 상태 확인 전</p>
+ <button id="llmCheckOpenRouterKey" type="button" disabled>OpenRouter API 키 인증 확인 (추론 비용 없음 · Preview)</button>
+ <p class="hint">OpenRouter에서 API 키 자체를 확인합니다. 모델을 호출하지 않고, API 키 또는 계정 정보는 화면에 표시하지 않습니다.</p><p id="llmOpenRouterKeyResult" role="status">API 키 인증 미확인</p>
  <button id="llmTestConnection" type="button" disabled>선택한 모델 실제 연결 시험 (Preview 전용)</button>
  <p class="hint">Gemma 또는 GPT-OSS에 허구의 판정 근거만 한 번 전송합니다. API 사용료가 발생할 수 있습니다.</p><p id="llmTestResult" role="status">실제 연결 미검증</p>`;
  const settings=document.getElementById('settings'),voice=document.getElementById('voicePreferencesHeading')?.closest('section');
@@ -33,9 +35,34 @@ export function initLLMExplanation({document,api,getMode=()=> 'off',onEvent=()=>
    else status('모델 설정 확인 · 실제 설명 응답 검증 전');
    $('llmAuto').disabled=selected==='off';
    $('llmTestConnection').disabled=!d.diagnosticAvailable||!['gemma','gpt-oss'].includes(selected)||!configured;
+   $('llmCheckOpenRouterKey').disabled=!d.diagnosticAvailable||!['gemma','gpt-oss'].includes(selected)||!configured;
    if(selected==='off')floating.hidden=true;
-  }catch{configured=false;$('llmTestConnection').disabled=true;status('모델 연결 상태 미확인 · 정형 설명 사용');}
+  }catch{configured=false;$('llmTestConnection').disabled=true;$('llmCheckOpenRouterKey').disabled=true;status('모델 연결 상태 미확인 · 정형 설명 사용');}
  }
+ $('llmCheckOpenRouterKey').onclick=async()=>{
+  const selected=mode();if(!['gemma','gpt-oss'].includes(selected))return;
+  const button=$('llmCheckOpenRouterKey'),output=$('llmOpenRouterKeyResult'),version=revision;
+  button.disabled=true;output.textContent='OpenRouter에서 API 키 인증 상태 확인 중입니다.';
+  try{
+   const result=await api('/api/llm/openrouter-key-check',{mode:selected});
+   if(version!==revision)return;
+   if(result.verified)output.textContent='OpenRouter API 키 인증 통과 · '+selected+' · 모델 실제 응답은 별도 시험 필요';
+   else {
+    const guidance={
+     'not-configured':'모델·주소·키 설정이 유효하지 않습니다.',
+     'base-url-mismatch':'BASE_URL을 https://openrouter.ai/api/v1 로 설정하세요.',
+     'key-provider-mismatch':'OpenRouter API 키가 아닐 가능성이 있습니다. 키는 보통 sk-or- 로 시작합니다.',
+     'authentication-rejected':'OpenRouter에서 키를 거부했습니다. OpenRouter 대시보드에서 유효한 키로 교체하세요.',
+     'provider-http-error':'OpenRouter 인증 서비스 응답 오류입니다.',
+     'unexpected-response':'API 키 검사 응답 형식이 예상과 다릅니다.',
+     'request-failed':'OpenRouter에 연결할 수 없거나 응답 검증에 실패했습니다.'
+    };
+    const http=Number.isInteger(result.httpStatus)?' (HTTP '+result.httpStatus+')':'';
+    output.textContent='OpenRouter API 키 인증 미통과'+http+' · '+(guidance[result.reason]||'인증 상태 미확인');
+   }
+  }catch(e){if(version===revision)output.textContent='OpenRouter API 키 인증 요청 실패 · '+(e?.message||'응답 없음');}
+  finally{if(version===revision)void refresh();}
+ };
  $('llmTestConnection').onclick=async()=>{
   const selected=mode();if(!['gemma','gpt-oss'].includes(selected))return;
   const button=$('llmTestConnection'),output=$('llmTestResult'),version=revision;
@@ -94,6 +121,7 @@ export function initLLMExplanation({document,api,getMode=()=> 'off',onEvent=()=>
   revision++;lastAuto='';clearTimeout(timer);floating.hidden=true;answerText='';$('llmRead').disabled=true;
   $('llmAnswerSource').textContent='';$('llmAnswer').textContent='설명 모델이 변경되었습니다. 새 설명을 요청해주세요.';
   $('llmTestConnection').disabled=true;$('llmTestResult').textContent='새 모델 실제 연결 미검증';
+  $('llmCheckOpenRouterKey').disabled=true;$('llmOpenRouterKeyResult').textContent='새 모델 API 키 인증 미확인';
   void refresh();
  },update(profile,routeIdentity){
   let next=null;try{if(profile){buildExplanationContext(profile);next={engine:profile.engine,mode:profile.mode,state:profile.state,coverage:profile.coverage,
