@@ -81,7 +81,7 @@ test('MapLibre without optional supported export starts and updates heading; con
  }
  globalThis.document={createElement:()=>({style:{},setAttribute(){}})};
  globalThis.window={maplibregl:{Map:MapStub,Marker:MarkerStub,AttributionControl:class {}}};
- const failures=[],element={hidden:true,clientHeight:800};
+ const failures=[],element={hidden:true,clientHeight:800,dataset:{}};
  const ui=initVectorDriving({element,onFailure:error=>failures.push(error.message)});
  const route={rainPath:[{lat:37,lng:127},{lat:36,lng:128}]};
  assert.equal(await ui.start(route,route.rainPath[0],90),true);

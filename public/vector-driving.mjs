@@ -81,6 +81,7 @@ export function initVectorDriving({element,onSelect=()=>{},onFailure=()=>{}}){
   sequence++;ready=false;clearMarkers();vehicle?.remove?.();vehicle=null;
   map?.remove?.();map=null;api=null;route=null;lastPoint=null;lastBearing=null;
   element.hidden=true;
+  element.dataset.navigationState='idle';
  }
  function applyCamera(point,bearing,mode='course',animate=true){
   if(!isActive())return;
@@ -119,7 +120,7 @@ export function initVectorDriving({element,onSelect=()=>{},onFailure=()=>{}}){
   }
  }
  async function start(nextRoute,point,bearing,mode='course',hazards=[]){
-  hide();if(!nextRoute?.rainPath?.length||!point)return false;
+  hide();element.dataset.navigationState='loading';if(!nextRoute?.rainPath?.length||!point)return false;
   const ticket=sequence;
   try{
    const lib=await loadLibrary();
@@ -155,12 +156,12 @@ export function initVectorDriving({element,onSelect=()=>{},onFailure=()=>{}}){
     paint:{'line-color':'#1769f1','line-width':8,'line-opacity':.96}},before);
    vehicle=new lib.Marker({element:arrowElement(route?.travelMode),anchor:'center',rotationAlignment:'viewport'})
      .setLngLat([point.lng,point.lat]).addTo(map);
-   ready=true;map.resize();
+   ready=true;element.dataset.navigationState='ready';delete element.dataset.navigationError;map.resize();
    applyCamera(point,bearing,mode,false);
    refreshHazards(hazards);
    return true;
   }catch(err){
-   if(ticket===sequence){hide();onFailure(err);}
+   if(ticket===sequence){hide();element.dataset.navigationState='error';element.dataset.navigationError=err?.message||'지도 연결 실패';onFailure(err);}
    return false;
   }
  }
