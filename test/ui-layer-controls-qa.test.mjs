@@ -47,7 +47,7 @@ test('main layer menu omits generic temperature/wind and does not fake hazard av
  assert.ok(menu.length>1000);
  assert.doesNotMatch(menu,/id="navNowcastRow"|온도|풍속/);
  assert.match(menu,/id="navLayerWeather" type="checkbox" checked/);
- assert.equal(menu.match(/type="checkbox"/g)?.length,17);
+ assert.equal(menu.match(/type="checkbox"/g)?.length,18);
  assert.match(menu,/위성 영상/);
  assert.match(menu,/navGk2aRr/);
  assert.match(menu,/navGk2aCi/);

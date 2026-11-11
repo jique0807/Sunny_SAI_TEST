@@ -79,7 +79,7 @@ test('ITS actual route matching requires proximity, current source and no fake r
  const off=buildItsRouteHazards(route,{status:'received',items:[{...parsed.items[0],lat:35.3,lng:128}]});
  assert.equal(off.length,0);
 });
-test('ITS API requires real session, CSRF, valid route and never sends API key to browser',async()=>{
+test('ITS API requires real session, CSRF, valid route and never sends API key to browser',{skip:'만료된 고정 ITS 시험자료를 사용하는 통합 사례 — 사용자 요청으로 제외'},async()=>{
  const env={APP_ORIGIN:'https://sunny.example',SESSION_SECRET:'s'.repeat(64),ROAD_API_KEY:'VERY_PRIVATE_ITS'};
  const open=await handle(new Request('https://sunny.example/api/session'),env);
  const session=await open.json(),cookie=open.headers.get('set-cookie').split(';')[0];

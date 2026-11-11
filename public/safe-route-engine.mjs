@@ -117,7 +117,7 @@ export const RISK_SOURCE_GROUPS=Object.freeze({
 });
 export function evaluateDrivingRisk(route,{weatherSamples=[],extraHazards=[],now=Date.now()}={}){
  const accepted=Array.isArray(extraHazards)?extraHazards.filter(h=>
-  h?.roadRisk!==undefined||['its-incident','warning'].includes(h?.kind)):[];
+  h?.roadRisk!==undefined||['its-incident','warning','satellite-rain','satellite-convection','satellite-fog','observed-road-fog','observed-road-rain','observed-road-snow'].includes(h?.kind)):[];
  return {...evaluateRouteRisk(route,{weatherSamples,extraHazards:accepted,mode:'driving',now}),
   riskSystem:'driving',sourceGroup:RISK_SOURCE_GROUPS.driving.displayGroup};
 }
@@ -135,7 +135,7 @@ export function evaluateSyntheticDrivingRisk(route,{weatherSamples=[],extraHazar
 export function evaluateWalkingRisk(route,{weatherSamples=[],extraHazards=[],now=Date.now()}={}){
  // WMS PNG and TMAP crossings/steps are visual/context data, not validated hazard points.
  const accepted=Array.isArray(extraHazards)?extraHazards.filter(h=>
-  ['pedestrian-hotspot','warning'].includes(h?.kind)):[];
+  ['pedestrian-hotspot','warning','satellite-rain','satellite-convection','satellite-fog','observed-road-fog','observed-road-rain','observed-road-snow'].includes(h?.kind)):[];
  return {...evaluateRouteRisk(route,{weatherSamples,extraHazards:accepted,mode:'walking',now}),
   riskSystem:'walking',sourceGroup:RISK_SOURCE_GROUPS.walking.displayGroup};
 }

@@ -1,12 +1,14 @@
 // Per-route collection schedule; independent of whether a map layer is visible.
-export function createRouteEvidenceRefresh({getRoute,collectRoad,collectWarnings,collectPedestrian,onUpdate=()=>{},now=Date.now}){
+export function createRouteEvidenceRefresh({getRoute,collectRoad,collectWarnings,collectPedestrian,collectSatellite,collectObservations,onUpdate=()=>{},now=Date.now}){
  const routes=new WeakMap();
  return async function refresh(route){
   if(!route||route.demo||!['driving','walking'].includes(route.travelMode)||getRoute()!==route)return;
   if(!routes.has(route))routes.set(route,{});
   const state=routes.get(route);
   const jobs=[['warning',collectWarnings,120000],
-   route.travelMode==='driving'?['road',collectRoad,180000]:['pedestrian',collectPedestrian,1800000]];
+   route.travelMode==='driving'?['road',collectRoad,180000]:['pedestrian',collectPedestrian,1800000],
+   ...(collectSatellite?[['satellite',collectSatellite,120000]]:[]),
+   ...(collectObservations?[['observations',collectObservations,120000]]:[])];
   await Promise.all(jobs.map(async([kind,collect,interval])=>{
    const s=state[kind]??(state[kind]={next:0,pending:false,failures:0});
    if(s.pending||now()<s.next)return;

@@ -4,6 +4,7 @@ export const LAYER_HEALTH_SOURCES=Object.freeze([
  ['navLayerWeather','forecast'],
  ['navGk2aRr','gk2aRr'],['navGk2aCi','gk2aCi'],['navGk2aFog','gk2aFog'],
  ['navNationalRadar','radar'],['navNationalRain','rain'],
+ ['navLayerRoadWeather','roadWeather'],
  ['navLayersnow','forecast','precipitation-type-unverified'],
  ['navLayerroad','road','road-position-unverified'],['navLayerfog','road','road-position-unverified'],
  ['navLayerWarning','warning'],

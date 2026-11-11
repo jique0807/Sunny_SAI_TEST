@@ -1,15 +1,15 @@
 import {setLayerReception} from './layer-reception.mjs';
+import {firstWarningAreaCrossing,warningAreaPolygons} from './warning-area-geometry.mjs';
 export function warningRouteHazards(warnings,path,departure){
  const hazards=[];
  for(const warning of warnings){
-  // An AWS point identifies its own warning region only. Proximity is not a boundary test.
-  const point=path.find(p=>warning.points.some(s=>
-   Math.hypot((p.lat-s.lat)*111000,(p.lng-s.lng)*90000)<=500));
+  if(warning.geometryStatus!=='official_crs84_polygon')continue;
+  const point=firstWarningAreaCrossing(path,warning.geometry);
   if(!point)continue;
   const eta=Date.parse(departure)+point.seconds*1000;
   hazards.push({...warning,...point,label:warning.label,kind:'warning',
    eta:Number.isFinite(eta)?new Date(eta).toISOString():null,
-   provider:'기상청 특보현황 · 경로 500m 이내 관측지점 기준'});
+   provider:'기상청 특보현황 · 공식 특보구역 경로 교차',spatialMatch:'official-warning-polygon'});
  }
  return hazards;
 }
@@ -24,6 +24,11 @@ export function initWarningOverlay({query,getMap,ensureMap,onChange}){
   const map=getMap();
   if(!map)return;
   for(const w of data.warnings){
+   if(w.geometryStatus==='official_crs84_polygon'){
+    for(const rings of warningAreaPolygons(w.geometry))items.push(new kakao.maps.Polygon({map,
+     path:rings.map(r=>r.map(p=>new kakao.maps.LatLng(p[1],p[0]))),
+     strokeWeight:2,strokeColor:'#dc2626',strokeOpacity:.7,fillColor:'#f97316',fillOpacity:.18}));
+   }
    const p=w.points[0];
    if(!p)continue;
    const button=document.createElement('button');
@@ -57,9 +62,9 @@ export function initWarningOverlay({query,getMap,ensureMap,onChange}){
    if(!result)throw Error('특보 자료 수신 실패');
    if(run!==request||!toggle.checked)return;
    data=result;if(!cached)riskReceivedAt=Date.now();
-   const matched=data.warnings.filter(w=>w.points.length).length;
+   const matched=data.warnings.filter(w=>w.geometryStatus==='official_crs84_polygon').length;
    say('발효 특보 '+data.warnings.length+'건 · 지도 표시 '+matched+'건'+
-    (data.stationError?' · 관측지점 조회 실패':' · 관측지점 위치'));
+    ' · 공식 특보구역 경계'+(matched<data.warnings.length?' · 일부 구역 경계 미확보':''));
    setLayerReception('navLayerWarning',data.warnings.length?'received':'empty');
    if(matched)await ensureMap();
   }catch(e){

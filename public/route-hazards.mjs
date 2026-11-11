@@ -81,6 +81,11 @@ export function hazardDetails(hazard,formatTime){
   '예보 유효시각: '+format(hazard.validTime),
   '앱 내부 주의 기준이며 기상청 공식 특보가 아닙니다. 그늘·체감온도·실제 보행상태는 별도 확인이 필요합니다.'
  ];
+ else if(['satellite-rain','satellite-convection','satellite-fog'].includes(hazard.kind))details=[
+  hazard.title,'위성 산출값: '+hazard.measure,'관측시각: '+format(hazard.validTime),
+  '예상 통과: '+format(hazard.eta),'자료: '+hazard.provider,
+  '위성 추정·탐지이며 실제 노면 침수·시정·통제 정보가 아닙니다.'
+ ];
  else if(hazard.kind==='warning')details=[
   hazard.title,'특보구역: '+hazard.label,'발효 시각: '+format(hazard.validTime),
   '자료: '+hazard.provider

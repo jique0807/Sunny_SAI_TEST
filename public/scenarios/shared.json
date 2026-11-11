@@ -1,0 +1,103 @@
+{
+  "schema": "sunny-shared-scenarios-v1",
+  "scenarios": [
+    {
+      "type": "flood",
+      "initialRain": 0,
+      "rain": 65,
+      "temperature": 35,
+      "warning": true,
+      "trigger": 45,
+      "id": "shared-driving",
+      "name": "공통 테스트 · 자동차 · 일반 2개＋긴급 2개",
+      "journey": {
+        "mode": "driving",
+        "origin": {
+          "lat": 37.55472,
+          "lng": 126.97083,
+          "name": "서울역"
+        },
+        "destination": {
+          "lat": 37.49794,
+          "lng": 127.02762,
+          "name": "강남역"
+        }
+      },
+      "events": [
+        {
+          "kind": "rain",
+          "position": 35,
+          "value": 8
+        },
+        {
+          "kind": "fog",
+          "position": 55,
+          "value": 200
+        }
+      ],
+      "emergencies": [
+        {
+          "kind": "flood",
+          "position": 75,
+          "trigger": 45,
+          "value": 65
+        },
+        {
+          "kind": "wind",
+          "position": 90,
+          "trigger": 65,
+          "value": 18
+        }
+      ]
+    },
+    {
+      "type": "flood",
+      "initialRain": 0,
+      "rain": 65,
+      "temperature": 35,
+      "warning": true,
+      "trigger": 45,
+      "id": "shared-walking",
+      "name": "공통 테스트 · 도보 · 일반 2개＋긴급 2개",
+      "journey": {
+        "mode": "walking",
+        "origin": {
+          "lat": 37.55472,
+          "lng": 126.97083,
+          "name": "서울역"
+        },
+        "destination": {
+          "lat": 37.5663,
+          "lng": 126.9779,
+          "name": "서울시청"
+        }
+      },
+      "events": [
+        {
+          "kind": "rain",
+          "position": 35,
+          "value": 8
+        },
+        {
+          "kind": "hotspot",
+          "position": 55,
+          "value": 5
+        }
+      ],
+      "emergencies": [
+        {
+          "kind": "heat",
+          "position": 75,
+          "trigger": 45,
+          "value": 35
+        },
+        {
+          "kind": "wind",
+          "position": 90,
+          "trigger": 65,
+          "value": 18
+        }
+      ]
+    }
+  ]
+}

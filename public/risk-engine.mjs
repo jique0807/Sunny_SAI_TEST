@@ -10,6 +10,27 @@ export function assessRouteHazard(h,{now=Date.now(),syntheticScenario=false}={})
  if(h.demo)return assessment('simulation','시연','가상의 기상위험','실제 위험판정이 아닙니다.',0);
  const source=String(h.provider||'');
  const synthetic=syntheticScenario&&h.synthetic===true&&source==='Sunny SAI 더미 시연자료';
+ if(['observed-road-fog','observed-road-rain','observed-road-snow'].includes(h.kind)){
+  const age=now-Date.parse(h.validTime),until=Date.parse(h.eta)-now;
+  if(source!=='기상청 CCTV 도로날씨'||!located(h)||![1,2,3].includes(h.grade)||
+   !Number.isFinite(h.distanceToPath)||h.distanceToPath<0||h.distanceToPath>250||
+   !Number.isFinite(age)||age<0||age>30*60000||!Number.isFinite(until)||until< -120000||until>10*60000)
+   return assessment('unknown','도로날씨 자료 제외','출처·좌표·분류·관측시각·통과시각 검증 필요','먼 미래의 위험이나 노면 상태를 추정하지 않습니다.',0);
+  return assessment(h.grade>=2?'caution':'notice',h.title||'인근 도로날씨 주의',
+   '기상청 영상 기반 날씨 분류 · '+['','약','중','강'][h.grade]+' · 경로 약 '+h.distanceToPath+'m',
+   '관측지점 인근 참고이며 실제 주행 도로·차로·침수·결빙·시정 실측은 미확인입니다.',h.grade>=2?58:35);
+ }
+ if(['satellite-rain','satellite-convection','satellite-fog'].includes(h.kind)){
+  const age=now-Date.parse(h.validTime),until=Date.parse(h.eta)-now;
+  if(source!=='기상청 GK2A 수치 산출물'||h.metadataVerified!==true||h.qualityVerified!==true||h.navigationVerified!==true||
+   !located(h)||!Number.isFinite(age)||age<0||age>(h.kind==='satellite-fog'?60:20)*60000||!Number.isFinite(until)||until< -120000||until>15*60000)
+   return assessment('unknown','위성 자료 제외','좌표·품질·관측시각·가까운 통과시각 미검증','관측을 먼 미래의 예보로 사용하지 않습니다.',0);
+  const caution='위성 추정·탐지 참고자료이며 실제 도로 침수·노면 시정·통제 관측은 아닙니다.';
+  if(h.kind==='satellite-rain'&&Number.isFinite(h.value)&&h.value>=10&&h.value<=100)return assessment(h.value>=30?'high':'caution','위성 추정 강수 주의',h.value.toFixed(2)+' mm/h',caution,h.value>=30?75:55);
+  if(h.kind==='satellite-convection'&&[2,3,4].includes(h.value))return assessment(h.value>=3?'caution':'notice','위성 대류운 발달 참고','발달 범주 '+h.value+' · 백분율 아님',caution,h.value>=3?55:30);
+  if(h.kind==='satellite-fog'&&[4,5].includes(h.value))return assessment(h.value===5?'caution':'notice','위성 안개 참고',h.value===5?'안개 탐지':'안개 가능',caution,h.value===5?55:30);
+  return assessment('unknown','위성 자료 제외','지원 범위 밖 값','확인되지 않은 값을 위험으로 만들지 않습니다.',0);
+ }
  if(h.synthetic===true&&!synthetic)
   return assessment('unknown','더미 자료 판정 보류','전용 시뮬레이션 평가 경로가 아닙니다.',
    '시험용 자료는 실제 운영 위험자료와 분리합니다.',0);
@@ -56,6 +77,8 @@ export function assessRouteHazard(h,{now=Date.now(),syntheticScenario=false}={})
   if(synthetic)return assessment('caution','가상 침수경보 · 우회 검토',
    '더미 경보 좌표·유효시각과 시험 경로 일치',
    '시뮬레이션 전용입니다. 실제 발표·침수 여부와 안전한 우회경로는 확인하지 않았습니다.',78);
+  if(h.spatialMatch==='official-warning-polygon')return assessment('caution','기상특보 구역 통과',
+   source+' · 공식 구역 경계와 경로 교차 확인','구역 특보이며 실제 도로 침수·통제 확정은 아닙니다.',78);
   return assessment('caution','기상특보 근접 참고',source+' · 경로 인접 관측지점 기준',
    '공식 특보구역 경계·도로 통제 확인은 아닙니다.',78);
  }

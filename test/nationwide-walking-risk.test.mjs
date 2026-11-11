@@ -43,7 +43,7 @@ test('KOROAD route-scoped API does not leak credentials and only counts verified
  });
  assert.equal(data.status,'received');
  assert.equal(data.items.length,1);
- assert.equal(koroadCalls,1);
+ assert.equal(koroadCalls,3);
  assert.ok(!JSON.stringify(data).includes('SECRET_'));
  const hazards=buildPedestrianHistoryHazards(route,data);
  assert.equal(hazards.length,1);assert.equal(hazards[0].kind,'pedestrian-hotspot');
@@ -64,4 +64,30 @@ test('KMA time-aligned high temperature, low temperature and wind generate cauti
  assert.equal(cold[0].assessment.level,'caution');
  const bad={...sample(34,0),forecast:{...sample(34,0).forecast,time:'2026-11-11T01:00:00Z'}};
  assert.equal(buildRouteHazards([bad])[0].assessment.level,'unknown');
+});
+
+test('TAAS corridor retains a hotspot between distant representative points and rejects off-route data',async()=>{
+ const points=[{lat:37,lng:127},{lat:37,lng:127.1}];
+ const result=await fetchRoutePedestrianHistory({points,path:points,koroadKey:'key',kakaoKey:'key',
+  fetcher:async url=>url.startsWith('https://dapi.kakao.com/')
+   ?Response.json({documents:[{region_type:'B',code:'4111000000',region_1depth_name:'경기',region_2depth_name:'수원'}]})
+   :Response.json({resultCode:'00',items:{item:[
+    {bjd_cd:'4111000000',spot_nm:'중간구간',lo_crd:127.05,la_crd:37,occrrnc_cnt:8},
+    {bjd_cd:'4111000000',spot_nm:'경로밖',lo_crd:127.05,la_crd:37.1,occrrnc_cnt:8}]}})});
+ assert.equal(result.items.length,1);assert.equal(result.items[0].lng,127.05);
+ const invalid=await fetchRoutePedestrianHistory({points,path:[{lat:NaN,lng:127}],koroadKey:'key',kakaoKey:'key'});
+ assert.equal(invalid.status,'invalid');
+});
+
+test('authenticated pedestrian endpoint validates and forwards the full route corridor',async()=>{
+ const {handle}=await import('../lib/api.mjs');
+ const origin='https://corridor.test',env={APP_ORIGIN:origin,SESSION_SECRET:'s'.repeat(64),KOROAD_API_KEY:'key',KAKAO_REST_API_KEY:'key'};
+ const sessionResponse=await handle(new Request(origin+'/api/session'),env);
+ const session=await sessionResponse.json(),cookie=sessionResponse.headers.get('set-cookie').split(';')[0];
+ const send=payload=>handle(new Request(origin+'/api/pedestrian-route-context',{method:'POST',headers:{Origin:origin,Cookie:cookie,'X-CSRF-Token':session.csrf,'Content-Type':'application/json'},body:JSON.stringify(payload)}),env,
+  async url=>url.startsWith('https://dapi.kakao.com/')?Response.json({documents:[{region_type:'B',code:'4113000000',region_1depth_name:'경기',region_2depth_name:'성남'}]}):Response.json({resultCode:'00',items:{item:[]}}));
+ const points=[{lat:37,lng:127},{lat:37,lng:127.1}];
+ assert.equal((await send({points,path:[{lat:0,lng:0},points[1]]})).status,400);
+ const response=await send({points,path:points});assert.equal(response.status,200);
+ assert.equal((await response.json()).status,'empty');
 });

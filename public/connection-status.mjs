@@ -3,6 +3,11 @@ import {fetchWithReception} from './layer-reception.mjs';
 // Uses the existing rate-limited real-provider diagnostics.
 // Never display credentials or infer road safety from key presence or raw data.
 export const DATA_CONNECTION_SOURCES=[
+ {id:'roadWeather',group:'추가 기상·안전 자료',name:'도로 안개·비·눈',description:'CCTV 기반 분류 · 동영상 아님 · 일부 고속도로'},
+ {id:'awsLocal',group:'추가 기상·안전 자료',name:'국지성 강수·강풍',description:'AWS 관측값 · 관측소 좌표 확인 후 사용'},
+ {id:'snowfall',group:'추가 기상·안전 자료',name:'1시간 신적설 예보',description:'단기예보 SNO · 지면 총적설 아님'},
+ {id:'taasAdditional',group:'추가 기상·안전 자료',name:'추가 사고다발지역',description:'법규위반 사고통계 · 기존 보행 사고자료와 별도 승인'},
+ {id:'heatShelter',group:'추가 기상·안전 자료',name:'무더위쉼터',description:'실제 시설 수신·운영 여부 확인 필요'},
  {id:'map',group:'지도·길찾기',name:'카카오맵 지도',description:'JavaScript SDK · 프리뷰 허용 도메인'},
  {id:'search',group:'지도·길찾기',name:'카카오 장소검색',description:'장소명·주소 찾기'},
  {id:'route',group:'지도·길찾기',name:'카카오 자동차 길찾기',description:'도로 경로·거리·예상 통과시각'},
@@ -10,13 +15,13 @@ export const DATA_CONNECTION_SOURCES=[
  {id:'forecast',group:'기상 예보',name:'경로별 기상예보',description:'예상 통과시각의 기상청 예보'},
  {id:'rain',group:'기상 예보',name:'전국 강수량 격자 예보',description:'RN1 5km 격자 · 정시별 강수예보'},
  {id:'radar',group:'기상 예보',name:'HSR 레이더 실황',description:'실제 강수 관측영상 · 10분 간격'},
- {id:'gk2aRr',group:'위성 영상',name:'GK2A 강우강도 RR',description:'L2 PNG · 영상 픽셀/지도 정합 검증은 별도'},
- {id:'gk2aCi',group:'위성 영상',name:'GK2A 대류운 탐지 CI',description:'ELA/LC 영역 수신 여부 · 좌표 정합 별도'},
- {id:'gk2aFog',group:'위성 영상',name:'GK2A 안개 FOG',description:'L2 PNG · 영상 픽셀/지도 정합 검증은 별도'},
+ {id:'gk2aRr',group:'위성 영상',name:'GK2A 강우강도 RR',description:'NC 수치 격자 · mm/h · 관측시각·좌표 검사'},
+ {id:'gk2aCi',group:'위성 영상',name:'GK2A 대류운 탐지 CI',description:'NC 발달 단계 · 품질·좌표 검사'},
+ {id:'gk2aFog',group:'위성 영상',name:'GK2A 안개 FOG',description:'NC 안개 분류 · 품질·좌표 검사'},
  {id:'road',group:'자동차 위험자료',name:'도로살얼음·안개',description:'도로 링크별 공식 위험기상정보 · 위치·시각 검증 필요'},
  {id:'trafficIncident',group:'자동차 위험자료',name:'ITS 사고·공사·통제',description:'실제 자동차 경로 주변 돌발정보 · 도로 링크/차로 통제 미검증'},
  {id:'itsTraffic',group:'자동차 위험자료',name:'ITS 교통소통정보',description:'공식 도로 링크·속도 정보 · 카카오 경로 링크 일치 검증 전'},
- {id:'warning',group:'자동차 위험자료',name:'기상특보 현황',description:'발효지역·특보등급 확인 · 구역 경계 미검증'},
+ {id:'warning',group:'자동차 위험자료',name:'기상특보 현황',description:'발효지역·특보등급 · 공식 구역 경계와 경로 교차 확인'},
  {id:'floodNational',group:'자동차 위험자료',name:'국가하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 관측 아님'},
  {id:'floodLocal',group:'자동차 위험자료',name:'지방하천 범람예상지도',description:'생활안전지도 WMS · 실제 침수 관측 아님'},
  {id:'walkSurface',group:'도보·교통안전 자료',name:'보행로 침수·결빙·통행 제한',description:'현장 관측 API 미연결 · 날씨 예보와 구분'},
@@ -107,15 +112,22 @@ export function mapConnectionProbe(kind,data,previous){
    traffic?.status==='received'?'ITS 도로 링크 속도 '+(traffic.count||0)+'건 수신 · 카카오 경로 일치 전':
    traffic?.reason||'ITS 소통정보 실제 수신 확인 필요');
  }
+ if(kind==='additional'){
+  for(const item of data?.results||[]){if(!['roadWeather','awsLocal','snowfall','taasAdditional','heatShelter'].includes(item.id))continue;
+   put(item.id,item.status==='received'?'ok':item.status==='partial'?'partial':item.status==='empty'?'empty':'unverified',item.detail);
+  }
+ }
  if(kind==='satellite'){
   const byCode={rr:'gk2aRr',ci:'gk2aCi',fog:'gk2aFog'};
   for(const item of data?.results||[]){
    const id=byCode[String(item.product||'').toLowerCase()];
    if(!id)continue;
    const exists=item.status==='received';
-   const geo=exists&&item.georeference==='verified_ko_lcc_900';
+   const numeric=exists&&item.metadataVerified===true;
+   const geo=exists&&(numeric||item.georeference==='verified_ko_lcc_900');
    const dims=exists&&item.width&&item.height?item.width+'×'+item.height:'';
    put(id,exists?geo?'ok':'partial':item.status==='key_missing'?'missing':'unverified',
+    numeric?'NC '+dims+' 수신 · 투영·변수·배율·품질 정의 확인 · '+item.observationUTC+' UTC':
     exists?'실제 L2 PNG '+dims+' 수신 · '+(geo?'KO LCC 자료 형식 확인 (지도 정합 별도 검증)':'좌표·영상 영역 미검증'):
      '해당 시각 위성영상 수신 미확인 · 잘못된 지도 중첩 방지');
   }
@@ -157,12 +169,12 @@ export function mapConnectionProbe(kind,data,previous){
   const hasCoords=geos.some(s=>s.hasCoordinateColumns&&s.georeferencedRows>0);
   put('road',road?.state==='request_failed'?'disconnected':road?.state==='provider_zip_parsed'&&road.result!=='unsupported_format'?'partial':'error',
    road?.state==='provider_zip_parsed'?
-    '도로위험 ZIP 수신'+(hasCoords?'· 좌표 확인':'')+' · 등급/유효시각 미검증':
+    '도로위험 ZIP 수신'+(hasCoords?'· 좌표 확인':'')+(road.gradeDefinition?' · 공식 등급 확인 · 0은 정보 없음':' · 등급/유효시각 미검증')+' · 자료시각·경로 정합 별도 확인':
     '도로위험 공식 자료 수신 미확인');
   const wrn=data?.warning;
   put('warning',wrn?.state==='request_failed'?'disconnected':['header_or_empty_received','empty_response'].includes(wrn?.state)?'empty':wrn?.state==='text_received'||wrn?.state==='header_or_empty_received'?
    'partial':'error',wrn?.state==='text_received'||wrn?.state==='header_or_empty_received'?
-    Number.isInteger(wrn.activeCount)?'발효 특보 '+wrn.activeCount+'건 · 구역경계 미검증':'공식 텍스트 응답 · 특보내용·구역경계 미검증':
+    Number.isInteger(wrn.activeCount)?'발효 특보 '+wrn.activeCount+'건 · '+(wrn.geometry==='official_crs84_polygons'?'공식 경계 연결 '+(wrn.mappedCount||0)+'건':'구역경계 미검증'):'공식 텍스트 응답 · 특보내용·구역경계 미검증':
     wrn?.http===403?'기상특보 접근 거절(403)':'기상특보 API 실수신 미확인');
   for(const [id,flood]of [['floodNational',data?.flood],['floodLocal',data?.floodLocal]]){
    const png=flood?.state==='png_received';
@@ -258,8 +270,10 @@ export function initConnectionStatusPanel({
     [[ 'road','warning','floodNational','floodLocal' ]],[['pedestrianHotspots']]
    ])for(const id of ids)if(values[id]?.state==='configured')
     values[id]={...values[id],...state('checking','실제 공급기관 API 응답 확인 중')};
+   for(const id of ['roadWeather','awsLocal','snowfall','taasAdditional','heatShelter'])values[id]={...values[id],...state('checking','추가 자료 실제 응답 검사 중')};
    render();
    const checks=[
+    ['additional','/api/additional-source-diagnostic',['roadWeather','awsLocal','snowfall','taasAdditional','heatShelter']],
     ['journey','/api/preview-journey-smoke',['map','search','route','forecast']],
     ['walk','/api/pedestrian-route-diagnostic',['walk']],
     ['koroad','/api/koroad-pedestrian-hotspots',['pedestrianHotspots']],
@@ -270,7 +284,7 @@ export function initConnectionStatusPanel({
    if(values.gk2aRr?.keyRegistered){
     for(const id of ['gk2aRr','gk2aCi','gk2aFog'])
      values[id]={...values[id],...state('checking','GK2A 공식 위성 L2 영상 실제 수신 검사 중')};
-    checks.push(['satellite','/api/gk2a-live-diagnostic',['gk2aRr','gk2aCi','gk2aFog']]);
+    checks.push(['satellite','/api/gk2a-data-diagnostic',['gk2aRr','gk2aCi','gk2aFog']]);
    }
    if(values.taasPedestrianWms?.keyRegistered){
     for(const id of ['taasPedestrianWms','taasChildWms','taasElderlyWms'])

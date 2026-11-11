@@ -47,7 +47,7 @@ test('source inventory covers all agreed menu sources but excludes CCTV and ordi
  const ids=DATA_CONNECTION_SOURCES.map(x=>x.id);
  assert.equal(new Set(ids).size,ids.length);
  assert.ok(ids.includes('map')&&ids.includes('rain')&&ids.includes('radar'));
- assert.equal(ids.length,21);
+ assert.equal(ids.length,26);
  assert.ok(ids.includes('gk2aRr')&&ids.includes('gk2aCi')&&ids.includes('gk2aFog'));
  assert.ok(ids.includes('walk')&&ids.includes('walkSurface'));
  assert.ok(ids.includes('trafficIncident')&&ids.includes('pedestrianHotspots'));
@@ -127,6 +127,7 @@ test('settings refresh makes real diagnostic requests and maps results to honest
  const {document,nodes}=dom(),calls=[];
  const response={
   '/api/session':session,
+  '/api/additional-source-diagnostic':{results:[{id:'roadWeather',status:'received',detail:'도로날씨 8개 지점'},{id:'awsLocal',status:'partial',detail:'좌표 미수신'}]},
   '/api/preview-journey-smoke':journey,
   '/api/pedestrian-route-diagnostic':{provider:'tmap',status:'received',geometryValid:true,distanceMeters:1540,durationSeconds:1080},
   '/api/rain-grid-diagnostic':rain,
@@ -148,9 +149,11 @@ test('settings refresh makes real diagnostic requests and maps results to honest
  assert.ok(nodes.get('settingConnectionItems').children.length>11);
  assert.equal(await panel.refresh(),true);
  assert.deepEqual(calls,[
-  '/api/session','/api/preview-journey-smoke','/api/pedestrian-route-diagnostic','/api/rain-grid-diagnostic',
+  '/api/session','/api/additional-source-diagnostic','/api/preview-journey-smoke','/api/pedestrian-route-diagnostic','/api/rain-grid-diagnostic',
   '/api/radar-latest-diagnostic','/api/route-layer-feasibility'
  ]);
+ assert.equal(panel.getStatus().roadWeather.state,'ok');
+ assert.equal(panel.getStatus().awsLocal.state,'partial');
  assert.equal(panel.getStatus().rain.state,'ok');
  assert.equal(panel.getStatus().walk.state,'ok');
  assert.equal(panel.getStatus().walkSurface.state,'unverified');
@@ -201,7 +204,7 @@ test('ITS and TAAS 2024 REST each receive distinct honest live diagnostic status
   if(path==='/api/taas-rest-diagnostic')return Response.json({results:[
    {kind:'pedestrian',status:'received',count:3},{kind:'child',status:'empty',count:0},
    {kind:'elderly',status:'failed',count:0,reason:'REST 이용승인 확인 필요'}]});
-  if(path==='/api/gk2a-live-diagnostic')return Response.json({results:[
+  if(path==='/api/gk2a-data-diagnostic')return Response.json({results:[
    {product:'rr',status:'received',width:900,height:922,georeference:'unverified_raster_geometry'},
    {product:'ci',status:'not_received'},{product:'fog',status:'not_received'}]});
   if(path==='/api/koroad-pedestrian-hotspots')return Response.json({status:'received',items:[{lat:37.5,lng:127}]});

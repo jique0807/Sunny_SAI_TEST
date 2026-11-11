@@ -33,9 +33,9 @@ export function sanitizeScenario(value){
  if(value.journey&&['driving','walking'].includes(value.journey.mode)){const place=p=>p&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)&&p.lat>=32&&p.lat<=40&&p.lng>=123&&p.lng<=133?{lat:p.lat,lng:p.lng,name:String(p.name||'선택 지점').slice(0,100)}:null;result.journey={mode:value.journey.mode,origin:place(value.journey.origin),destination:place(value.journey.destination)};}
  return result;
 }
-export function readScenarios(storage){
+export function readScenarios(storage,shared=[]){
  try{const list=JSON.parse(storage?.getItem(SCENARIO_KEY)||'[]');
-  const items=[...BUILTIN_SCENARIOS,...(Array.isArray(list)?list.slice(0,30).map(sanitizeScenario):[])],seen=new Set();return items.filter(item=>{const s=scenarioEvents(item),key=JSON.stringify([s.events.map(e=>[e.kind,e.position,e.value]).sort(),s.emergencies.map(e=>[e.kind,e.position,e.trigger,e.value]).sort(),s.journey||null]);if(seen.has(key))return false;seen.add(key);return true;});}
+  const items=[...(Array.isArray(list)?list.slice(0,30).map(sanitizeScenario):[]),...(Array.isArray(shared)?shared.slice(0,20).map(sanitizeScenario):[]),...BUILTIN_SCENARIOS],seen=new Set();return items.filter(item=>{const s=scenarioEvents(item),key=JSON.stringify([s.events.map(e=>[e.kind,e.position,e.value]).sort(),s.emergencies.map(e=>[e.kind,e.position,e.trigger,e.value]).sort(),s.journey||null]);if(seen.has(key))return false;seen.add(key);return true;});}
  catch{return [...BUILTIN_SCENARIOS];}
 }
 export function saveScenario(storage,scenario){

@@ -9,7 +9,8 @@ const cap=x=>Math.max(0,Math.min(100,Math.round(x)));
 
 export function drivingRiskIndex(signals=[]){
  const weights=Object.freeze({rain:1.35,snow:1.35,mixed:1.35,wind:.8,
-  heat:.4,cold:.65,warning:1,'its-incident':1.55,roadRisk:1.65});
+  heat:.4,cold:.65,warning:1,'its-incident':1.55,roadRisk:1.65,
+  'observed-road-fog':.6,'observed-road-rain':.6,'observed-road-snow':.6,'satellite-rain':.6,'satellite-convection':.35,'satellite-fog':.6});
  const ranked=signals.flatMap((h,i)=>{
   if(!h||h.demo===true||h.kind==='pedestrian-hotspot')return [];
   const type=h.roadRisk!==undefined?'roadRisk':h.kind;
@@ -25,7 +26,8 @@ export function drivingRiskIndex(signals=[]){
 export function walkingRiskIndex(signals=[]){
  // Historic hotspots are contextual and are never treated as a live incident.
  const weights=Object.freeze({rain:1.15,snow:1.25,mixed:1.25,wind:1.35,
-  heat:1.8,cold:1.75,warning:1.15,'pedestrian-hotspot':.65});
+  heat:1.8,cold:1.75,warning:1.15,'pedestrian-hotspot':.65,
+  'observed-road-fog':.6,'observed-road-rain':.6,'observed-road-snow':.6,'satellite-rain':.6,'satellite-convection':.35,'satellite-fog':.6});
  const ranked=signals.flatMap((h,i)=>{
   if(!h||h.demo===true||h.roadRisk!==undefined||h.kind==='its-incident')return [];
   const multiplier=weights[h.kind];

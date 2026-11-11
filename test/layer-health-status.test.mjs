@@ -4,9 +4,9 @@ import {LAYER_HEALTH_SOURCES,summarizeLayerHealth,initLayerHealth} from '../publ
 import {readFileSync} from 'node:fs';
 const ui=readFileSync(new URL('../lib/ui.ts',import.meta.url),'utf8');
 const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
-test('all 17 existing menu toggles get dual API and received-data status without a new dialog',()=>{
- assert.equal(LAYER_HEALTH_SOURCES.length,17);
- assert.equal(new Set(LAYER_HEALTH_SOURCES.map(x=>x[0])).size,17);
+test('all 18 existing menu toggles get dual API and received-data status without a new dialog',()=>{
+ assert.equal(LAYER_HEALTH_SOURCES.length,18);
+ assert.equal(new Set(LAYER_HEALTH_SOURCES.map(x=>x[0])).size,18);
  for(const [id] of LAYER_HEALTH_SOURCES)assert.equal(ui.split('id="'+id+'"').length-1,1,id);
  assert.match(app,/initLayerHealth\(\{document\}\)/);
  assert.match(app,/onUpdate:\(values,meta\)=>/);
@@ -30,7 +30,7 @@ test('status badges use existing layer-row DOM, no inline HTML injection',()=>{
   getElementById(id){if(!nodes.has(id)){const copy=element('span'),row=element('label');
    row.querySelector=()=>copy;const x=element('input');x.row=row;nodes.set(id,x);}return nodes.get(id);}};
  const panel=initLayerHealth({document});
- assert.equal(panel.visibleCount(),17);
+ assert.equal(panel.visibleCount(),18);
  panel.update({gk2aRr:{state:'partial',keyRegistered:true,detail:'PNG 900x922 · LCC 정합 전'}});
  const rr=nodes.get('navGk2aRr').row.querySelector().children.at(-1);
  assert.match(rr.title,/900x922/);assert.equal(rr.children[0].textContent,'API: 응답 확인');

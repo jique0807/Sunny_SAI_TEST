@@ -1,0 +1,33 @@
+{
+  "source": "https://nmsc.kma.go.kr/upload/resource/data/gk2a/gk2a_ami_ela020ge_latlon.nc",
+  "sourceSha256": "96143a8a206c27a3602923dbde3e02b6c07c53012e213ec6aa65430d004ae839",
+  "implementation": "public/gk2a-ci-navigation.mjs",
+  "count": 2280000,
+  "nonfinite": 0,
+  "rmseMeters": 3.4983282780748675,
+  "maxMeters": 10.63145618561798,
+  "p99Meters": 6.910195706814185,
+  "acceptance": {
+    "maxMeters": 20,
+    "rmseMeters": 5
+  },
+  "scope": "Coordinate transform relative to the published standard grid, not satellite physical geolocation accuracy",
+  "passed": true,
+  "sample": {
+    "shape": [
+      1200,
+      1900
+    ],
+    "fillPixels": 2216620,
+    "usablePixels": 63161,
+    "previousObjectMissingPixels": 2216839,
+    "usableCategoryCounts": {
+      "0": 52131,
+      "1": 1019,
+      "2": 2331,
+      "3": 2611,
+      "4": 5069
+    },
+    "sourceSweepAttribute": "b'x'"
+  }
+}

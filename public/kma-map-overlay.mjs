@@ -30,7 +30,7 @@ export function rainColor(f){
 export function gridPresentation(f,nowcast,rain,snow){
  if(!f)return null;
  if(snow&&isSnowPty(f.precipitationType))
-  return {color:[3,7].includes(f.precipitationType)?'#8657c4':'#278899',label:[3,7].includes(f.precipitationType)?'눈':'비·눈',kind:'snow'};
+  return {color:[3,7].includes(f.precipitationType)?'#8657c4':'#278899',label:([3,7].includes(f.precipitationType)?'눈':'비·눈')+(f.snowfallLabel?' · 신적설 '+f.snowfallLabel:''),kind:'snow'};
  if(rain){
   const color=rainColor(f);
   if(color)return {color,label:f.rainLabel||'강수형태 예보',kind:'rain'};
@@ -99,6 +99,7 @@ export function initKmaMapOverlay({query,getContext,fallback,getActiveMap,format
     Number.isFinite(f.rain)?'1시간 강수량 '+f.rain+'mm':f.rainLabel?'1시간 강수량 '+f.rainLabel:null,
     Number.isFinite(f.temperature)?'기온 '+f.temperature+'°C':null,
     isSnowPty(f.precipitationType)?'강수형태 눈/진눈깨비 예보':null,
+    f.snowfallLabel?'1시간 신적설 '+f.snowfallLabel+' · 단기예보':null,
     '기상청 5km 격자 '+cell.grid.nx+','+cell.grid.ny,
     '유효시각 '+format(f.time||data.validTimes?.[lead]||data.validTime),
     '레이더 실황 아님'].filter(Boolean).join(' · ');

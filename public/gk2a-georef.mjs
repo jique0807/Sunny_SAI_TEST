@@ -17,6 +17,14 @@ export function koLccPixelToLatLng(pixelX,pixelY){
  for(let i=0;i<10;i++)lat=Math.PI/2-2*Math.atan(tt*Math.pow((1-E*Math.sin(lat))/(1+E*Math.sin(lat)),E/2));
  return {lat:lat/R,lng:(lon0+theta/n)/R};
 }
+// Zero-based native array centres, inverse of koLccPixelToLatLng(column+.5,row+.5).
+export function koLccLatLngToPixel(lat,lng){
+ if(!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>=90||Math.abs(lng)>180)return null;
+ const rho=A*F*t(lat*R)**n,theta=n*(lng*R-lon0);
+ const column=449.5+rho*Math.sin(theta)/2000;
+ const row=449.5-(r0-rho*Math.cos(theta))/2000;
+ return column>=-.5&&column<=899.5&&row>=-.5&&row<=899.5?{column,row}:null;
+}
 export const koLccProviderCorners=Object.freeze({
  nw:{lng:113.996418,lat:45.728965},ne:{lng:138.003582,lat:45.728965},
  sw:{lng:116.753260,lat:29.312252},se:{lng:135.246740,lat:29.312252}

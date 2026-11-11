@@ -32,7 +32,7 @@ function mockedProvider(url){
 test('warning API has a real official endpoint but no inferred polygon',async()=>{
  const r=await probeKmaWarning(key,mockedProvider);
  assert.equal(r.state,'text_received');assert.equal(r.http,200);
- assert.equal(r.geometry,'region_codes_only');
+ assert.equal(r.geometry,'official_crs84_polygons');
  assert.equal(r.activeCount,1);
  assert.ok(!JSON.stringify(r).includes(key));
 });

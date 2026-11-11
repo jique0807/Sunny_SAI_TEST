@@ -64,3 +64,12 @@ test('GK2A Kakao overlay uses the real map container, not an undocumented SDK ma
  assert.match(source,/containerPointFromCoords\(new kakao\.maps\.LatLng/);
  assert.match(styles,/#kakaoMap > \.sunny-gk2a-map-overlay\{/);
 });
+
+test('satellite diagnostics distinguish image reception, map readiness and numeric risk readiness',()=>{
+ const image=satellitePublicMeta({status:'received',product:'rr',area:'ko',width:900,height:922,
+  georeference:'unverified_raster_geometry',bytes:new Uint8Array(24)});
+ assert.equal(image.mapReady,false);assert.equal(image.riskInputReady,false);
+ assert.equal(image.mappingBlocker,'raster_origin_and_22px_strip_unverified');
+ const ela=satellitePublicMeta({...image,area:'ela'});
+ assert.equal(ela.mappingBlocker,'ela_projection_and_extent_unverified');
+});
