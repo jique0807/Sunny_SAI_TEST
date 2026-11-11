@@ -1,0 +1,2857 @@
+{
+  "schema": "sunny-dummy-execution-report-v1",
+  "generatedAt": "2026-11-11T02:10:34.725Z",
+  "scope": "Actual route-risk core and common advisory policy with synthetic inputs; route geometry is a test fixture. No live map/API/voice/GPS or browser rendering verification.",
+  "deployed": false,
+  "cases": [
+    {
+      "name": "폭우·침수경보",
+      "mode": "driving",
+      "expected": "reroute",
+      "actual": "reroute",
+      "pass": true,
+      "trace": [
+        {
+          "stage": "initial-input",
+          "input": [
+            {
+              "id": "fixture-0",
+              "lat": 37.544,
+              "lng": 126.9772,
+              "seconds": 216,
+              "eta": "2026-11-11T01:03:36.000Z",
+              "label": "더미 경로 지점 1",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:03:36.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-1",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "label": "더미 경로 지점 2",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:09:00.000Z",
+                "rain": 8,
+                "rainMin": 8,
+                "precipitationType": 1
+              },
+              "demoHazard": {
+                "id": "heavy-rain-fixture-1",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "비 예보",
+                "measure": "1시간 더미 강수량 8mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.535,
+                "lng": 126.988,
+                "seconds": 540,
+                "eta": "2026-11-11T01:09:00.000Z",
+                "validTime": "2026-11-11T01:09:00.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 8,
+                "rainLabel": "8mm"
+              }
+            },
+            {
+              "id": "fixture-2",
+              "lat": 37.525,
+              "lng": 127,
+              "seconds": 900,
+              "eta": "2026-11-11T01:15:00.000Z",
+              "label": "더미 경로 지점 3",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:15:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-3",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "label": "더미 경로 지점 4",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:20:24.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-4",
+              "lat": 37.507,
+              "lng": 127.0216,
+              "seconds": 1548,
+              "eta": "2026-11-11T01:25:48.000Z",
+              "label": "더미 경로 지점 5",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:25:48.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            }
+          ],
+          "signals": [
+            {
+              "id": "heavy-rain-fixture-1",
+              "kind": "rain",
+              "icon": "🌧️",
+              "title": "비 예보",
+              "measure": "1시간 더미 강수량 8mm",
+              "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "validTime": "2026-11-11T01:09:00.000Z",
+              "provider": "Sunny SAI 더미 시연자료",
+              "synthetic": true,
+              "affectedRadiusMeters": 450,
+              "rainMm": 8,
+              "rainLabel": "8mm"
+            }
+          ],
+          "profile": {
+            "engine": "risk-v2.0",
+            "mode": "driving",
+            "assurance": "상대적 예보·위험 근거 분석이며 안전 보증 또는 사고확률이 아닙니다.",
+            "coveredSamples": 5,
+            "totalSamples": 5,
+            "coverage": 100,
+            "signalCount": 1,
+            "signalIndex": 12,
+            "unknownSignals": 0,
+            "signals": [
+              {
+                "id": "heavy-rain-fixture-1",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "비 예보",
+                "measure": "1시간 더미 강수량 8mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.535,
+                "lng": 126.988,
+                "seconds": 540,
+                "eta": "2026-11-11T01:09:00.000Z",
+                "validTime": "2026-11-11T01:09:00.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 8,
+                "rainLabel": "8mm",
+                "assessment": {
+                  "level": "notice",
+                  "label": "가상 비 예보 주의",
+                  "evidence": "더미 1시간 강수 8mm",
+                  "caution": "시뮬레이션 전용 자료이며 실제 노면 상태가 아닙니다.",
+                  "score": 48,
+                  "engine": "rules-v1"
+                }
+              }
+            ],
+            "sources": [
+              "Sunny SAI 더미 시연자료"
+            ],
+            "riskLevel": "notice",
+            "routeMinutes": 30,
+            "state": "evaluated",
+            "simulation": true,
+            "evidenceMode": "synthetic-fixture",
+            "reason": "조회 지점 예보 기반의 제한적인 위험 신호 분석",
+            "modePolicy": "driving-exposure-v1",
+            "sourcePriorities": [
+              "rain"
+            ],
+            "action": {
+              "policy": "route-advisory-v1",
+              "type": "advisory",
+              "reason": "확인된 위험 신호 안내"
+            },
+            "riskSystem": "driving",
+            "sourceGroup": "시뮬레이션 시험 자료"
+          }
+        },
+        {
+          "stage": "new-input",
+          "input": [
+            {
+              "id": "fixture-0",
+              "lat": 37.544,
+              "lng": 126.9772,
+              "seconds": 216,
+              "eta": "2026-11-11T01:03:36.000Z",
+              "label": "더미 경로 지점 1",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:03:36.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-1",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "label": "더미 경로 지점 2",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:09:00.000Z",
+                "rain": 8,
+                "rainMin": 8,
+                "precipitationType": 1
+              },
+              "demoHazard": {
+                "id": "heavy-rain-fixture-1",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "비 예보",
+                "measure": "1시간 더미 강수량 8mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.535,
+                "lng": 126.988,
+                "seconds": 540,
+                "eta": "2026-11-11T01:09:00.000Z",
+                "validTime": "2026-11-11T01:09:00.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 8,
+                "rainLabel": "8mm"
+              }
+            },
+            {
+              "id": "fixture-2",
+              "lat": 37.525,
+              "lng": 127,
+              "seconds": 900,
+              "eta": "2026-11-11T01:15:00.000Z",
+              "label": "더미 경로 지점 3",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:15:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-3",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "label": "더미 경로 지점 4",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:20:24.000Z",
+                "rain": 65,
+                "rainMin": 65,
+                "precipitationType": 1
+              },
+              "demoHazard": {
+                "id": "heavy-rain-fixture-3",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "폭우 예보",
+                "measure": "1시간 더미 강수량 65mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.516,
+                "lng": 127.0108,
+                "seconds": 1224,
+                "eta": "2026-11-11T01:20:24.000Z",
+                "validTime": "2026-11-11T01:20:24.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 65,
+                "rainLabel": "65mm"
+              }
+            },
+            {
+              "id": "fixture-4",
+              "lat": 37.507,
+              "lng": 127.0216,
+              "seconds": 1548,
+              "eta": "2026-11-11T01:25:48.000Z",
+              "label": "더미 경로 지점 5",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:25:48.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            }
+          ],
+          "signals": [
+            {
+              "id": "heavy-rain-fixture-3",
+              "kind": "rain",
+              "icon": "🌧️",
+              "title": "폭우 예보",
+              "measure": "1시간 더미 강수량 65mm",
+              "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "validTime": "2026-11-11T01:20:24.000Z",
+              "provider": "Sunny SAI 더미 시연자료",
+              "synthetic": true,
+              "affectedRadiusMeters": 450,
+              "rainMm": 65,
+              "rainLabel": "65mm"
+            },
+            {
+              "id": "flood-warning-fixture-3",
+              "kind": "warning",
+              "icon": "🌊",
+              "title": "침수경보",
+              "measure": "저지대 도로 침수 위험 가정",
+              "description": "실제 침수 관측이나 기관 경보가 아닌 시험용 이벤트입니다.",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "validTime": "2026-11-11T01:20:24.000Z",
+              "provider": "Sunny SAI 더미 시연자료",
+              "synthetic": true,
+              "affectedRadiusMeters": 450,
+              "impact": "flood"
+            }
+          ]
+        },
+        {
+          "stage": "engine-assessment",
+          "profile": {
+            "engine": "risk-v2.0",
+            "mode": "driving",
+            "assurance": "상대적 예보·위험 근거 분석이며 안전 보증 또는 사고확률이 아닙니다.",
+            "coveredSamples": 5,
+            "totalSamples": 5,
+            "coverage": 100,
+            "signalCount": 2,
+            "signalIndex": 42,
+            "unknownSignals": 0,
+            "signals": [
+              {
+                "id": "heavy-rain-fixture-3",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "폭우 예보",
+                "measure": "1시간 더미 강수량 65mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.516,
+                "lng": 127.0108,
+                "seconds": 1224,
+                "eta": "2026-11-11T01:20:24.000Z",
+                "validTime": "2026-11-11T01:20:24.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 65,
+                "rainLabel": "65mm",
+                "assessment": {
+                  "level": "caution",
+                  "label": "가상 폭우 · 우회 검토",
+                  "evidence": "더미 1시간 강수 65mm",
+                  "caution": "시뮬레이션 전용 자료입니다. 실제 강수·침수나 안전한 우회경로를 확인하지 않았습니다.",
+                  "score": 70,
+                  "engine": "rules-v1"
+                }
+              },
+              {
+                "id": "flood-warning-fixture-3",
+                "kind": "warning",
+                "icon": "🌊",
+                "title": "침수경보",
+                "measure": "저지대 도로 침수 위험 가정",
+                "description": "실제 침수 관측이나 기관 경보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.516,
+                "lng": 127.0108,
+                "seconds": 1224,
+                "eta": "2026-11-11T01:20:24.000Z",
+                "validTime": "2026-11-11T01:20:24.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "impact": "flood",
+                "assessment": {
+                  "level": "caution",
+                  "label": "가상 침수경보 · 우회 검토",
+                  "evidence": "더미 경보 좌표·유효시각과 시험 경로 일치",
+                  "caution": "시뮬레이션 전용입니다. 실제 발표·침수 여부와 안전한 우회경로는 확인하지 않았습니다.",
+                  "score": 78,
+                  "engine": "rules-v1"
+                }
+              }
+            ],
+            "sources": [
+              "Sunny SAI 더미 시연자료"
+            ],
+            "riskLevel": "caution",
+            "routeMinutes": 30,
+            "state": "evaluated",
+            "simulation": true,
+            "evidenceMode": "synthetic-fixture",
+            "reason": "조회 지점 예보 기반의 제한적인 위험 신호 분석",
+            "modePolicy": "driving-exposure-v1",
+            "sourcePriorities": [
+              "rain",
+              "warning"
+            ],
+            "action": {
+              "policy": "route-advisory-v1",
+              "type": "reroute",
+              "reason": "강한 강수와 경로에 정합된 침수 영향자료"
+            },
+            "riskSystem": "driving",
+            "sourceGroup": "시뮬레이션 시험 자료"
+          }
+        },
+        {
+          "stage": "action-recommendation",
+          "action": {
+            "policy": "route-advisory-v1",
+            "type": "reroute",
+            "reason": "강한 강수와 경로에 정합된 침수 영향자료"
+          }
+        }
+      ]
+    },
+    {
+      "name": "약한 강수·침수경보 없음",
+      "mode": "driving",
+      "expected": "advisory",
+      "actual": "advisory",
+      "pass": true,
+      "trace": [
+        {
+          "stage": "initial-input",
+          "input": [
+            {
+              "id": "fixture-0",
+              "lat": 37.544,
+              "lng": 126.9772,
+              "seconds": 216,
+              "eta": "2026-11-11T01:03:36.000Z",
+              "label": "더미 경로 지점 1",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:03:36.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-1",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "label": "더미 경로 지점 2",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:09:00.000Z",
+                "rain": 8,
+                "rainMin": 8,
+                "precipitationType": 1
+              },
+              "demoHazard": {
+                "id": "heavy-rain-fixture-1",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "비 예보",
+                "measure": "1시간 더미 강수량 8mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.535,
+                "lng": 126.988,
+                "seconds": 540,
+                "eta": "2026-11-11T01:09:00.000Z",
+                "validTime": "2026-11-11T01:09:00.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 8,
+                "rainLabel": "8mm"
+              }
+            },
+            {
+              "id": "fixture-2",
+              "lat": 37.525,
+              "lng": 127,
+              "seconds": 900,
+              "eta": "2026-11-11T01:15:00.000Z",
+              "label": "더미 경로 지점 3",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:15:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-3",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "label": "더미 경로 지점 4",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:20:24.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-4",
+              "lat": 37.507,
+              "lng": 127.0216,
+              "seconds": 1548,
+              "eta": "2026-11-11T01:25:48.000Z",
+              "label": "더미 경로 지점 5",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:25:48.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            }
+          ],
+          "signals": [
+            {
+              "id": "heavy-rain-fixture-1",
+              "kind": "rain",
+              "icon": "🌧️",
+              "title": "비 예보",
+              "measure": "1시간 더미 강수량 8mm",
+              "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "validTime": "2026-11-11T01:09:00.000Z",
+              "provider": "Sunny SAI 더미 시연자료",
+              "synthetic": true,
+              "affectedRadiusMeters": 450,
+              "rainMm": 8,
+              "rainLabel": "8mm"
+            }
+          ],
+          "profile": {
+            "engine": "risk-v2.0",
+            "mode": "driving",
+            "assurance": "상대적 예보·위험 근거 분석이며 안전 보증 또는 사고확률이 아닙니다.",
+            "coveredSamples": 5,
+            "totalSamples": 5,
+            "coverage": 100,
+            "signalCount": 1,
+            "signalIndex": 12,
+            "unknownSignals": 0,
+            "signals": [
+              {
+                "id": "heavy-rain-fixture-1",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "비 예보",
+                "measure": "1시간 더미 강수량 8mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.535,
+                "lng": 126.988,
+                "seconds": 540,
+                "eta": "2026-11-11T01:09:00.000Z",
+                "validTime": "2026-11-11T01:09:00.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 8,
+                "rainLabel": "8mm",
+                "assessment": {
+                  "level": "notice",
+                  "label": "가상 비 예보 주의",
+                  "evidence": "더미 1시간 강수 8mm",
+                  "caution": "시뮬레이션 전용 자료이며 실제 노면 상태가 아닙니다.",
+                  "score": 48,
+                  "engine": "rules-v1"
+                }
+              }
+            ],
+            "sources": [
+              "Sunny SAI 더미 시연자료"
+            ],
+            "riskLevel": "notice",
+            "routeMinutes": 30,
+            "state": "evaluated",
+            "simulation": true,
+            "evidenceMode": "synthetic-fixture",
+            "reason": "조회 지점 예보 기반의 제한적인 위험 신호 분석",
+            "modePolicy": "driving-exposure-v1",
+            "sourcePriorities": [
+              "rain"
+            ],
+            "action": {
+              "policy": "route-advisory-v1",
+              "type": "advisory",
+              "reason": "확인된 위험 신호 안내"
+            },
+            "riskSystem": "driving",
+            "sourceGroup": "시뮬레이션 시험 자료"
+          }
+        },
+        {
+          "stage": "new-input",
+          "input": [
+            {
+              "id": "fixture-0",
+              "lat": 37.544,
+              "lng": 126.9772,
+              "seconds": 216,
+              "eta": "2026-11-11T01:03:36.000Z",
+              "label": "더미 경로 지점 1",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:03:36.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-1",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "label": "더미 경로 지점 2",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:09:00.000Z",
+                "rain": 8,
+                "rainMin": 8,
+                "precipitationType": 1
+              },
+              "demoHazard": {
+                "id": "heavy-rain-fixture-1",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "비 예보",
+                "measure": "1시간 더미 강수량 8mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.535,
+                "lng": 126.988,
+                "seconds": 540,
+                "eta": "2026-11-11T01:09:00.000Z",
+                "validTime": "2026-11-11T01:09:00.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 8,
+                "rainLabel": "8mm"
+              }
+            },
+            {
+              "id": "fixture-2",
+              "lat": 37.525,
+              "lng": 127,
+              "seconds": 900,
+              "eta": "2026-11-11T01:15:00.000Z",
+              "label": "더미 경로 지점 3",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:15:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-3",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "label": "더미 경로 지점 4",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:20:24.000Z",
+                "rain": 4,
+                "rainMin": 4,
+                "precipitationType": 1
+              },
+              "demoHazard": {
+                "id": "heavy-rain-fixture-3",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "비 예보",
+                "measure": "1시간 더미 강수량 4mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.516,
+                "lng": 127.0108,
+                "seconds": 1224,
+                "eta": "2026-11-11T01:20:24.000Z",
+                "validTime": "2026-11-11T01:20:24.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 4,
+                "rainLabel": "4mm"
+              }
+            },
+            {
+              "id": "fixture-4",
+              "lat": 37.507,
+              "lng": 127.0216,
+              "seconds": 1548,
+              "eta": "2026-11-11T01:25:48.000Z",
+              "label": "더미 경로 지점 5",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:25:48.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            }
+          ],
+          "signals": [
+            {
+              "id": "heavy-rain-fixture-3",
+              "kind": "rain",
+              "icon": "🌧️",
+              "title": "비 예보",
+              "measure": "1시간 더미 강수량 4mm",
+              "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "validTime": "2026-11-11T01:20:24.000Z",
+              "provider": "Sunny SAI 더미 시연자료",
+              "synthetic": true,
+              "affectedRadiusMeters": 450,
+              "rainMm": 4,
+              "rainLabel": "4mm"
+            }
+          ]
+        },
+        {
+          "stage": "engine-assessment",
+          "profile": {
+            "engine": "risk-v2.0",
+            "mode": "driving",
+            "assurance": "상대적 예보·위험 근거 분석이며 안전 보증 또는 사고확률이 아닙니다.",
+            "coveredSamples": 5,
+            "totalSamples": 5,
+            "coverage": 100,
+            "signalCount": 1,
+            "signalIndex": 4,
+            "unknownSignals": 0,
+            "signals": [
+              {
+                "id": "heavy-rain-fixture-3",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "비 예보",
+                "measure": "1시간 더미 강수량 4mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.516,
+                "lng": 127.0108,
+                "seconds": 1224,
+                "eta": "2026-11-11T01:20:24.000Z",
+                "validTime": "2026-11-11T01:20:24.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 4,
+                "rainLabel": "4mm",
+                "assessment": {
+                  "level": "info",
+                  "label": "비 예보 확인",
+                  "evidence": "더미 강수형태 · 4mm",
+                  "caution": "실제 도로 노면위험은 미확인입니다.",
+                  "score": 30,
+                  "engine": "rules-v1"
+                }
+              }
+            ],
+            "sources": [
+              "Sunny SAI 더미 시연자료"
+            ],
+            "riskLevel": "info",
+            "routeMinutes": 30,
+            "state": "evaluated",
+            "simulation": true,
+            "evidenceMode": "synthetic-fixture",
+            "reason": "조회 지점 예보 기반의 제한적인 위험 신호 분석",
+            "modePolicy": "driving-exposure-v1",
+            "sourcePriorities": [
+              "rain"
+            ],
+            "action": {
+              "policy": "route-advisory-v1",
+              "type": "advisory",
+              "reason": "확인된 위험 신호 안내"
+            },
+            "riskSystem": "driving",
+            "sourceGroup": "시뮬레이션 시험 자료"
+          }
+        },
+        {
+          "stage": "action-recommendation",
+          "action": {
+            "policy": "route-advisory-v1",
+            "type": "advisory",
+            "reason": "확인된 위험 신호 안내"
+          }
+        }
+      ]
+    },
+    {
+      "name": "고온",
+      "mode": "driving",
+      "expected": "heat-advisory",
+      "actual": "heat-advisory",
+      "pass": true,
+      "trace": [
+        {
+          "stage": "initial-input",
+          "input": [
+            {
+              "id": "fixture-0",
+              "lat": 37.544,
+              "lng": 126.9772,
+              "seconds": 216,
+              "eta": "2026-11-11T01:03:36.000Z",
+              "label": "더미 경로 지점 1",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:03:36.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-1",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "label": "더미 경로 지점 2",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:09:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-2",
+              "lat": 37.525,
+              "lng": 127,
+              "seconds": 900,
+              "eta": "2026-11-11T01:15:00.000Z",
+              "label": "더미 경로 지점 3",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:15:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-3",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "label": "더미 경로 지점 4",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:20:24.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-4",
+              "lat": 37.507,
+              "lng": 127.0216,
+              "seconds": 1548,
+              "eta": "2026-11-11T01:25:48.000Z",
+              "label": "더미 경로 지점 5",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:25:48.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            }
+          ],
+          "signals": [],
+          "profile": {
+            "engine": "risk-v2.0",
+            "mode": "driving",
+            "assurance": "상대적 예보·위험 근거 분석이며 안전 보증 또는 사고확률이 아닙니다.",
+            "coveredSamples": 5,
+            "totalSamples": 5,
+            "coverage": 100,
+            "signalCount": 0,
+            "signalIndex": 0,
+            "unknownSignals": 0,
+            "signals": [],
+            "sources": [],
+            "riskLevel": "unknown",
+            "routeMinutes": 30,
+            "state": "evaluated",
+            "simulation": true,
+            "evidenceMode": "synthetic-fixture",
+            "reason": "조회 지점 예보 기반의 제한적인 위험 신호 분석",
+            "modePolicy": "driving-exposure-v1",
+            "sourcePriorities": [],
+            "action": {
+              "policy": "route-advisory-v1",
+              "type": "continue",
+              "reason": "조회 지점의 추가 위험 신호 없음"
+            },
+            "riskSystem": "driving",
+            "sourceGroup": "시뮬레이션 시험 자료"
+          }
+        },
+        {
+          "stage": "new-input",
+          "input": [
+            {
+              "id": "fixture-0",
+              "lat": 37.544,
+              "lng": 126.9772,
+              "seconds": 216,
+              "eta": "2026-11-11T01:03:36.000Z",
+              "label": "더미 경로 지점 1",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:03:36.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-1",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "label": "더미 경로 지점 2",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:09:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-2",
+              "lat": 37.525,
+              "lng": 127,
+              "seconds": 900,
+              "eta": "2026-11-11T01:15:00.000Z",
+              "label": "더미 경로 지점 3",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:15:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-3",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "label": "더미 경로 지점 4",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:20:24.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              },
+              "demoHazard": {
+                "id": "heavy-rain-fixture-3",
+                "kind": "heat",
+                "icon": "☀️",
+                "title": "고온 예보 주의",
+                "measure": "더미 기온 35°C",
+                "description": "시험용 고온 예보입니다.",
+                "lat": 37.516,
+                "lng": 127.0108,
+                "seconds": 1224,
+                "eta": "2026-11-11T01:20:24.000Z",
+                "validTime": "2026-11-11T01:20:24.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 0,
+                "rainLabel": "0mm",
+                "temperature": 35
+              }
+            },
+            {
+              "id": "fixture-4",
+              "lat": 37.507,
+              "lng": 127.0216,
+              "seconds": 1548,
+              "eta": "2026-11-11T01:25:48.000Z",
+              "label": "더미 경로 지점 5",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:25:48.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            }
+          ],
+          "signals": [
+            {
+              "id": "heavy-rain-fixture-3",
+              "kind": "heat",
+              "icon": "☀️",
+              "title": "고온 예보 주의",
+              "measure": "더미 기온 35°C",
+              "description": "시험용 고온 예보입니다.",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "validTime": "2026-11-11T01:20:24.000Z",
+              "provider": "Sunny SAI 더미 시연자료",
+              "synthetic": true,
+              "affectedRadiusMeters": 450,
+              "rainMm": 0,
+              "rainLabel": "0mm",
+              "temperature": 35
+            }
+          ]
+        },
+        {
+          "stage": "engine-assessment",
+          "profile": {
+            "engine": "risk-v2.0",
+            "mode": "driving",
+            "assurance": "상대적 예보·위험 근거 분석이며 안전 보증 또는 사고확률이 아닙니다.",
+            "coveredSamples": 5,
+            "totalSamples": 5,
+            "coverage": 100,
+            "signalCount": 1,
+            "signalIndex": 7,
+            "unknownSignals": 0,
+            "signals": [
+              {
+                "id": "heavy-rain-fixture-3",
+                "kind": "heat",
+                "icon": "☀️",
+                "title": "고온 예보 주의",
+                "measure": "더미 기온 35°C",
+                "description": "시험용 고온 예보입니다.",
+                "lat": 37.516,
+                "lng": 127.0108,
+                "seconds": 1224,
+                "eta": "2026-11-11T01:20:24.000Z",
+                "validTime": "2026-11-11T01:20:24.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 0,
+                "rainLabel": "0mm",
+                "temperature": 35,
+                "assessment": {
+                  "level": "caution",
+                  "label": "고온 예보 주의",
+                  "evidence": "더미 기온 35°C · 앱 주의 기준 33°C 이상",
+                  "caution": "공식 폭염특보나 개인별 열질환 위험을 의미하지 않습니다.",
+                  "score": 64,
+                  "engine": "rules-v1"
+                }
+              }
+            ],
+            "sources": [
+              "Sunny SAI 더미 시연자료"
+            ],
+            "riskLevel": "caution",
+            "routeMinutes": 30,
+            "state": "evaluated",
+            "simulation": true,
+            "evidenceMode": "synthetic-fixture",
+            "reason": "조회 지점 예보 기반의 제한적인 위험 신호 분석",
+            "modePolicy": "driving-exposure-v1",
+            "sourcePriorities": [
+              "heat"
+            ],
+            "action": {
+              "policy": "route-advisory-v1",
+              "type": "heat-advisory",
+              "reason": "고온 주의 기준 초과"
+            },
+            "riskSystem": "driving",
+            "sourceGroup": "시뮬레이션 시험 자료"
+          }
+        },
+        {
+          "stage": "action-recommendation",
+          "action": {
+            "policy": "route-advisory-v1",
+            "type": "heat-advisory",
+            "reason": "고온 주의 기준 초과"
+          }
+        }
+      ]
+    },
+    {
+      "name": "자료 누락",
+      "mode": "driving",
+      "expected": "abstain",
+      "actual": "abstain",
+      "pass": true,
+      "trace": [
+        {
+          "stage": "initial-input",
+          "input": [
+            {
+              "id": "fixture-0",
+              "lat": 37.544,
+              "lng": 126.9772,
+              "seconds": 216,
+              "eta": "2026-11-11T01:03:36.000Z",
+              "label": "더미 경로 지점 1",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:03:36.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-1",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "label": "더미 경로 지점 2",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:09:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-2",
+              "lat": 37.525,
+              "lng": 127,
+              "seconds": 900,
+              "eta": "2026-11-11T01:15:00.000Z",
+              "label": "더미 경로 지점 3",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:15:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-3",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "label": "더미 경로 지점 4",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:20:24.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-4",
+              "lat": 37.507,
+              "lng": 127.0216,
+              "seconds": 1548,
+              "eta": "2026-11-11T01:25:48.000Z",
+              "label": "더미 경로 지점 5",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:25:48.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            }
+          ],
+          "signals": [],
+          "profile": {
+            "engine": "risk-v2.0",
+            "mode": "driving",
+            "assurance": "상대적 예보·위험 근거 분석이며 안전 보증 또는 사고확률이 아닙니다.",
+            "coveredSamples": 5,
+            "totalSamples": 5,
+            "coverage": 100,
+            "signalCount": 0,
+            "signalIndex": 0,
+            "unknownSignals": 0,
+            "signals": [],
+            "sources": [],
+            "riskLevel": "unknown",
+            "routeMinutes": 30,
+            "state": "evaluated",
+            "simulation": true,
+            "evidenceMode": "synthetic-fixture",
+            "reason": "조회 지점 예보 기반의 제한적인 위험 신호 분석",
+            "modePolicy": "driving-exposure-v1",
+            "sourcePriorities": [],
+            "action": {
+              "policy": "route-advisory-v1",
+              "type": "continue",
+              "reason": "조회 지점의 추가 위험 신호 없음"
+            },
+            "riskSystem": "driving",
+            "sourceGroup": "시뮬레이션 시험 자료"
+          }
+        },
+        {
+          "stage": "new-input",
+          "input": [
+            {
+              "id": "fixture-0",
+              "lat": 37.544,
+              "lng": 126.9772,
+              "seconds": 216,
+              "eta": "2026-11-11T01:03:36.000Z",
+              "label": "더미 경로 지점 1",
+              "status": "unavailable",
+              "synthetic": true,
+              "forecast": null
+            },
+            {
+              "id": "fixture-1",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "label": "더미 경로 지점 2",
+              "status": "unavailable",
+              "synthetic": true,
+              "forecast": null
+            },
+            {
+              "id": "fixture-2",
+              "lat": 37.525,
+              "lng": 127,
+              "seconds": 900,
+              "eta": "2026-11-11T01:15:00.000Z",
+              "label": "더미 경로 지점 3",
+              "status": "unavailable",
+              "synthetic": true,
+              "forecast": null
+            },
+            {
+              "id": "fixture-3",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "label": "더미 경로 지점 4",
+              "status": "unavailable",
+              "synthetic": true,
+              "forecast": null
+            },
+            {
+              "id": "fixture-4",
+              "lat": 37.507,
+              "lng": 127.0216,
+              "seconds": 1548,
+              "eta": "2026-11-11T01:25:48.000Z",
+              "label": "더미 경로 지점 5",
+              "status": "unavailable",
+              "synthetic": true,
+              "forecast": null
+            }
+          ],
+          "signals": []
+        },
+        {
+          "stage": "engine-assessment",
+          "profile": {
+            "engine": "risk-v2.0",
+            "mode": "driving",
+            "assurance": "상대적 예보·위험 근거 분석이며 안전 보증 또는 사고확률이 아닙니다.",
+            "coveredSamples": 0,
+            "totalSamples": 5,
+            "coverage": 0,
+            "signalCount": 0,
+            "signalIndex": 0,
+            "unknownSignals": 0,
+            "signals": [],
+            "sources": [],
+            "riskLevel": "unknown",
+            "routeMinutes": 30,
+            "state": "insufficient-data",
+            "simulation": true,
+            "evidenceMode": "synthetic-fixture",
+            "reason": "기상청 예보 유효시각 또는 경로 조회 지점이 확인되지 않았습니다.",
+            "modePolicy": "driving-exposure-v1",
+            "sourcePriorities": [],
+            "action": {
+              "policy": "route-advisory-v1",
+              "type": "abstain",
+              "reason": "자료 범위 또는 유효성 부족"
+            },
+            "riskSystem": "driving",
+            "sourceGroup": "시뮬레이션 시험 자료"
+          }
+        },
+        {
+          "stage": "action-recommendation",
+          "action": {
+            "policy": "route-advisory-v1",
+            "type": "abstain",
+            "reason": "자료 범위 또는 유효성 부족"
+          }
+        }
+      ]
+    },
+    {
+      "name": "폭우·침수경보",
+      "mode": "walking",
+      "expected": "reroute",
+      "actual": "reroute",
+      "pass": true,
+      "trace": [
+        {
+          "stage": "initial-input",
+          "input": [
+            {
+              "id": "fixture-0",
+              "lat": 37.544,
+              "lng": 126.9772,
+              "seconds": 216,
+              "eta": "2026-11-11T01:03:36.000Z",
+              "label": "더미 경로 지점 1",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:03:36.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-1",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "label": "더미 경로 지점 2",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:09:00.000Z",
+                "rain": 8,
+                "rainMin": 8,
+                "precipitationType": 1
+              },
+              "demoHazard": {
+                "id": "heavy-rain-fixture-1",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "비 예보",
+                "measure": "1시간 더미 강수량 8mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.535,
+                "lng": 126.988,
+                "seconds": 540,
+                "eta": "2026-11-11T01:09:00.000Z",
+                "validTime": "2026-11-11T01:09:00.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 8,
+                "rainLabel": "8mm"
+              }
+            },
+            {
+              "id": "fixture-2",
+              "lat": 37.525,
+              "lng": 127,
+              "seconds": 900,
+              "eta": "2026-11-11T01:15:00.000Z",
+              "label": "더미 경로 지점 3",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:15:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-3",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "label": "더미 경로 지점 4",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:20:24.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-4",
+              "lat": 37.507,
+              "lng": 127.0216,
+              "seconds": 1548,
+              "eta": "2026-11-11T01:25:48.000Z",
+              "label": "더미 경로 지점 5",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:25:48.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            }
+          ],
+          "signals": [
+            {
+              "id": "heavy-rain-fixture-1",
+              "kind": "rain",
+              "icon": "🌧️",
+              "title": "비 예보",
+              "measure": "1시간 더미 강수량 8mm",
+              "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "validTime": "2026-11-11T01:09:00.000Z",
+              "provider": "Sunny SAI 더미 시연자료",
+              "synthetic": true,
+              "affectedRadiusMeters": 450,
+              "rainMm": 8,
+              "rainLabel": "8mm"
+            }
+          ],
+          "profile": {
+            "engine": "risk-v2.0",
+            "mode": "walking",
+            "assurance": "상대적 예보·위험 근거 분석이며 안전 보증 또는 사고확률이 아닙니다.",
+            "coveredSamples": 5,
+            "totalSamples": 5,
+            "coverage": 100,
+            "signalCount": 1,
+            "signalIndex": 10,
+            "unknownSignals": 0,
+            "signals": [
+              {
+                "id": "heavy-rain-fixture-1",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "비 예보",
+                "measure": "1시간 더미 강수량 8mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.535,
+                "lng": 126.988,
+                "seconds": 540,
+                "eta": "2026-11-11T01:09:00.000Z",
+                "validTime": "2026-11-11T01:09:00.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 8,
+                "rainLabel": "8mm",
+                "assessment": {
+                  "level": "notice",
+                  "label": "가상 비 예보 주의",
+                  "evidence": "더미 1시간 강수 8mm",
+                  "caution": "시뮬레이션 전용 자료이며 실제 노면 상태가 아닙니다.",
+                  "score": 48,
+                  "engine": "rules-v1"
+                }
+              }
+            ],
+            "sources": [
+              "Sunny SAI 더미 시연자료"
+            ],
+            "riskLevel": "notice",
+            "routeMinutes": 30,
+            "state": "evaluated",
+            "simulation": true,
+            "evidenceMode": "synthetic-fixture",
+            "reason": "조회 지점 예보 기반의 제한적인 위험 신호 분석",
+            "modePolicy": "walking-exposure-v1",
+            "sourcePriorities": [
+              "rain"
+            ],
+            "action": {
+              "policy": "route-advisory-v1",
+              "type": "advisory",
+              "reason": "확인된 위험 신호 안내"
+            },
+            "riskSystem": "walking",
+            "sourceGroup": "시뮬레이션 시험 자료"
+          }
+        },
+        {
+          "stage": "new-input",
+          "input": [
+            {
+              "id": "fixture-0",
+              "lat": 37.544,
+              "lng": 126.9772,
+              "seconds": 216,
+              "eta": "2026-11-11T01:03:36.000Z",
+              "label": "더미 경로 지점 1",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:03:36.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-1",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "label": "더미 경로 지점 2",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:09:00.000Z",
+                "rain": 8,
+                "rainMin": 8,
+                "precipitationType": 1
+              },
+              "demoHazard": {
+                "id": "heavy-rain-fixture-1",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "비 예보",
+                "measure": "1시간 더미 강수량 8mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.535,
+                "lng": 126.988,
+                "seconds": 540,
+                "eta": "2026-11-11T01:09:00.000Z",
+                "validTime": "2026-11-11T01:09:00.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 8,
+                "rainLabel": "8mm"
+              }
+            },
+            {
+              "id": "fixture-2",
+              "lat": 37.525,
+              "lng": 127,
+              "seconds": 900,
+              "eta": "2026-11-11T01:15:00.000Z",
+              "label": "더미 경로 지점 3",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:15:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-3",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "label": "더미 경로 지점 4",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:20:24.000Z",
+                "rain": 65,
+                "rainMin": 65,
+                "precipitationType": 1
+              },
+              "demoHazard": {
+                "id": "heavy-rain-fixture-3",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "폭우 예보",
+                "measure": "1시간 더미 강수량 65mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.516,
+                "lng": 127.0108,
+                "seconds": 1224,
+                "eta": "2026-11-11T01:20:24.000Z",
+                "validTime": "2026-11-11T01:20:24.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 65,
+                "rainLabel": "65mm"
+              }
+            },
+            {
+              "id": "fixture-4",
+              "lat": 37.507,
+              "lng": 127.0216,
+              "seconds": 1548,
+              "eta": "2026-11-11T01:25:48.000Z",
+              "label": "더미 경로 지점 5",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:25:48.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            }
+          ],
+          "signals": [
+            {
+              "id": "heavy-rain-fixture-3",
+              "kind": "rain",
+              "icon": "🌧️",
+              "title": "폭우 예보",
+              "measure": "1시간 더미 강수량 65mm",
+              "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "validTime": "2026-11-11T01:20:24.000Z",
+              "provider": "Sunny SAI 더미 시연자료",
+              "synthetic": true,
+              "affectedRadiusMeters": 450,
+              "rainMm": 65,
+              "rainLabel": "65mm"
+            },
+            {
+              "id": "flood-warning-fixture-3",
+              "kind": "warning",
+              "icon": "🌊",
+              "title": "침수경보",
+              "measure": "저지대 도로 침수 위험 가정",
+              "description": "실제 침수 관측이나 기관 경보가 아닌 시험용 이벤트입니다.",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "validTime": "2026-11-11T01:20:24.000Z",
+              "provider": "Sunny SAI 더미 시연자료",
+              "synthetic": true,
+              "affectedRadiusMeters": 450,
+              "impact": "flood"
+            }
+          ]
+        },
+        {
+          "stage": "engine-assessment",
+          "profile": {
+            "engine": "risk-v2.0",
+            "mode": "walking",
+            "assurance": "상대적 예보·위험 근거 분석이며 안전 보증 또는 사고확률이 아닙니다.",
+            "coveredSamples": 5,
+            "totalSamples": 5,
+            "coverage": 100,
+            "signalCount": 2,
+            "signalIndex": 41,
+            "unknownSignals": 0,
+            "signals": [
+              {
+                "id": "heavy-rain-fixture-3",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "폭우 예보",
+                "measure": "1시간 더미 강수량 65mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.516,
+                "lng": 127.0108,
+                "seconds": 1224,
+                "eta": "2026-11-11T01:20:24.000Z",
+                "validTime": "2026-11-11T01:20:24.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 65,
+                "rainLabel": "65mm",
+                "assessment": {
+                  "level": "caution",
+                  "label": "가상 폭우 · 우회 검토",
+                  "evidence": "더미 1시간 강수 65mm",
+                  "caution": "시뮬레이션 전용 자료입니다. 실제 강수·침수나 안전한 우회경로를 확인하지 않았습니다.",
+                  "score": 70,
+                  "engine": "rules-v1"
+                }
+              },
+              {
+                "id": "flood-warning-fixture-3",
+                "kind": "warning",
+                "icon": "🌊",
+                "title": "침수경보",
+                "measure": "저지대 도로 침수 위험 가정",
+                "description": "실제 침수 관측이나 기관 경보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.516,
+                "lng": 127.0108,
+                "seconds": 1224,
+                "eta": "2026-11-11T01:20:24.000Z",
+                "validTime": "2026-11-11T01:20:24.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "impact": "flood",
+                "assessment": {
+                  "level": "caution",
+                  "label": "가상 침수경보 · 우회 검토",
+                  "evidence": "더미 경보 좌표·유효시각과 시험 경로 일치",
+                  "caution": "시뮬레이션 전용입니다. 실제 발표·침수 여부와 안전한 우회경로는 확인하지 않았습니다.",
+                  "score": 78,
+                  "engine": "rules-v1"
+                }
+              }
+            ],
+            "sources": [
+              "Sunny SAI 더미 시연자료"
+            ],
+            "riskLevel": "caution",
+            "routeMinutes": 30,
+            "state": "evaluated",
+            "simulation": true,
+            "evidenceMode": "synthetic-fixture",
+            "reason": "조회 지점 예보 기반의 제한적인 위험 신호 분석",
+            "modePolicy": "walking-exposure-v1",
+            "sourcePriorities": [
+              "rain",
+              "warning"
+            ],
+            "action": {
+              "policy": "route-advisory-v1",
+              "type": "reroute",
+              "reason": "강한 강수와 경로에 정합된 침수 영향자료"
+            },
+            "riskSystem": "walking",
+            "sourceGroup": "시뮬레이션 시험 자료"
+          }
+        },
+        {
+          "stage": "action-recommendation",
+          "action": {
+            "policy": "route-advisory-v1",
+            "type": "reroute",
+            "reason": "강한 강수와 경로에 정합된 침수 영향자료"
+          }
+        }
+      ]
+    },
+    {
+      "name": "약한 강수·침수경보 없음",
+      "mode": "walking",
+      "expected": "advisory",
+      "actual": "advisory",
+      "pass": true,
+      "trace": [
+        {
+          "stage": "initial-input",
+          "input": [
+            {
+              "id": "fixture-0",
+              "lat": 37.544,
+              "lng": 126.9772,
+              "seconds": 216,
+              "eta": "2026-11-11T01:03:36.000Z",
+              "label": "더미 경로 지점 1",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:03:36.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-1",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "label": "더미 경로 지점 2",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:09:00.000Z",
+                "rain": 8,
+                "rainMin": 8,
+                "precipitationType": 1
+              },
+              "demoHazard": {
+                "id": "heavy-rain-fixture-1",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "비 예보",
+                "measure": "1시간 더미 강수량 8mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.535,
+                "lng": 126.988,
+                "seconds": 540,
+                "eta": "2026-11-11T01:09:00.000Z",
+                "validTime": "2026-11-11T01:09:00.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 8,
+                "rainLabel": "8mm"
+              }
+            },
+            {
+              "id": "fixture-2",
+              "lat": 37.525,
+              "lng": 127,
+              "seconds": 900,
+              "eta": "2026-11-11T01:15:00.000Z",
+              "label": "더미 경로 지점 3",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:15:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-3",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "label": "더미 경로 지점 4",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:20:24.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-4",
+              "lat": 37.507,
+              "lng": 127.0216,
+              "seconds": 1548,
+              "eta": "2026-11-11T01:25:48.000Z",
+              "label": "더미 경로 지점 5",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:25:48.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            }
+          ],
+          "signals": [
+            {
+              "id": "heavy-rain-fixture-1",
+              "kind": "rain",
+              "icon": "🌧️",
+              "title": "비 예보",
+              "measure": "1시간 더미 강수량 8mm",
+              "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "validTime": "2026-11-11T01:09:00.000Z",
+              "provider": "Sunny SAI 더미 시연자료",
+              "synthetic": true,
+              "affectedRadiusMeters": 450,
+              "rainMm": 8,
+              "rainLabel": "8mm"
+            }
+          ],
+          "profile": {
+            "engine": "risk-v2.0",
+            "mode": "walking",
+            "assurance": "상대적 예보·위험 근거 분석이며 안전 보증 또는 사고확률이 아닙니다.",
+            "coveredSamples": 5,
+            "totalSamples": 5,
+            "coverage": 100,
+            "signalCount": 1,
+            "signalIndex": 10,
+            "unknownSignals": 0,
+            "signals": [
+              {
+                "id": "heavy-rain-fixture-1",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "비 예보",
+                "measure": "1시간 더미 강수량 8mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.535,
+                "lng": 126.988,
+                "seconds": 540,
+                "eta": "2026-11-11T01:09:00.000Z",
+                "validTime": "2026-11-11T01:09:00.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 8,
+                "rainLabel": "8mm",
+                "assessment": {
+                  "level": "notice",
+                  "label": "가상 비 예보 주의",
+                  "evidence": "더미 1시간 강수 8mm",
+                  "caution": "시뮬레이션 전용 자료이며 실제 노면 상태가 아닙니다.",
+                  "score": 48,
+                  "engine": "rules-v1"
+                }
+              }
+            ],
+            "sources": [
+              "Sunny SAI 더미 시연자료"
+            ],
+            "riskLevel": "notice",
+            "routeMinutes": 30,
+            "state": "evaluated",
+            "simulation": true,
+            "evidenceMode": "synthetic-fixture",
+            "reason": "조회 지점 예보 기반의 제한적인 위험 신호 분석",
+            "modePolicy": "walking-exposure-v1",
+            "sourcePriorities": [
+              "rain"
+            ],
+            "action": {
+              "policy": "route-advisory-v1",
+              "type": "advisory",
+              "reason": "확인된 위험 신호 안내"
+            },
+            "riskSystem": "walking",
+            "sourceGroup": "시뮬레이션 시험 자료"
+          }
+        },
+        {
+          "stage": "new-input",
+          "input": [
+            {
+              "id": "fixture-0",
+              "lat": 37.544,
+              "lng": 126.9772,
+              "seconds": 216,
+              "eta": "2026-11-11T01:03:36.000Z",
+              "label": "더미 경로 지점 1",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:03:36.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-1",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "label": "더미 경로 지점 2",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:09:00.000Z",
+                "rain": 8,
+                "rainMin": 8,
+                "precipitationType": 1
+              },
+              "demoHazard": {
+                "id": "heavy-rain-fixture-1",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "비 예보",
+                "measure": "1시간 더미 강수량 8mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.535,
+                "lng": 126.988,
+                "seconds": 540,
+                "eta": "2026-11-11T01:09:00.000Z",
+                "validTime": "2026-11-11T01:09:00.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 8,
+                "rainLabel": "8mm"
+              }
+            },
+            {
+              "id": "fixture-2",
+              "lat": 37.525,
+              "lng": 127,
+              "seconds": 900,
+              "eta": "2026-11-11T01:15:00.000Z",
+              "label": "더미 경로 지점 3",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:15:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-3",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "label": "더미 경로 지점 4",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:20:24.000Z",
+                "rain": 4,
+                "rainMin": 4,
+                "precipitationType": 1
+              },
+              "demoHazard": {
+                "id": "heavy-rain-fixture-3",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "비 예보",
+                "measure": "1시간 더미 강수량 4mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.516,
+                "lng": 127.0108,
+                "seconds": 1224,
+                "eta": "2026-11-11T01:20:24.000Z",
+                "validTime": "2026-11-11T01:20:24.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 4,
+                "rainLabel": "4mm"
+              }
+            },
+            {
+              "id": "fixture-4",
+              "lat": 37.507,
+              "lng": 127.0216,
+              "seconds": 1548,
+              "eta": "2026-11-11T01:25:48.000Z",
+              "label": "더미 경로 지점 5",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:25:48.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            }
+          ],
+          "signals": [
+            {
+              "id": "heavy-rain-fixture-3",
+              "kind": "rain",
+              "icon": "🌧️",
+              "title": "비 예보",
+              "measure": "1시간 더미 강수량 4mm",
+              "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "validTime": "2026-11-11T01:20:24.000Z",
+              "provider": "Sunny SAI 더미 시연자료",
+              "synthetic": true,
+              "affectedRadiusMeters": 450,
+              "rainMm": 4,
+              "rainLabel": "4mm"
+            }
+          ]
+        },
+        {
+          "stage": "engine-assessment",
+          "profile": {
+            "engine": "risk-v2.0",
+            "mode": "walking",
+            "assurance": "상대적 예보·위험 근거 분석이며 안전 보증 또는 사고확률이 아닙니다.",
+            "coveredSamples": 5,
+            "totalSamples": 5,
+            "coverage": 100,
+            "signalCount": 1,
+            "signalIndex": 3,
+            "unknownSignals": 0,
+            "signals": [
+              {
+                "id": "heavy-rain-fixture-3",
+                "kind": "rain",
+                "icon": "🌧️",
+                "title": "비 예보",
+                "measure": "1시간 더미 강수량 4mm",
+                "description": "실제 강수 예보가 아닌 시험용 이벤트입니다.",
+                "lat": 37.516,
+                "lng": 127.0108,
+                "seconds": 1224,
+                "eta": "2026-11-11T01:20:24.000Z",
+                "validTime": "2026-11-11T01:20:24.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 4,
+                "rainLabel": "4mm",
+                "assessment": {
+                  "level": "info",
+                  "label": "비 예보 확인",
+                  "evidence": "더미 강수형태 · 4mm",
+                  "caution": "실제 도로 노면위험은 미확인입니다.",
+                  "score": 30,
+                  "engine": "rules-v1"
+                }
+              }
+            ],
+            "sources": [
+              "Sunny SAI 더미 시연자료"
+            ],
+            "riskLevel": "info",
+            "routeMinutes": 30,
+            "state": "evaluated",
+            "simulation": true,
+            "evidenceMode": "synthetic-fixture",
+            "reason": "조회 지점 예보 기반의 제한적인 위험 신호 분석",
+            "modePolicy": "walking-exposure-v1",
+            "sourcePriorities": [
+              "rain"
+            ],
+            "action": {
+              "policy": "route-advisory-v1",
+              "type": "advisory",
+              "reason": "확인된 위험 신호 안내"
+            },
+            "riskSystem": "walking",
+            "sourceGroup": "시뮬레이션 시험 자료"
+          }
+        },
+        {
+          "stage": "action-recommendation",
+          "action": {
+            "policy": "route-advisory-v1",
+            "type": "advisory",
+            "reason": "확인된 위험 신호 안내"
+          }
+        }
+      ]
+    },
+    {
+      "name": "고온",
+      "mode": "walking",
+      "expected": "heat-advisory",
+      "actual": "heat-advisory",
+      "pass": true,
+      "trace": [
+        {
+          "stage": "initial-input",
+          "input": [
+            {
+              "id": "fixture-0",
+              "lat": 37.544,
+              "lng": 126.9772,
+              "seconds": 216,
+              "eta": "2026-11-11T01:03:36.000Z",
+              "label": "더미 경로 지점 1",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:03:36.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-1",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "label": "더미 경로 지점 2",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:09:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-2",
+              "lat": 37.525,
+              "lng": 127,
+              "seconds": 900,
+              "eta": "2026-11-11T01:15:00.000Z",
+              "label": "더미 경로 지점 3",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:15:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-3",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "label": "더미 경로 지점 4",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:20:24.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-4",
+              "lat": 37.507,
+              "lng": 127.0216,
+              "seconds": 1548,
+              "eta": "2026-11-11T01:25:48.000Z",
+              "label": "더미 경로 지점 5",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:25:48.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            }
+          ],
+          "signals": [],
+          "profile": {
+            "engine": "risk-v2.0",
+            "mode": "walking",
+            "assurance": "상대적 예보·위험 근거 분석이며 안전 보증 또는 사고확률이 아닙니다.",
+            "coveredSamples": 5,
+            "totalSamples": 5,
+            "coverage": 100,
+            "signalCount": 0,
+            "signalIndex": 0,
+            "unknownSignals": 0,
+            "signals": [],
+            "sources": [],
+            "riskLevel": "unknown",
+            "routeMinutes": 30,
+            "state": "evaluated",
+            "simulation": true,
+            "evidenceMode": "synthetic-fixture",
+            "reason": "조회 지점 예보 기반의 제한적인 위험 신호 분석",
+            "modePolicy": "walking-exposure-v1",
+            "sourcePriorities": [],
+            "action": {
+              "policy": "route-advisory-v1",
+              "type": "continue",
+              "reason": "조회 지점의 추가 위험 신호 없음"
+            },
+            "riskSystem": "walking",
+            "sourceGroup": "시뮬레이션 시험 자료"
+          }
+        },
+        {
+          "stage": "new-input",
+          "input": [
+            {
+              "id": "fixture-0",
+              "lat": 37.544,
+              "lng": 126.9772,
+              "seconds": 216,
+              "eta": "2026-11-11T01:03:36.000Z",
+              "label": "더미 경로 지점 1",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:03:36.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-1",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "label": "더미 경로 지점 2",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:09:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-2",
+              "lat": 37.525,
+              "lng": 127,
+              "seconds": 900,
+              "eta": "2026-11-11T01:15:00.000Z",
+              "label": "더미 경로 지점 3",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:15:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-3",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "label": "더미 경로 지점 4",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:20:24.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              },
+              "demoHazard": {
+                "id": "heavy-rain-fixture-3",
+                "kind": "heat",
+                "icon": "☀️",
+                "title": "고온 예보 주의",
+                "measure": "더미 기온 35°C",
+                "description": "시험용 고온 예보입니다.",
+                "lat": 37.516,
+                "lng": 127.0108,
+                "seconds": 1224,
+                "eta": "2026-11-11T01:20:24.000Z",
+                "validTime": "2026-11-11T01:20:24.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 0,
+                "rainLabel": "0mm",
+                "temperature": 35
+              }
+            },
+            {
+              "id": "fixture-4",
+              "lat": 37.507,
+              "lng": 127.0216,
+              "seconds": 1548,
+              "eta": "2026-11-11T01:25:48.000Z",
+              "label": "더미 경로 지점 5",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:25:48.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            }
+          ],
+          "signals": [
+            {
+              "id": "heavy-rain-fixture-3",
+              "kind": "heat",
+              "icon": "☀️",
+              "title": "고온 예보 주의",
+              "measure": "더미 기온 35°C",
+              "description": "시험용 고온 예보입니다.",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "validTime": "2026-11-11T01:20:24.000Z",
+              "provider": "Sunny SAI 더미 시연자료",
+              "synthetic": true,
+              "affectedRadiusMeters": 450,
+              "rainMm": 0,
+              "rainLabel": "0mm",
+              "temperature": 35
+            }
+          ]
+        },
+        {
+          "stage": "engine-assessment",
+          "profile": {
+            "engine": "risk-v2.0",
+            "mode": "walking",
+            "assurance": "상대적 예보·위험 근거 분석이며 안전 보증 또는 사고확률이 아닙니다.",
+            "coveredSamples": 5,
+            "totalSamples": 5,
+            "coverage": 100,
+            "signalCount": 1,
+            "signalIndex": 32,
+            "unknownSignals": 0,
+            "signals": [
+              {
+                "id": "heavy-rain-fixture-3",
+                "kind": "heat",
+                "icon": "☀️",
+                "title": "고온 예보 주의",
+                "measure": "더미 기온 35°C",
+                "description": "시험용 고온 예보입니다.",
+                "lat": 37.516,
+                "lng": 127.0108,
+                "seconds": 1224,
+                "eta": "2026-11-11T01:20:24.000Z",
+                "validTime": "2026-11-11T01:20:24.000Z",
+                "provider": "Sunny SAI 더미 시연자료",
+                "synthetic": true,
+                "affectedRadiusMeters": 450,
+                "rainMm": 0,
+                "rainLabel": "0mm",
+                "temperature": 35,
+                "assessment": {
+                  "level": "caution",
+                  "label": "고온 예보 주의",
+                  "evidence": "더미 기온 35°C · 앱 주의 기준 33°C 이상",
+                  "caution": "공식 폭염특보나 개인별 열질환 위험을 의미하지 않습니다.",
+                  "score": 64,
+                  "engine": "rules-v1"
+                }
+              }
+            ],
+            "sources": [
+              "Sunny SAI 더미 시연자료"
+            ],
+            "riskLevel": "caution",
+            "routeMinutes": 30,
+            "state": "evaluated",
+            "simulation": true,
+            "evidenceMode": "synthetic-fixture",
+            "reason": "조회 지점 예보 기반의 제한적인 위험 신호 분석",
+            "modePolicy": "walking-exposure-v1",
+            "sourcePriorities": [
+              "heat"
+            ],
+            "action": {
+              "policy": "route-advisory-v1",
+              "type": "heat-advisory",
+              "reason": "고온 주의 기준 초과"
+            },
+            "riskSystem": "walking",
+            "sourceGroup": "시뮬레이션 시험 자료"
+          }
+        },
+        {
+          "stage": "action-recommendation",
+          "action": {
+            "policy": "route-advisory-v1",
+            "type": "heat-advisory",
+            "reason": "고온 주의 기준 초과"
+          }
+        }
+      ]
+    },
+    {
+      "name": "자료 누락",
+      "mode": "walking",
+      "expected": "abstain",
+      "actual": "abstain",
+      "pass": true,
+      "trace": [
+        {
+          "stage": "initial-input",
+          "input": [
+            {
+              "id": "fixture-0",
+              "lat": 37.544,
+              "lng": 126.9772,
+              "seconds": 216,
+              "eta": "2026-11-11T01:03:36.000Z",
+              "label": "더미 경로 지점 1",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:03:36.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-1",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "label": "더미 경로 지점 2",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:09:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-2",
+              "lat": 37.525,
+              "lng": 127,
+              "seconds": 900,
+              "eta": "2026-11-11T01:15:00.000Z",
+              "label": "더미 경로 지점 3",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:15:00.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-3",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "label": "더미 경로 지점 4",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:20:24.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            },
+            {
+              "id": "fixture-4",
+              "lat": 37.507,
+              "lng": 127.0216,
+              "seconds": 1548,
+              "eta": "2026-11-11T01:25:48.000Z",
+              "label": "더미 경로 지점 5",
+              "status": "forecast",
+              "synthetic": true,
+              "forecast": {
+                "provider": "sunny-synthetic",
+                "time": "2026-11-11T01:25:48.000Z",
+                "rain": 0,
+                "rainMin": 0,
+                "precipitationType": 0
+              }
+            }
+          ],
+          "signals": [],
+          "profile": {
+            "engine": "risk-v2.0",
+            "mode": "walking",
+            "assurance": "상대적 예보·위험 근거 분석이며 안전 보증 또는 사고확률이 아닙니다.",
+            "coveredSamples": 5,
+            "totalSamples": 5,
+            "coverage": 100,
+            "signalCount": 0,
+            "signalIndex": 0,
+            "unknownSignals": 0,
+            "signals": [],
+            "sources": [],
+            "riskLevel": "unknown",
+            "routeMinutes": 30,
+            "state": "evaluated",
+            "simulation": true,
+            "evidenceMode": "synthetic-fixture",
+            "reason": "조회 지점 예보 기반의 제한적인 위험 신호 분석",
+            "modePolicy": "walking-exposure-v1",
+            "sourcePriorities": [],
+            "action": {
+              "policy": "route-advisory-v1",
+              "type": "continue",
+              "reason": "조회 지점의 추가 위험 신호 없음"
+            },
+            "riskSystem": "walking",
+            "sourceGroup": "시뮬레이션 시험 자료"
+          }
+        },
+        {
+          "stage": "new-input",
+          "input": [
+            {
+              "id": "fixture-0",
+              "lat": 37.544,
+              "lng": 126.9772,
+              "seconds": 216,
+              "eta": "2026-11-11T01:03:36.000Z",
+              "label": "더미 경로 지점 1",
+              "status": "unavailable",
+              "synthetic": true,
+              "forecast": null
+            },
+            {
+              "id": "fixture-1",
+              "lat": 37.535,
+              "lng": 126.988,
+              "seconds": 540,
+              "eta": "2026-11-11T01:09:00.000Z",
+              "label": "더미 경로 지점 2",
+              "status": "unavailable",
+              "synthetic": true,
+              "forecast": null
+            },
+            {
+              "id": "fixture-2",
+              "lat": 37.525,
+              "lng": 127,
+              "seconds": 900,
+              "eta": "2026-11-11T01:15:00.000Z",
+              "label": "더미 경로 지점 3",
+              "status": "unavailable",
+              "synthetic": true,
+              "forecast": null
+            },
+            {
+              "id": "fixture-3",
+              "lat": 37.516,
+              "lng": 127.0108,
+              "seconds": 1224,
+              "eta": "2026-11-11T01:20:24.000Z",
+              "label": "더미 경로 지점 4",
+              "status": "unavailable",
+              "synthetic": true,
+              "forecast": null
+            },
+            {
+              "id": "fixture-4",
+              "lat": 37.507,
+              "lng": 127.0216,
+              "seconds": 1548,
+              "eta": "2026-11-11T01:25:48.000Z",
+              "label": "더미 경로 지점 5",
+              "status": "unavailable",
+              "synthetic": true,
+              "forecast": null
+            }
+          ],
+          "signals": []
+        },
+        {
+          "stage": "engine-assessment",
+          "profile": {
+            "engine": "risk-v2.0",
+            "mode": "walking",
+            "assurance": "상대적 예보·위험 근거 분석이며 안전 보증 또는 사고확률이 아닙니다.",
+            "coveredSamples": 0,
+            "totalSamples": 5,
+            "coverage": 0,
+            "signalCount": 0,
+            "signalIndex": 0,
+            "unknownSignals": 0,
+            "signals": [],
+            "sources": [],
+            "riskLevel": "unknown",
+            "routeMinutes": 30,
+            "state": "insufficient-data",
+            "simulation": true,
+            "evidenceMode": "synthetic-fixture",
+            "reason": "기상청 예보 유효시각 또는 경로 조회 지점이 확인되지 않았습니다.",
+            "modePolicy": "walking-exposure-v1",
+            "sourcePriorities": [],
+            "action": {
+              "policy": "route-advisory-v1",
+              "type": "abstain",
+              "reason": "자료 범위 또는 유효성 부족"
+            },
+            "riskSystem": "walking",
+            "sourceGroup": "시뮬레이션 시험 자료"
+          }
+        },
+        {
+          "stage": "action-recommendation",
+          "action": {
+            "policy": "route-advisory-v1",
+            "type": "abstain",
+            "reason": "자료 범위 또는 유효성 부족"
+          }
+        }
+      ]
+    }
+  ],
+  "pass": true
+}

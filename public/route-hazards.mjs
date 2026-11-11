@@ -50,6 +50,13 @@ export function hazardDetails(hazard,formatTime){
   '경로 구간: '+hazard.label,'예상 통과 시각: '+format(hazard.eta),
   '위험정보: '+hazard.measure,hazard.description,'출처: '+hazard.provider
  ];
+ if(hazard.synthetic)return [
+  hazard.title,'⚠️ 더미 시뮬레이션 · 실제 관측·특보 아님',
+  '경로 구간: '+hazard.label,'예상 통과 시각: '+format(hazard.eta),
+  '위험정보: '+hazard.measure,hazard.description,'출처: '+hazard.provider,
+  hazard.assessment?.label?'Risk Engine 판정: '+hazard.assessment.label:'Risk Engine 평가 근거 확인 중',
+  hazard.assessment?.caution||'실제 도로 상태와 통제 여부는 확인하지 않았습니다.'
+ ];
  let details;
  if(hazard.kind==='its-incident')details=[
   hazard.title,'ITS 신고 위치: '+hazard.label,

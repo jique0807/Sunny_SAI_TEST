@@ -4,11 +4,15 @@ export const RISK_ENGINE_VERSION='rules-v1';
 const located=h=>Number.isFinite(h?.lat)&&Number.isFinite(h?.lng)&&h.lat>=32&&h.lat<=40&&h.lng>=123&&h.lng<=133;
 const validTime=t=>typeof t==='string'&&Number.isFinite(Date.parse(t));
 const assessment=(level,label,evidence,caution,score)=>({level,label,evidence,caution,score,engine:RISK_ENGINE_VERSION});
-export function assessRouteHazard(h,{now=Date.now()}={}){
+export function assessRouteHazard(h,{now=Date.now(),syntheticScenario=false}={}){
  if(!h||typeof h!=='object')
   return assessment('unknown','자료 미수신','확인된 자료 없음','자료가 없다고 안전한 것은 아닙니다.',0);
  if(h.demo)return assessment('simulation','시연','가상의 기상위험','실제 위험판정이 아닙니다.',0);
  const source=String(h.provider||'');
+ const synthetic=syntheticScenario&&h.synthetic===true&&source==='Sunny SAI 더미 시연자료';
+ if(h.synthetic===true&&!synthetic)
+  return assessment('unknown','더미 자료 판정 보류','전용 시뮬레이션 평가 경로가 아닙니다.',
+   '시험용 자료는 실제 운영 위험자료와 분리합니다.',0);
  // Historic crash clusters are cautionary context, NOT observed real-time collisions.
  if(h.kind==='pedestrian-hotspot'){
   if(source!=='한국도로교통공단 TAAS'||h.historic!==true||h.live!==false||
@@ -42,12 +46,16 @@ export function assessRouteHazard(h,{now=Date.now()}={}){
    '위험예측이며 실제 결빙·도로통제 확정은 아닙니다.',rank[g]);
  }
  if(h.kind==='warning'){
-  if(!source.includes('기상청')||!located(h)||!validTime(h.eta)||!validTime(h.validTime))
+  if((!source.includes('기상청')&&!synthetic)||!located(h)||!validTime(h.eta)||!validTime(h.validTime))
    return assessment('unknown','특보 자료 검증 필요','위치 또는 유효시각 미확인','특보구역 전체와 도로 교차 여부 미확인',0);
+  if(synthetic)return assessment('caution','가상 침수경보 · 우회 검토',
+   '더미 경보 좌표·유효시각과 시험 경로 일치',
+   '시뮬레이션 전용입니다. 실제 발표·침수 여부와 안전한 우회경로는 확인하지 않았습니다.',78);
   return assessment('caution','기상특보 근접 참고',source+' · 경로 인접 관측지점 기준',
    '공식 특보구역 경계·도로 통제 확인은 아닙니다.',78);
  }
- if(!['rain','snow','mixed','heat','cold','wind'].includes(h.kind)||source!=='기상청 격자예보')
+ if(!['rain','snow','mixed','heat','cold','wind'].includes(h.kind)||
+    (source!=='기상청 격자예보'&&!synthetic))
   return assessment('unknown','지원하지 않는 위험자료','검증된 기상청 위험 항목 아님','근거 없는 위험은 생성하지 않습니다.',0);
  if(!located(h)||!validTime(h.eta)||!validTime(h.validTime))
   return assessment('unknown','예보 위치·시각 검증 필요','경로좌표·통과시각·유효시각 미확인','미조회 구간은 안전하다고 판단하지 않습니다.',0);
@@ -57,7 +65,7 @@ export function assessRouteHazard(h,{now=Date.now()}={}){
  if(h.kind==='heat'){
   const t=h.temperature;
   if(!Number.isFinite(t)||t<33)return assessment('unknown','고온 기준 미확인','기온 예보 검증 필요','고온 예보가 없으면 위험 단정을 하지 않습니다.',0);
-  return assessment('caution','고온 예보 주의','기상청 격자예보 기온 '+t+'°C · 앱 주의 기준 33°C 이상',
+  return assessment('caution','고온 예보 주의',(synthetic?'더미 기온 ':'기상청 격자예보 기온 ')+t+'°C · 앱 주의 기준 33°C 이상',
    '공식 폭염특보나 개인별 열질환 위험을 의미하지 않습니다.',64);
  }
  if(h.kind==='cold'){
@@ -78,12 +86,16 @@ export function assessRouteHazard(h,{now=Date.now()}={}){
    '실제 도로 결빙 여부는 미확인입니다.',45);
  const amount=Number.isFinite(h.rainMm)?h.rainMm:Number.isFinite(h.rainMin)&&h.rainMin>0?h.rainMin:null;
  if(amount!==null&&amount>=30)
-  return assessment('caution','강한 비 예보', '기상청 1시간 강수 '+(h.rainLabel||amount+'mm'),
-   '강수 예보 강도일 뿐, 도로 침수·통제·안전한 우회를 증명하지 않습니다.',70);
+  return assessment('caution',synthetic?'가상 폭우 · 우회 검토':'강한 비 예보',
+   (synthetic?'더미 1시간 강수 ':'기상청 1시간 강수 ')+(h.rainLabel||amount+'mm'),
+   synthetic?'시뮬레이션 전용 자료입니다. 실제 강수·침수나 안전한 우회경로를 확인하지 않았습니다.':
+    '강수 예보 강도일 뿐, 도로 침수·통제·안전한 우회를 증명하지 않습니다.',70);
  if(amount!==null&&amount>=5)
-  return assessment('notice','비 예보 주의', '기상청 1시간 강수 '+(h.rainLabel||amount+'mm'),
-   '강수만으로 침수·결빙을 추정하지 않습니다.',48);
- return assessment('info','비 예보 확인','기상청 강수형태 · '+(h.rainLabel||'강수량 미확인'),
+  return assessment('notice',synthetic?'가상 비 예보 주의':'비 예보 주의',
+   (synthetic?'더미 1시간 강수 ':'기상청 1시간 강수 ')+(h.rainLabel||amount+'mm'),
+   synthetic?'시뮬레이션 전용 자료이며 실제 노면 상태가 아닙니다.':
+    '강수만으로 침수·결빙을 추정하지 않습니다.',48);
+ return assessment('info','비 예보 확인',(synthetic?'더미 강수형태 · ':'기상청 강수형태 · ')+(h.rainLabel||'강수량 미확인'),
   '실제 도로 노면위험은 미확인입니다.',30);
 }
 export function withRiskAssessment(h,options){

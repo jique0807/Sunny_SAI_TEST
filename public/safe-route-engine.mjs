@@ -1,6 +1,7 @@
 // Sunny SAI Risk Engine 2.0 — explainable, deterministic route-risk assessment.
 // No paid AI, no model inference. Scores are relative evidence indices, NOT
 // accident probabilities, traffic restrictions or certifications of safe travel.
+import {decideRouteAction} from './route-action-policy.mjs';
 import {assessRouteHazard} from './risk-engine.mjs';
 import {scoreModeRisk} from './risk-mode-policy.mjs';
 import {buildRouteHazards} from './route-hazards.mjs';
@@ -31,7 +32,8 @@ function onRoute(path,point,limit=1000){
  }
  return false;
 }
-const validForecastSample=s=>s?.status==='forecast'&&s.forecast?.provider==='kma'&&
+const validForecastSample=(s,syntheticScenario=false)=>s?.status==='forecast'&&
+ (s.forecast?.provider==='kma'||(syntheticScenario&&s.synthetic===true&&s.forecast?.provider==='sunny-synthetic'))&&
  geo(s)&&time(s.eta)&&time(s.forecast.time)&&Number.isFinite(s.seconds)&&
  Math.abs(Date.parse(s.eta)-Date.parse(s.forecast.time))<=90*60000;
 // A region warning matched only to a station is point-proximity evidence,
@@ -39,12 +41,13 @@ const validForecastSample=s=>s?.status==='forecast'&&s.forecast?.provider==='kma
 const supportedMode=mode=>mode==='driving'||mode==='walking';
 const threshold=mode=>mode==='walking'?12:15;
 
-export function evaluateRouteRisk(route,{weatherSamples=[],extraHazards=[],mode='driving',now=Date.now()}={}){
+export function evaluateRouteRisk(route,{weatherSamples=[],extraHazards=[],mode='driving',now=Date.now(),syntheticScenario=false}={}){
  const base={engine:SAFE_ROUTE_ENGINE_VERSION,mode,assurance:'상대적 예보·위험 근거 분석이며 안전 보증 또는 사고확률이 아닙니다.',
   coveredSamples:0,totalSamples:0,coverage:0,signalCount:0,signalIndex:0,
   unknownSignals:0,signals:[],sources:[],riskLevel:'unknown',routeMinutes:0};
  if(!supportedMode(mode))return {...base,state:'unsupported',reason:'지원하지 않는 이동수단입니다.'};
- if(route?.demo)return {...base,state:'simulation',reason:'시연용 위험정보는 실제 위험 엔진 평가에서 제외합니다.'};
+ if(route?.demo&&!(syntheticScenario&&route.syntheticRiskDemo===true))
+  return {...base,state:'simulation',reason:'시연용 위험정보는 실제 위험 엔진 평가에서 제외합니다.'};
  if(!validRoute(route))return {...base,state:'insufficient-data',reason:'도로 경로 형상·거리·시간이 검증되지 않았습니다.'};
  if(mode==='driving'&&['walking','pedestrian'].includes(route.travelMode||route.mode))
   return {...base,state:'unsupported',reason:'도보 경로를 자동차 위험으로 평가하지 않습니다.'};
@@ -54,7 +57,7 @@ export function evaluateRouteRisk(route,{weatherSamples=[],extraHazards=[],mode=
  const incoming=Array.isArray(weatherSamples)?weatherSamples:[];
  // Only known route sample locations count towards forecast coverage.
  const expectedSeconds=new Set(expected.map(x=>Math.round(x.seconds)));
- const receivedSeconds=new Set(incoming.filter(s=>validForecastSample(s)&&
+ const receivedSeconds=new Set(incoming.filter(s=>validForecastSample(s,syntheticScenario)&&
   expected.some(p=>Math.abs(p.seconds-s.seconds)<1&&distanceMeters(p,s)<=1500))
   .map(x=>Math.round(x.seconds)).filter(s=>expectedSeconds.has(s)));
  const covered=receivedSeconds.size,total=expectedSeconds.size,coverage=total?covered/total:0;
@@ -71,7 +74,7 @@ export function evaluateRouteRisk(route,{weatherSamples=[],extraHazards=[],mode=
   if(!h||h.demo)continue;
   if(!geo(h)||!Number.isFinite(h.seconds)||h.seconds<0||h.seconds>route.duration||
      !onRoute(route.rainPath,h,h.kind==='warning'?600:1500)){unknown.push(h);continue;}
-  const a=assessRouteHazard(h,{now});
+  const a=assessRouteHazard(h,{now,syntheticScenario});
   if(!a.score||a.level==='unknown'){unknown.push(h);continue;}
   if(mode==='walking'&&(h.roadRisk!==undefined||h.kind==='its-incident')){
    // Live road-event points and road-link icing are vehicle-only evidence.
@@ -96,7 +99,7 @@ export function evaluateRouteRisk(route,{weatherSamples=[],extraHazards=[],mode=
  const index=modeDecision.signalIndex;
  const state=!total||!covered?'insufficient-data':coverage<.8?'partial':'evaluated';
  const sources=[...new Set(accepted.map(h=>h.provider).filter(Boolean))];
- return {...base,state,
+ const result={...base,state,simulation:syntheticScenario,evidenceMode:syntheticScenario?'synthetic-fixture':'provider-data',
   reason:state==='evaluated'?'조회 지점 예보 기반의 제한적인 위험 신호 분석':
    state==='partial'?'경로 일부 조회 지점의 예보가 누락되었습니다.':'기상청 예보 유효시각 또는 경로 조회 지점이 확인되지 않았습니다.',
   coveredSamples:covered,totalSamples:total,coverage:Math.round(coverage*100),
@@ -104,6 +107,7 @@ export function evaluateRouteRisk(route,{weatherSamples=[],extraHazards=[],mode=
   modePolicy:modeDecision.policy,sourcePriorities:modeDecision.priorities,
   unknownSignals:unknown.length,signals:accepted,sources,riskLevel:level,
   routeMinutes:Math.ceil(route.duration/60)};
+ return {...result,action:decideRouteAction(result)};
 }
 
 // Dedicated entrypoints: do not mix pedestrian traffic history with driving hazards.
@@ -116,6 +120,17 @@ export function evaluateDrivingRisk(route,{weatherSamples=[],extraHazards=[],now
   h?.roadRisk!==undefined||['its-incident','warning'].includes(h?.kind)):[];
  return {...evaluateRouteRisk(route,{weatherSamples,extraHazards:accepted,mode:'driving',now}),
   riskSystem:'driving',sourceGroup:RISK_SOURCE_GROUPS.driving.displayGroup};
+}
+// Explicit, isolated path used only by the in-app fictional scenario. It runs
+// the same route, time, coordinate and severity gates without claiming provider data.
+export function evaluateSyntheticDrivingRisk(route,{weatherSamples=[],extraHazards=[],now=Date.now()}={}){
+ if(!route?.demo||route.syntheticRiskDemo!==true)
+  return {...evaluateRouteRisk(route,{mode:'driving',now}),simulation:true,evidenceMode:'synthetic-fixture'};
+ const accepted=Array.isArray(extraHazards)?extraHazards.filter(h=>
+  h?.synthetic===true&&h?.provider==='Sunny SAI 더미 시연자료'&&
+  ['rain','warning','heat'].includes(h?.kind)):[];
+ return {...evaluateRouteRisk(route,{weatherSamples,extraHazards:accepted,mode:route.travelMode==='walking'?'walking':'driving',now,syntheticScenario:true}),
+  simulation:true,evidenceMode:'synthetic-fixture',riskSystem:route.travelMode==='walking'?'walking':'driving',sourceGroup:'시뮬레이션 시험 자료'};
 }
 export function evaluateWalkingRisk(route,{weatherSamples=[],extraHazards=[],now=Date.now()}={}){
  // WMS PNG and TMAP crossings/steps are visual/context data, not validated hazard points.

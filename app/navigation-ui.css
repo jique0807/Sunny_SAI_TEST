@@ -2249,6 +2249,8 @@ body.sunny-guiding .sunny-demo-detour-popup{
 /* Walking-only presentation trigger shares the existing safe-area-aware route sheet. */
 .sunny-walk-demo-launch{margin:7px 0 12px!important;background:#f0f9f6!important;border:1px solid #aadbc8!important;color:#176b52!important}
 .sunny-walk-demo-launch small{color:#327a68!important}
+.sunny-live-risk-demo-launch{margin:7px 0 12px!important;background:#fff8ec!important;border:1px solid #efc277!important;color:#795016!important}
+.sunny-live-risk-demo-launch small{display:block;color:#92601b!important;font-size:11px;font-weight:650}
 .sunny-desktop-walk-demo{min-height:44px}
 @media(max-width:900px){
  .sunny-route-studio .sunny-walk-demo-launch{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;min-height:48px}
@@ -2509,3 +2511,16 @@ body.sunny-guiding .sunny-demo-detour-popup{
 .nav-layers-sheet .nav-layer-row .nav-layer-reception[data-state="waiting"]{
  border:0;background:transparent;color:#738499;padding:0;font-weight:500
 }
+
+/* Dummy scenario controls are scoped to their own modal and briefing panel. */
+.sunny-dummy-dialog{width:min(540px,calc(100vw - 24px));max-height:85dvh;padding:18px;border:1px solid #ccd9ea;border-radius:18px;color:#16243b;overflow:auto}
+.sunny-dummy-dialog::backdrop{background:#13283d70}
+.sunny-dummy-dialog label{display:block;margin:10px 0;font-size:13px;font-weight:600}
+.sunny-dummy-dialog input:not([type=checkbox]),.sunny-dummy-dialog select{width:100%;padding:10px;border:1px solid #ccd9ea;border-radius:8px;font:inherit;background:white;color:#16243b}
+.dummy-place{display:flex;align-items:end;gap:8px}.dummy-place label{flex:1}.dummy-place>button{margin-bottom:10px}
+.dummy-results{display:grid;gap:4px}.dummy-results button{text-align:left;font-size:12px}
+.dummy-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.sunny-dummy-dialog .buttonrow{display:flex;flex-wrap:wrap;gap:6px}.dummy-import{font-weight:400!important;font-size:11px!important}.dummy-import input{font-size:11px!important}
+.sunny-dummy-dialog #dummyStart{width:100%}.sunny-dummy-dialog details{border:1px solid #dbe4f0;padding:12px;border-radius:12px;margin-top:14px}
+.sunny-dummy-briefing{position:fixed;z-index:65;left:12px;bottom:160px;width:min(315px,calc(100vw - 75px));padding:10px 12px;background:#fffffff2;border:1px solid #efc277;border-radius:12px;box-shadow:0 6px 18px #182c4224;font-size:12px;max-height:36dvh;overflow:auto}
+.sunny-dummy-briefing[hidden]{display:none}.sunny-dummy-briefing summary{font-weight:750;color:#815514;cursor:pointer}.sunny-dummy-briefing ol{padding-left:16px;margin:8px 0;line-height:1.6}.sunny-dummy-briefing button{font-size:11px;padding:6px 8px}
