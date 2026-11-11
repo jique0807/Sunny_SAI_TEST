@@ -8,7 +8,7 @@ const env={APP_ORIGIN:'https://model-switch.example',SESSION_SECRET:'s'.repeat(6
  LLM_GEMMA_MODEL:'gemma-3-27b-it',LLM_GEMMA_BASE_URL:'https://gemma-inference.example/v1',LLM_GEMMA_API_KEY:'gemma-secret-123456789',
  LLM_GPT_OSS_MODEL:'gpt-oss-20b',LLM_GPT_OSS_BASE_URL:'https://oss-inference.example/v1',LLM_GPT_OSS_API_KEY:'oss-secret-123456789'};
 const profile={engine:'risk-v2.0',mode:'walking',state:'evaluated',coverage:100,simulation:true,
- signals:[{kind:'rain',rainMm:65,assessment:{level:'caution',score:70}},{kind:'warning',impact:'flood',assessment:{level:'caution',score:78}}]};
+ signals:[{kind:'rain',rainMm:65,assessment:{level:'caution',score:70}},{kind:'warning',impact:'flood',affectedRadiusMeters:200,assessment:{level:'caution',score:78}}]};
 const selection={sentenceIds:['scope','decision','e0','e1','uncertainty'],action:'reroute'};
 const req=(path,method='GET',data,cookie='',csrf='')=>new Request(env.APP_ORIGIN+path,{
  method,headers:{Cookie:cookie,'X-CSRF-Token':csrf,...(method==='GET'?{}:{Origin:env.APP_ORIGIN,'Content-Type':'application/json'})},
