@@ -6,7 +6,7 @@ export function initLLMExplanation({document,api,onEvent=()=>{},onSpeak=()=>{}})
  <label class="checklabel"><input id="llmAuto" type="checkbox"/> 새 위험판정 시 자동 브리핑</label>
  <details><summary>LLM 연결 설정 (선택)</summary>
  <label for="llmProvider">모델 연결 방식</label><select id="llmProvider"><option value="gemini">Google Gemini</option><option value="compatible">서버에 등록된 호환 API</option></select>
- <label for="llmModel">모델 ID</label><input id="llmModel" maxlength="120" placeholder="계정에서 사용 가능한 모델 ID"/>
+ <label for="llmModel">모델 ID</label><input id="llmModel" value="gemini-3.5-flash-lite" maxlength="120" placeholder="계정에서 사용 가능한 모델 ID"/>
  <label for="llmKey">개인 LLM API 키</label><input id="llmKey" type="password" autocomplete="off" placeholder="임시 연결용 API 키"/>
  <div class="buttonrow"><button id="llmConnect" type="button">임시 연결·모델 변경</button><button id="llmDisconnect" type="button">연결 삭제</button></div>
  <p class="hint">키는 암호화해 최대 30분 동안 임시 보관합니다. 모델 사용료가 발생할 수 있습니다.</p></details><p id="llmConfigStatus" role="status">연결 상태 확인 전</p>`;
@@ -20,7 +20,17 @@ export function initLLMExplanation({document,api,onEvent=()=>{},onSpeak=()=>{}})
  const floating=document.createElement('details');floating.className='sunny-llm-floating';floating.hidden=true;floating.innerHTML='<summary>LLM 상황 브리핑</summary><p></p>';document.body.append(floating);
  const $=id=>document.getElementById(id);
  const status=text=>{$('llmConfigStatus').textContent=text;};
- async function refresh(){try{const d=await api('/api/llm/status',null,'GET');configured=d.configured===true;$('llmProvider').value=d.provider||'gemini';$('llmModel').value=d.model||'';status(configured?'키·모델 등록됨 · 실제 설명 응답 검사 전':'미연결 · 정형 근거 설명을 사용할 수 있습니다.');}catch{configured=false;status('연결 상태 미확인 · 정형 근거 설명 사용');}}
+ const defaultGeminiModel='gemini-3.5-flash-lite';
+ const modelDrafts={gemini:defaultGeminiModel,compatible:''};
+ let selectedProvider='gemini';
+ $('llmProvider').addEventListener('change',()=>{
+  modelDrafts[selectedProvider]=$('llmModel').value.trim();
+  selectedProvider=$('llmProvider').value;
+  $('llmModel').value=modelDrafts[selectedProvider]||(selectedProvider==='gemini'?defaultGeminiModel:'');
+  // A provider change must not accidentally reuse an unsubmitted secret.
+  $('llmKey').value='';
+ });
+ async function refresh(){try{const d=await api('/api/llm/status',null,'GET');configured=d.configured===true;$('llmProvider').value=d.provider||'gemini';selectedProvider=$('llmProvider').value;$('llmModel').value=d.model||(selectedProvider==='gemini'?defaultGeminiModel:'');modelDrafts[selectedProvider]=$('llmModel').value;status(configured?'키·모델 등록됨 · 실제 설명 응답 검사 전':'미연결 · 정형 근거 설명을 사용할 수 있습니다.');}catch{configured=false;status('연결 상태 미확인 · 정형 근거 설명 사용');}}
  $('llmConnect').onclick=async()=>{const key=$('llmKey').value;$('llmKey').value='';$('llmConnect').disabled=true;revision++;answerText='';$('llmRead').disabled=true;
   try{await api('/api/llm/key',{key,provider:$('llmProvider').value,model:$('llmModel').value.trim()});await refresh();lastAuto='';}
   catch(e){status('연결 설정 실패: '+e.message);}finally{$('llmConnect').disabled=false;}};
