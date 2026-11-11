@@ -561,7 +561,7 @@ const vectorDriving=initVectorDriving({
   const panel=drivingUI.isActive() ? $('sunnyDriveHazardDetail') : $('navRouteHazardDetail');
   showHazardDetail(panel,hazard,fmt);
  },
- onFailure:()=>{ if(drivingUI.isActive())toast('진행방향 지도를 연결하지 못해 기본 지도로 안내합니다.'); }
+ onFailure:error=>{ if(drivingUI.isActive())toast(/WebGL|webgl/i.test(error?.message||'')?'이 기기에서 진행방향 지도의 그래픽 기능을 사용할 수 없어 기본 지도로 안내합니다.':'진행방향 지도를 연결하지 못해 기본 지도로 안내합니다.'); }
 });
 function vectorGuidanceHazards(){
  if(!route||!routeWeatherEnabled())return [];

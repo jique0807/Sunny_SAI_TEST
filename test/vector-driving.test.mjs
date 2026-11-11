@@ -81,7 +81,7 @@ test('MapLibre without optional supported export starts and updates heading; con
  }
  globalThis.document={createElement:()=>({style:{},setAttribute(){}})};
  globalThis.window={maplibregl:{Map:MapStub,Marker:MarkerStub,AttributionControl:class {}}};
- const failures=[],element={hidden:true,clientHeight:800,dataset:{}};
+ const failures=[],element={hidden:true,clientHeight:800,dataset:{},replaceChildren(){}};
  const ui=initVectorDriving({element,onFailure:error=>failures.push(error.message)});
  const route={rainPath:[{lat:37,lng:127},{lat:36,lng:128}]};
  assert.equal(await ui.start(route,route.rainPath[0],90),true);
@@ -92,5 +92,5 @@ test('MapLibre without optional supported export starts and updates heading; con
  ui.stop();assert.equal(ui.isActive(),false);assert.equal(removed,1);
  globalThis.window.maplibregl.Map=class {constructor(){throw Error('WebGL unavailable');}};
  assert.equal(await ui.start(route,route.rainPath[0],90),false);
- assert.equal(element.hidden,true);assert.deepEqual(failures,['WebGL unavailable']);
+ assert.equal(element.hidden,true);assert.equal(element.dataset.navigationState,'error');assert.deepEqual(failures,['WebGL unavailable']);
 });
