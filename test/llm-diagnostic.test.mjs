@@ -43,6 +43,28 @@ test('missing configuration and upstream denial are not verified',async()=>{
  assert.equal(missing.configured,false);assert.equal(missing.verified,false);assert.equal(calls,0);
  const denied=await diagnoseExplanationModel({mode:'gemma',env,fetcher:async()=>new Response('secret',{status:403})});
  assert.equal(denied.verified,false);assert.equal(denied.reason,'provider-unavailable');
+ assert.equal(denied.httpStatus,403);assert.equal(denied.failureKind,'access-denied');
+});
+test('sanitized HTTP diagnoses distinguish auth, permissions, model, quota and request format',async()=>{
+ for(const [status,failureKind] of [
+  [400,'request-rejected'],[401,'authentication-rejected'],[402,'billing-required'],
+  [403,'access-denied'],[404,'model-or-endpoint-not-found'],
+  [429,'quota-or-rate-limit'],[503,'provider-server-error']
+ ]){
+  const result=await diagnoseExplanationModel({mode:'gpt-oss',env,fetcher:async(url,opts)=>{
+   const request=JSON.parse(opts.body);
+   assert.equal(request.model,env.LLM_GPT_OSS_MODEL);
+   assert.equal(Object.hasOwn(request,'response_format'),false);
+   assert.equal(Object.hasOwn(request,'temperature'),false);
+   return new Response('never expose this upstream response body secret-marker',{status});
+  }});
+  assert.equal(result.verified,false);
+  assert.equal(result.reason,'provider-unavailable');
+  assert.equal(result.httpStatus,status);
+  assert.equal(result.failureKind,failureKind);
+  assert.equal(result.actionUnchanged,true);
+  assert.ok(!JSON.stringify(result).includes('secret-marker'));
+ }
 });
 test('model ID mismatch cannot masquerade as model identity confirmation',async()=>{
  const r=await diagnoseExplanationModel({mode:'gemma',env,fetcher:async()=>Response.json({

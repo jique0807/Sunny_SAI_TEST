@@ -46,7 +46,23 @@ export function initLLMExplanation({document,api,getMode=()=> 'off',onEvent=()=>
    if(d.verified)output.textContent='실제 응답 검증 통과 · '+selected+' / '+d.requestedModel+
     ' · '+d.latencyMs+'ms · 응답 모델 ID '+(d.reportedModel||'미제공')+
     ' · 모델 ID 일치 '+(d.modelIdentityMatched===null?'확인 불가':d.modelIdentityMatched?'확인':'불일치');
-   else output.textContent='실제 연결 시험 미통과 · '+(d.reason||'응답 미검증');
+   else {
+    const descriptions={
+     'request-rejected':'모델 서버가 요청 형식을 거부했습니다. 모델 ID 및 지원하는 API 형식을 확인하세요.',
+     'authentication-rejected':'모델 제공자의 API 키가 거부됐습니다. 서버 키를 확인하세요.',
+     'billing-required':'모델 제공자의 사용 크레딧 또는 결제 설정이 필요합니다.',
+     'access-denied':'모델 접근 권한이 없습니다. 계정과 모델 사용 권한을 확인하세요.',
+     'model-or-endpoint-not-found':'모델 ID 또는 API 엔드포인트를 확인하세요.',
+     'quota-or-rate-limit':'무료 호출 한도 또는 요청 제한에 도달했습니다.',
+     'provider-timeout':'모델 서버 응답이 시간 내에 도착하지 않았습니다.',
+     'provider-server-error':'모델 제공자 서버에 오류가 발생했습니다.',
+     'region-restricted':'모델 제공자의 지역 접근 제한입니다.',
+     'provider-http-error':'모델 제공자의 HTTP 오류입니다.'
+    };
+    const code=Number.isInteger(d.httpStatus)?' (HTTP '+d.httpStatus+')':'';
+    output.textContent='실제 연결 시험 미통과 · '+(d.reason||'응답 미검증')+code+' · '+
+     (descriptions[d.failureKind]||'응답을 확인할 수 없습니다.');
+   }
   }catch(e){if(version===revision)output.textContent='연결 시험 실패 · '+(e?.message||'응답 없음');}
   finally{if(version===revision)void refresh();}
  };
