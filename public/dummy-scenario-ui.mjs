@@ -4,8 +4,8 @@ export function initDummyScenarioUI({document,storage,search,onStart,isActive=()
  dialog.innerHTML=`<form method="dialog" class="dialog-head"><h2>더미 시연모드</h2><button aria-label="더미 설정 닫기">×</button></form>
  <p class="hint">실제 도로·보행 경로 위에서 가상 자료로 위험 엔진을 시험합니다.</p>
  <label>이동수단<select id="dummyMode"><option value="driving">자동차</option><option value="walking">도보</option></select></label>
- <div class="dummy-place"><label>출발지<input id="dummyOrigin" value="서울역" autocomplete="off"/></label><button type="button" id="dummyOriginSearch">검색</button></div><div id="dummyOriginResults" class="dummy-results"></div>
- <div class="dummy-place"><label>목적지<input id="dummyDestination" value="강남역" autocomplete="off"/></label><button type="button" id="dummyDestinationSearch">검색</button></div><div id="dummyDestinationResults" class="dummy-results"></div>
+ <div class="dummy-place"><label>출발지<input id="dummyOrigin" placeholder="출발지를 선택하세요." autocomplete="off"/></label><button type="button" id="dummyOriginSearch">검색</button></div><div id="dummyOriginResults" class="dummy-results"></div>
+ <div class="dummy-place"><label>목적지<input id="dummyDestination" placeholder="목적지를 선택하세요." autocomplete="off"/></label><button type="button" id="dummyDestinationSearch">검색</button></div><div id="dummyDestinationResults" class="dummy-results"></div>
  <section><h3>① 일반 이벤트</h3><p class="hint">출발할 때 수신하는 자료입니다. 위험 위치는 경로 진행률입니다.</p><div id="dummyEvents"></div><button type="button" id="dummyAddEvent">＋ 이벤트 추가</button></section>
  <section><h3>② 긴급 이벤트</h3><p class="hint">이동 중 새로 수신합니다. 수신 시점을 위험 위치보다 앞에 설정하세요. 우회 후 미수신 이벤트는 새 경로의 진행률을 기준으로 합니다.</p><div id="dummyEmergencies"></div><button type="button" id="dummyAddEmergency">＋ 긴급 이벤트 추가</button></section>
  <details><summary>③ 시나리오 저장·불러오기</summary><label>저장된 구성 불러오기<select id="dummyScenario"></select></label><label>시나리오 이름<input id="dummyName" maxlength="60"/></label>
