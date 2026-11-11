@@ -35,7 +35,7 @@ export function sanitizeScenario(value){
 }
 export function readScenarios(storage){
  try{const list=JSON.parse(storage?.getItem(SCENARIO_KEY)||'[]');
-  return [...BUILTIN_SCENARIOS,...(Array.isArray(list)?list.slice(0,30).map(sanitizeScenario):[])];}
+  const items=[...BUILTIN_SCENARIOS,...(Array.isArray(list)?list.slice(0,30).map(sanitizeScenario):[])],seen=new Set();return items.filter(item=>{const s=scenarioEvents(item),key=JSON.stringify([s.events.map(e=>[e.kind,e.position,e.value]).sort(),s.emergencies.map(e=>[e.kind,e.position,e.trigger,e.value]).sort(),s.journey||null]);if(seen.has(key))return false;seen.add(key);return true;});}
  catch{return [...BUILTIN_SCENARIOS];}
 }
 export function saveScenario(storage,scenario){

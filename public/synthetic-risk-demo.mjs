@@ -41,7 +41,7 @@ export function makeSyntheticRiskFixture(route,phase='initial'){
  const scenario=route.dummyScenario;
  if(Array.isArray(scenario?.events)){
   const count=phase==='alert'?(route.syntheticEventCount||1):0;
-  const entries=phase==='clear'?[]:[...scenario.events,...scenario.emergencies.slice(0,count)];
+  const entries=phase==='clear'?[]:[...scenario.events,...scenario.emergencies.slice(Math.max(0,count-1),count)];
   const fixtures=entries.map(event=>makeSyntheticRiskFixture({...route,dummyScenario:{type:event.kind==='rain'?'flood':event.kind,initialRain:0,rain:event.value,warning:event.kind==='flood',temperature:event.value,windSpeed:event.value,eventValue:event.value,eventPosition:event.position}},'alert'));
   if(!fixtures.length){const clear=makeSyntheticRiskFixture({...route,dummyScenario:{type:'flood',initialRain:0,rain:0,warning:false}},'clear');return {...clear,route:{...clear.route,dummyScenario:scenario}};}
   const invalid=fixtures.find(f=>f.profile.state!=='evaluated');
