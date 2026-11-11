@@ -1,6 +1,5 @@
 (async()=>{
 'use strict';
-const {initUploadedRisk}=await import('/upload-risk-data.mjs').catch(()=>({initUploadedRisk:()=>({refresh(){}})}));
 const {initRoadWeatherOverlay}=await import('/road-weather-overlay.mjs');
 if(window.sunnyInitialized)return;window.sunnyInitialized=true;
 const {assess,AlertGate}=await import('/rules.mjs');
@@ -881,7 +880,6 @@ sessionPromise=session().catch(e=>{$('keyStatus').textContent=e.message;connecti
 // The environment settings now contain a real, read-only source health dashboard.
 // Tests only run when the user presses refresh, avoiding extra provider/API usage.
 const architecturePanel=initArchitecturePanel({document,waitForSession:async()=>{await sessionPromise;}});
-const uploadedRisk=initUploadedRisk({document,getRoute:()=>route,getMap:()=>kmap});
 const connectionPanel=initConnectionStatusPanel({document,waitForSession:async()=>{await sessionPromise;},
  onUpdate:(values,meta)=>{
   layerHealth.update(values);
@@ -1191,7 +1189,6 @@ async function loadPedestrianRouteEvidence(activeRoute){
 function renderRoute(){if($('navRouteHazardDetail'))$('navRouteHazardDetail').hidden=true;clearWeatherOverlays();pickTarget=null;updatePick();$('cards').innerHTML='<article class="empty-card"><h3>새 경로의 구간별 예보를 확인하고 있어요.</h3></article>';$('cardCount').textContent='조회 중';$('driveControls').hidden=true;$('kakaoDirections').hidden=true;selectedSample=null;$('roadInspector').hidden=true;$('actualRoute').setAttribute('hidden','');renderActualRoute();if(!route.demo){$('kakaoDirections').href=kakaoRouteLink(originPlace,destPlace,route.travelMode);$('kakaoDirections').textContent=route.travelMode==='walking'?'카카오맵 도보 길찾기 ↗':'카카오맵에서 길안내 ↗';$('kakaoDirections').hidden=false;renderActualRoute();}$('modeBadge').textContent=route.syntheticRiskDemo?'더미 위험 시연':route.demo?(route.demoWalking?'도보 시연':'시연 모드'):route.travelMode==='walking'?'도보 경로':'차량 경로';if($('mapRouteLegendLabel'))$('mapRouteLegendLabel').textContent=route.travelMode==='walking'?'도보 경로':'차량 경로';$('mapTitle').textContent=route.syntheticRiskDemo?originPlace.name+' → '+destPlace.name+' · 더미 시연':route.demo?(route.demoWalking?(route.demoShelterRerouted?'무더위쉼터 경로 · 도보 상황 시연':'실제 TMAP 보행 경로 · 도보 상황 시연'):'실제 도로 · 상황 시연'):route.travelMode==='walking'?(route.provider==='TMAP'?'TMAP 보행로 경로':'카카오 보행로 경로'):'카카오모빌리티 차량 경로';$('duration').innerHTML=Math.round(route.duration/60)+'<small> 분</small>';$('distance').innerHTML=(route.distance/1000).toFixed(1)+'<small> km</small>';$('arrival').textContent=fmt(new Date(Date.parse(route.departure)+route.duration*1000));$('drive').disabled=!route.demo;$('drive').textContent=route.syntheticRiskDemo?'▷ 위험자료 시연 재생':route.demo?(route.demoWalking?'▷ 도보 시연 재생':'▷ 시연 재생'):'실제 주행 추적 준비 중';$('refresh').disabled=route.demo;$('originLabel').textContent='출발';$('destLabel').textContent='도착';$('demoMarkers').style.display=route.demo?'':'none';$('schematic').querySelector('svg').setAttribute('aria-label',route.demo?(route.demoWalking?'시연용 서울역 서울시청 도보 경로 개요도. 실제 지도와 도로 형상이 아닙니다.':'시연용 경로 개요도. 실제 지도 형상이 아닙니다.'):'추상적인 경로 개요도. 실제 도로 형상이 아닙니다.');$('floatingTitle').textContent=originPlace.name+' → '+destPlace.name;$('floatingSub').textContent=route.syntheticRiskDemo?'실제 도로 경로 형상 · 날씨/침수 자료는 더미 시뮬레이션':route.demo?'시연 모드 · 실제 기상관측/특보 아님':route.travelMode==='walking'?(route.etaMethod||'도보 예상 통과시각'):'도로별 소요시간을 누적한 예상 통과시각';$('progress').value='0';moveCar();typeof walkingFacilities!=='undefined'&&walkingFacilities.repaint();typeof koroadHotspots!=='undefined'&&koroadHotspots.repaint();typeof taasPedestrianWms!=='undefined'&&taasPedestrianWms.repaint();}
 
 function renderRouteHazards(){
- if(typeof uploadedRisk!=='undefined')uploadedRisk.refresh();
  expireItsEvidence(route);
  const rail=$('navRouteRiskMarks'),status=$('navRouteRiskStatus'),detail=$('navRouteHazardDetail');
  if(!rail||!status)return;
