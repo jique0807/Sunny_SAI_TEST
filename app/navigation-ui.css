@@ -2540,3 +2540,9 @@ body.sunny-guiding .sunny-demo-detour-popup{
 .nav-layers-sheet input[type=file]{max-width:100%;box-sizing:border-box}
 .nav-layers-sheet pre{white-space:pre-wrap;overflow-wrap:anywhere}
 .nav-layers-sheet .buttonrow{flex-wrap:wrap}
+@media(min-width:901px){
+ .topbar .brand,.topbar nav>button{color:#233c30}
+ .planner .field input{flex:1;min-width:0}
+ .planner #originSearchToggle{flex:0 0 54px;min-width:54px;white-space:nowrap;font-size:13px}
+ .planner .field #locate,.planner .field #mic{flex-shrink:0}
+}
