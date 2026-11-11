@@ -2,6 +2,7 @@
 // No paid AI, no model inference. Scores are relative evidence indices, NOT
 // accident probabilities, traffic restrictions or certifications of safe travel.
 import {assessRouteHazard} from './risk-engine.mjs';
+import {scoreModeRisk} from './risk-mode-policy.mjs';
 import {buildRouteHazards} from './route-hazards.mjs';
 
 export const SAFE_ROUTE_ENGINE_VERSION='risk-v2.0';
@@ -45,6 +46,8 @@ export function evaluateRouteRisk(route,{weatherSamples=[],extraHazards=[],mode=
  if(!supportedMode(mode))return {...base,state:'unsupported',reason:'지원하지 않는 이동수단입니다.'};
  if(route?.demo)return {...base,state:'simulation',reason:'시연용 위험정보는 실제 위험 엔진 평가에서 제외합니다.'};
  if(!validRoute(route))return {...base,state:'insufficient-data',reason:'도로 경로 형상·거리·시간이 검증되지 않았습니다.'};
+ if(mode==='driving'&&['walking','pedestrian'].includes(route.travelMode||route.mode))
+  return {...base,state:'unsupported',reason:'도보 경로를 자동차 위험으로 평가하지 않습니다.'};
  if(mode==='walking'&&!['walking','pedestrian'].includes(route.travelMode||route.mode))
   return {...base,state:'unsupported',reason:'보행자 전용 경로 형상이 없어 자동차 경로를 보행 안전으로 평가하지 않습니다.'};
  const expected=Array.isArray(route.samples)?route.samples.filter(s=>Number.isFinite(s?.seconds)&&geo(s)):[];
@@ -89,16 +92,16 @@ export function evaluateRouteRisk(route,{weatherSamples=[],extraHazards=[],mode=
  // Evidence index weights verified risk severity and proximity in the itinerary.
  // This is a *relative route-comparison signal*, not a spatially continuous
  // prediction. No supplied route forecast => NOT COMPARABLE.
- const index=accepted.reduce((sum,h)=>sum+
-  (h.assessment.level==='high'?35:h.assessment.level==='caution'?18:
-   h.assessment.level==='notice'?9:3),0);
+ const modeDecision=scoreModeRisk(mode,accepted);
+ const index=modeDecision.signalIndex;
  const state=!total||!covered?'insufficient-data':coverage<.8?'partial':'evaluated';
  const sources=[...new Set(accepted.map(h=>h.provider).filter(Boolean))];
  return {...base,state,
   reason:state==='evaluated'?'조회 지점 예보 기반의 제한적인 위험 신호 분석':
    state==='partial'?'경로 일부 조회 지점의 예보가 누락되었습니다.':'기상청 예보 유효시각 또는 경로 조회 지점이 확인되지 않았습니다.',
   coveredSamples:covered,totalSamples:total,coverage:Math.round(coverage*100),
-  signalCount:accepted.length,signalIndex:Math.min(100,index),
+  signalCount:accepted.length,signalIndex:index,
+  modePolicy:modeDecision.policy,sourcePriorities:modeDecision.priorities,
   unknownSignals:unknown.length,signals:accepted,sources,riskLevel:level,
   routeMinutes:Math.ceil(route.duration/60)};
 }
@@ -156,7 +159,7 @@ export function formatRouteRiskSummary(profile){
  if(!profile||profile.state==='simulation')return '시연용 위험정보 · 실제 위험판정 아님';
  if(profile.state==='unsupported')return '위험분석 보류 · 이동수단별 경로 미지원';
  if(profile.state==='insufficient-data')return '위험분석 보류 · 실제 기상청 경로 예보 미확인 (안전하다는 뜻 아님)'+historyNote;
- const portion='예보 조회 '+profile.coveredSamples+'/'+profile.totalSamples+'지점';
+ const portion=(profile.assessmentScope==='ahead-samples'?'앞 구간 예보 조회 ':'예보 조회 ')+profile.coveredSamples+'/'+profile.totalSamples+'지점';
  if(profile.state==='partial')return 'Risk Engine 2.0 · '+modeLabel+' · '+portion+' · 일부 자료 미확인 (안전 판정 불가)'+historyNote;
  const risk=profile.signalCount?profile.signalCount+'건의 위험 신호':'조회 지점에 확인된 위험 신호 없음';
  return 'Risk Engine 2.0 · '+modeLabel+' · '+portion+' · '+risk+' · 미조회 구간 판단 불가'+historyNote;

@@ -1,3 +1,4 @@
+import {summarizeRiskSourceEligibility} from './risk-source-eligibility.mjs';
 // Privacy-preserving, machine-readable data lineage for ONE actual route.
 // Contains metadata and counts only. Never export geometry, GPS, provider payloads or keys.
 export const RISK_LINEAGE_SCHEMA='sunny-risk-lineage-v1';
@@ -33,14 +34,17 @@ export function buildRiskLineage({route=null,weather=null,profile=null,now=Date.
    '2024년 과거 이력 · 실시간 사고 아님'));
  }
  const decision=demo?'simulation':profile?.state||'not-checked';
+ const evidenceReadiness=summarizeRiskSourceEligibility({route,profile});
  return {
   schema:RISK_LINEAGE_SCHEMA,generatedAt:new Date(now).toISOString(),
   routeMode:route?.travelMode||'unknown',decisionModel:profile?.decisionModel||'not-checked',
   decision,decisionWithheld:profile?.decisionWithheld===true,
   forecastCoverage:profile?.coverage??0,
+  assessmentScope:profile?.assessmentScope==='ahead-samples'?'ahead-samples':'route-samples',
   acceptedRiskSignals:profile?.signalCount??0,
   excludedUnverifiedSignals:profile?.unknownSignals??0,
   riskLevel:profile?.riskLevel||'unknown',
+  evidenceReadiness,
   sources,
   stages:[
    {id:'route',status:routeStatus},

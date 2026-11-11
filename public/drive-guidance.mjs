@@ -53,7 +53,7 @@ export function upcomingRisks(samples,seconds,limit=2){
  }
  return selected;
 }
-export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()=>[], isWeatherEnabled=()=>true}){
+export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()=>[],getWeatherSamples=null, isWeatherEnabled=()=>true}){
  const root=document.getElementById('sunnyDriveOverlay');
  const alerts=document.getElementById('sunnyDriveAlerts');
  const fill=document.getElementById('sunnyDriveProgressFill');
@@ -70,6 +70,7 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
  reroute?.addEventListener('click',()=>onReroute?.());
  const setText=(node,text)=>{if(node)node.textContent=text;};
  function combinedSamples(){
+  if(getWeatherSamples)return getWeatherSamples();
   const data=[...(weather?.samples||[]),...(aheadSamples||[])];
   return data.filter(x=>x?.status==='forecast'&&x.forecast);
  }

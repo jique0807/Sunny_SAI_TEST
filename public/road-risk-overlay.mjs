@@ -66,7 +66,8 @@ export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
   const records=displayableRisks(data.locations,ice.checked,visibility.checked);
   const coverage=data.roadName+' · '+data.receivedRoads+'/'+data.totalRoads+'개 노선 응답';
   if(!records.length){
-   const reason=data.status==='unmapped'?'ZIP에 위험도는 있으나 좌표·도로 형상이 확인되지 않았습니다. 잘못된 지도 표시는 하지 않습니다':
+   const reason=data.gradeSummary?.noInformation>0&&data.gradeSummary?.riskRecords===0?'도로위험 등급 0(정보 없음) · 안전 여부 판단 불가':
+    data.status==='unmapped'?'ZIP의 위험등급 또는 도로 좌표 확인이 필요합니다':
     data.status==='unsupported_format'?'원본 ZIP 자료구조가 확인되지 않아 위치 표출을 중단했습니다':
     data.locations.some(item=>item.gradeMeaningVerified!==true)?'기상청 숫자 위험코드의 공식 등급 의미가 미확인되어 경고 표출을 보류했습니다':
     '선택한 유형에서 검증된 위험구간 없음 (안전하다는 뜻이 아님)';
@@ -105,14 +106,14 @@ export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
   if(!available)return {status:'missing'};
   if(data&&Date.now()-riskReceivedAt<=180000)
    return {status:'received',verifiedLocations:displayableRisks(data.locations,true,true).length};
-  if(data){data=null;routeMatch=null;}
+  if(data){data=null;routeMatch=null;clear();onChange?.();}
   if(riskPending){await riskPending;return {status:data?'received':'unavailable'};}
   if(Date.now()-lastRiskAttempt<180000)return {status:'unavailable'};
   lastRiskAttempt=Date.now();
   riskPending=query('all').then(d=>{data=d;riskReceivedAt=Date.now();return d;}).catch(()=>null)
    .finally(()=>{riskPending=null;});
   const result=await riskPending;
-  if(result)onChange?.();
+  if(result)repaint();
   return {status:result?'received':'unavailable',
    verifiedLocations:result?displayableRisks(result.locations,true,true).length:0};
  }
@@ -124,10 +125,11 @@ export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
   message('기상청 도로위험 노선별 ZIP 수신·위치 확인 중');
   if(button)button.disabled=true;
   try{
-   const d=data||(riskPending?await riskPending:await query('all'));
+   const cached=data&&Date.now()-riskReceivedAt<=180000?data:null;
+   const d=cached||(riskPending?await riskPending:await query('all'));
    if(!d)throw Error('도로위험 자료를 수신하지 못했습니다.');
    if(request!==pending)return;
-   data=d;riskReceivedAt=Date.now();
+   data=d;if(!cached)riskReceivedAt=Date.now();
    for(const id of ['navLayerroad','navLayerfog'])setLayerReception(id,d.receivedRoads===0||d.status==='unsupported_format'?'failed':d.locations.some(item=>item.kind===(id==='navLayerroad'?'ice':'visibility'))?'received':d.status==='georeferenced'?'empty':'received');
    await ensureMap();
    if(request===pending)repaint();
