@@ -28,12 +28,13 @@ function weatherRecord(point,rainMm=0){
 }
 function syntheticSignal(route,point,{kind,rainMm=0}={}){
  const flood=kind==='warning';
+ const edge=Math.min(demoSegmentMeters(point,route.rainPath[0]),demoSegmentMeters(point,route.rainPath.at(-1)));
  return {id:(flood?'flood-warning':'heavy-rain')+'-'+point.id,kind,
   icon:flood?'🌊':'🌧️',title:flood?'침수경보':rainMm>=30?'폭우 예보':'비 예보',
   measure:flood?'저지대 도로 침수 위험 가정':'1시간 더미 강수량 '+rainMm+'mm',
   description:flood?'실제 침수 관측이나 기관 경보가 아닌 시험용 이벤트입니다.':'실제 강수 예보가 아닌 시험용 이벤트입니다.',
   lat:point.lat,lng:point.lng,seconds:point.seconds,eta:point.eta,validTime:point.eta,
-  provider:SYNTHETIC_RISK_SOURCE,synthetic:true,affectedRadiusMeters:Math.max(10,Math.min(450,route.distance*.08)),
+  provider:SYNTHETIC_RISK_SOURCE,synthetic:true,affectedRadiusMeters:Math.max(5,Math.min(450,route.distance*.08,edge*.3)),
   ...(flood?{impact:'flood'}:{rainMm,rainLabel:rainMm+'mm'})};
 }
 export function makeSyntheticRiskFixture(route,phase='initial'){
@@ -46,9 +47,17 @@ export function makeSyntheticRiskFixture(route,phase='initial'){
   // The initial event lies behind the simulated traveller when this feed arrives.
   signals=[];
   const point=points[3];
-  if(config.type==='missing'){
-   for(let i=0;i<base.length;i++)base[i]={...base[i],status:'unavailable',forecast:null};
+  if(['missing','stale','offroute','partial'].includes(config.type)){
+   for(let i=0;i<base.length;i++){
+    if(config.type==='partial'&&i<3)continue;
+    if(config.type==='stale')base[i]={...base[i],forecast:{...base[i].forecast,time:new Date(Date.parse(base[i].eta)-3*3600000).toISOString()}};
+    else if(config.type==='offroute')base[i]={...base[i],lat:base[i].lat+.2,lng:base[i].lng+.2};
+    else base[i]={...base[i],status:'unavailable',forecast:null};
+   }
    signals=[];
+  }else if(['snow','wind'].includes(config.type)){
+   const snow=config.type==='snow';const h={...syntheticSignal(route,point,{kind:config.type}),kind:config.type,icon:snow?'❄️':'💨',title:snow?'눈 예보':'강풍 예보',measure:snow?'더미 강수형태: 눈':'더미 풍속 '+config.windSpeed+'m/s',description:'시험용 기상 예보입니다.',...(snow?{}:{windSpeed:config.windSpeed})};
+   signals=[h];base[3]={...base[3],forecast:{...base[3].forecast,precipitationType:snow?3:0,windSpeed:config.windSpeed},demoHazard:h};
   }else if(config.type==='heat'){
    const heat={...syntheticSignal(route,point,{kind:'heat'}),kind:'heat',icon:'☀️',title:'고온 예보 주의',
     temperature:config.temperature,measure:'더미 기온 '+config.temperature+'°C',description:'시험용 고온 예보입니다.'};

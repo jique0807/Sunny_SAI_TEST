@@ -3,6 +3,9 @@
 if(window.sunnyInitialized)return;window.sunnyInitialized=true;
 const {assess,AlertGate}=await import('/rules.mjs');
 const {makeDemoScenario,makeDemoBreakingWarning,shouldTriggerDemoBreakingWarning,DEMO_BREAKING_TRIGGER,DEMO_SEOUL_BUSAN,DEMO_INITIAL_WAYPOINTS,DEMO_DETOUR_CANDIDATES,selectOptimalDemoDetour,demoPointAtSeconds,demoDistanceMeters,demoLeadSeconds,demoSpokenWarning,demoBreakingTiming,demoEventAtPlace,demoClosestRouteDistance}=await import('/demo-scenario.mjs');
+const {searchSyntheticDetour}=await import('/synthetic-detour-search.mjs');
+const {syntheticSpokenWarning,createSyntheticVoiceQueue}=await import('/synthetic-speech.mjs');
+const {initLLMExplanation}=await import('/llm-explanation-ui.mjs');
 const {initDummyScenarioUI}=await import('/dummy-scenario-ui.mjs');
 const {makeSyntheticRiskFixture,joinSyntheticWalkingLegs,evaluateSyntheticAlternative,syntheticDetourWaypoints,syntheticRiskRecommendsDetour,SYNTHETIC_RISK_TRIGGER,SYNTHETIC_RISK_SOURCE}=await import('/synthetic-risk-demo.mjs');
 const {WALK_DEMO,WALK_DEMO_TRIGGER,WALK_DEMO_SHELTER,makeWalkingDemoScenario,makeWalkingDemoBreakingWarning,walkingDemoSpokenWarning,walkingDemoAheadMeters}=await import('/walking-demo.mjs');
@@ -37,7 +40,7 @@ const {initConnectionStatusPanel}=await import('/connection-status.mjs');
 const {initLayerHealth}=await import('/layer-health-status.mjs');
 const {createRiskModelRegistry}=await import('/risk-model-adapters.mjs');
 const {initArchitecturePanel}=await import('/architecture-panel.mjs');
-let dummyUI=null;
+let dummyUI=null,llmUI=null,activeUtterance=null,syntheticSpeechPending=false;
 let demoOverlays=[],carOverlay=null,initialDemoRoute=null,initialWalkingDemoRoute=null;
 // Bind the DOM selector before any top-level UI event wiring (prevent TDZ startup crash).
 const $=id=>document.getElementById(id);
@@ -707,7 +710,7 @@ function drawGps(){
   }
  if(lmap&&window.L){if(!gpsLeaflet)gpsLeaflet=L.circleMarker([p.lat,p.lng],{radius:9,color:'#fff',weight:3,fillColor:'#1769ff',fillOpacity:1}).bindTooltip('실제 GPS 현재 위치').addTo(lmap);else gpsLeaflet.setLatLng([p.lat,p.lng]);}
 }
-function stopRain(){if(typeof dummyUI!=='undefined')dummyUI?.end();itsLoadSeq++;if(typeof clearDemoDetourPopup==='function')clearDemoDetourPopup();if(typeof clearWalkHeatPopup==='function')clearWalkHeatPopup();vectorDriving.stop();lastMatchedPoint=null;offRouteFix=null;lastRerouteAt=0;routeAheadWeather=null;rerouteBusy=false;drivingUI.stop();resetDrivingMapHeading();lastFollowTime=0;lastFollowPosition=null;rainRun++;if(rainWatch!==null)navigator.geolocation?.clearWatch(rainWatch);rainWatch=null;clearInterval(rainTimer);rainTimer=null;rainPosition=null;rainProgress=0;rainBusy=null;rainLastFetch=0;rainLastPoint=null;rainGate=new RainGate();clearGpsMarker();$('rainStop').hidden=true;$('rainStart').disabled=false;$('rainStatus').textContent='비 예보 음성 안내 종료';}
+function stopRain(){if(typeof syntheticVoiceQueue!=='undefined')syntheticVoiceQueue.clear();if(typeof llmUI!=='undefined')llmUI?.clear();if(typeof dummyUI!=='undefined')dummyUI?.end();itsLoadSeq++;if(typeof clearDemoDetourPopup==='function')clearDemoDetourPopup();if(typeof clearWalkHeatPopup==='function')clearWalkHeatPopup();vectorDriving.stop();lastMatchedPoint=null;offRouteFix=null;lastRerouteAt=0;routeAheadWeather=null;rerouteBusy=false;drivingUI.stop();resetDrivingMapHeading();lastFollowTime=0;lastFollowPosition=null;rainRun++;if(rainWatch!==null)navigator.geolocation?.clearWatch(rainWatch);rainWatch=null;clearInterval(rainTimer);rainTimer=null;rainPosition=null;rainProgress=0;rainBusy=null;rainLastFetch=0;rainLastPoint=null;rainGate=new RainGate();clearGpsMarker();$('rainStop').hidden=true;$('rainStart').disabled=false;$('rainStatus').textContent='비 예보 음성 안내 종료';}
 function remainingRoutePoints(){
  if(!drivingUI.isActive()||!lastMatchedPoint)return route?.vertices??[];
  return [lastMatchedPoint,...route.rainPath.filter(p=>p.seconds>lastMatchedPoint.seconds)];
@@ -841,22 +844,23 @@ departureInput.max=localInput(new Date(Date.now()+86400000));
 departureInput.addEventListener('input',()=>{departureEdited=true;});
 departureInput.addEventListener('change',()=>{departureEdited=true;});
 function toast(t){$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').hidden=true,5500);}
+const syntheticVoiceQueue=createSyntheticVoiceQueue({speak:async text=>{syntheticSpeechPending=true;try{await speak(text)}finally{syntheticSpeechPending=false}},isBusy:()=>Boolean(syntheticSpeechPending||activeUtterance||activeAudio||window.speechSynthesis?.speaking),getRoute:()=>route});
 function reply(t,voice=false){
  $('reply').textContent=t; // Visual notice always retains simulation disclosure.
  if(voice){
   const spoken=route?.demo?String(t).replace(/시연 안내입니다[.\s]*/g,'').replace(/시연(?:용| 모드)?[.·\s]*/g,'').trim():t;
-  speak(spoken||t);
+  if(route?.syntheticRiskDemo)syntheticVoiceQueue.push(spoken||t);else speak(spoken||t);
  }
 }
-function stopVoice(){voiceSeq++;window.speechSynthesis?.cancel();if(activeAudio){activeAudio.pause();URL.revokeObjectURL(activeAudio.src);activeAudio=null;}finishVoice?.();finishVoice=null;}
+function stopVoice(){activeUtterance=null;voiceSeq++;window.speechSynthesis?.cancel();if(activeAudio){activeAudio.pause();URL.revokeObjectURL(activeAudio.src);activeAudio=null;}finishVoice?.();finishVoice=null;}
 async function speak(t){
  // Do not vocalize the presentation prefix; retain on-screen simulation disclosure.
  if(route?.demo)t=String(t).replace(/시연(?:용| 모드)?[.·\s]*/g,'').trim();
  if(!t)return;
  stopVoice();const seq=voiceSeq;$('voiceStatus').textContent='써니가 안내하고 있어요.';
- if(advanced&&!route?.demo){try{const d=await api('/api/voice/speak',{text:t,rate:Number($('speed').value),voiceName:$('voiceChoice').value||undefined,provider:$('voiceProvider').value});if(seq!==voiceSeq)return;const blob=new Blob([Uint8Array.from(atob(d.audioContent),c=>c.charCodeAt(0))],{type:d.mimeType||'audio/mpeg'});const a=new Audio(URL.createObjectURL(blob));activeAudio=a;await new Promise((resolve,reject)=>{finishVoice=resolve;a.onended=resolve;a.onerror=reject;a.play().catch(reject);});if(activeAudio===a){URL.revokeObjectURL(a.src);activeAudio=null;}if(seq===voiceSeq)$('voiceStatus').textContent='선택한 '+d.voiceName+' 목소리로 재생했어요.';return;}catch(e){if(seq!==voiceSeq)return;const message=e.message||'오디오 재생에 실패했습니다. 미리듣기를 다시 눌러주세요.';$('keyStatus').textContent=message;$('voiceStatus').textContent=message;toast(message+' · 기기 음성으로 대체합니다.');}}
+ if(advanced&&(!route?.demo||route?.syntheticRiskDemo)){try{const d=await api('/api/voice/speak',{text:t,rate:Number($('speed').value),voiceName:$('voiceChoice').value||undefined,provider:$('voiceProvider').value});if(seq!==voiceSeq)return;const blob=new Blob([Uint8Array.from(atob(d.audioContent),c=>c.charCodeAt(0))],{type:d.mimeType||'audio/mpeg'});const a=new Audio(URL.createObjectURL(blob));activeAudio=a;a.onplaying=()=>{if(route?.syntheticRiskDemo)dummyUI?.brief('음성 출력 시작',{voiceText:t,voiceEngine:'google'});};await new Promise((resolve,reject)=>{finishVoice=resolve;a.onended=()=>{if(route?.syntheticRiskDemo)dummyUI?.brief('음성 출력 완료',{voiceText:t,voiceEngine:'google'});resolve();};a.onerror=reject;a.play().catch(reject);});if(activeAudio===a){URL.revokeObjectURL(a.src);activeAudio=null;}if(seq===voiceSeq)$('voiceStatus').textContent='선택한 '+d.voiceName+' 목소리로 재생했어요.';return;}catch(e){if(seq!==voiceSeq)return;const message=e.message||'오디오 재생에 실패했습니다. 미리듣기를 다시 눌러주세요.';$('keyStatus').textContent=message;$('voiceStatus').textContent=message;toast(message+' · 기기 음성으로 대체합니다.');if(route?.syntheticRiskDemo)dummyUI?.brief('Google 음성 실패 · 기기 음성 대체',{voiceText:t});}}
  if(seq!==voiceSeq)return;if(!window.speechSynthesis){$('voiceStatus').textContent='음성을 지원하지 않는 기기입니다. 화면 안내를 확인해주세요.';return;}
- try{speechSynthesis.resume?.();const u=new SpeechSynthesisUtterance(t);u.lang='ko-KR';u.rate=Number($('speed').value);u.volume=1;const voices=speechSynthesis.getVoices?.()||[];const korean=voices.find(v=>v.lang?.toLowerCase()==='ko-kr'&&v.localService)||voices.find(v=>v.lang?.toLowerCase()==='ko-kr');if(korean)u.voice=korean;u.onstart=()=>{if(seq===voiceSeq)$('voiceStatus').textContent='🔊 음성 출력 중';};u.onend=()=>{if(seq===voiceSeq)$('voiceStatus').textContent='안내를 마쳤어요.';};u.onerror=e=>{if(seq===voiceSeq){$('voiceStatus').textContent='음성 실패: '+(e.error||'기기 설정');toast('기기 음량·무음 설정과 한국어 음성 지원 여부를 확인해주세요.');}};speechSynthesis.speak(u);}catch(e){$('voiceStatus').textContent='기기 음성 지원 오류';}
+ try{speechSynthesis.resume?.();const u=new SpeechSynthesisUtterance(t);activeUtterance=u;u.lang='ko-KR';u.rate=Number($('speed').value);u.volume=1;const voices=speechSynthesis.getVoices?.()||[];const korean=voices.find(v=>v.lang?.toLowerCase()==='ko-kr'&&v.localService)||voices.find(v=>v.lang?.toLowerCase()==='ko-kr');if(korean)u.voice=korean;u.onstart=()=>{if(seq===voiceSeq){$('voiceStatus').textContent='🔊 음성 출력 중';if(route?.syntheticRiskDemo)dummyUI?.brief('음성 출력 시작',{voiceText:t,voiceEngine:'device'});}};u.onend=()=>{if(seq===voiceSeq){$('voiceStatus').textContent='안내를 마쳤어요.';activeUtterance=null;if(route?.syntheticRiskDemo)dummyUI?.brief('음성 출력 완료',{voiceText:t,voiceEngine:'device'});}};u.onerror=e=>{if(seq===voiceSeq){activeUtterance=null;if(route?.syntheticRiskDemo)dummyUI?.brief('음성 출력 실패',{error:e.error||'기기 설정',voiceText:t});$('voiceStatus').textContent='음성 실패: '+(e.error||'기기 설정');toast('기기 음량·무음 설정과 한국어 음성 지원 여부를 확인해주세요.');}};speechSynthesis.speak(u);}catch(e){$('voiceStatus').textContent='기기 음성 지원 오류';}
 }
 async function session(){const r=await fetch('/api/session',{credentials:'same-origin',cache:'no-store'});const d=await r.json();if(!r.ok)throw Error(d.error);csrf=d.csrf;advanced=d.connected;if(d.voiceProvider)$('voiceProvider').value=d.voiceProvider;loadVoices();mapConfig=d.mapConfig;connections=d.connections;kmaMapOverlay.availability(connections.kma);gk2aOverlay.setAvailable(Boolean(connections.gk2a));roadRiskOverlay.setAvailable(connections.roadRisk);koroadHotspots.setAvailable(false);taasPedestrianWms.setAvailable(Boolean(connections.koroad&&connections.route));if(itsControl){itsControl.disabled=!connections.its;itsControl.closest('.nav-layer-row')?.classList.toggle('nav-layer-unavailable',!connections.its);itsControl.checked=!!connections.its;if(!connections.its)itsSay('ROAD_API_KEY 미설정 · ITS 실시간 돌발정보 미조회');else itsSay('ITS 인증키 설정됨 · 실제 자동차 경로 탐색 시 수신 검사');}if(floodControl){floodControl.disabled=!connections.safemap;if(!connections.safemap){floodControl.checked=false;clearFlood();floodMessage('SAFEMAP_API_KEY 미설정');}else floodMessage('서버 키 등록됨 · 실제 WMS 응답은 검사 전');}keyStatus();connectionStatus();return d;}
 function keyStatus(){$('keyStatus').textContent=advanced?'암호화해 임시 연결됨 · 최대 30분 · 재생 시 사용 가능 여부 확인':'연결 안 됨 · 기기 기본 음성을 사용합니다.';}
@@ -905,7 +909,7 @@ $('checkDataSources').onclick=async()=>{
 };
 $('checkMaps').onclick=async()=>{$('checkMaps').disabled=true;$('mapHealth').textContent='현재 서비스 도메인으로 SDK·위성 응답을 검사하고 있어요.';try{const d=await api('/api/map-health',{});$('mapHealth').replaceChildren();const p=document.createElement('p');p.textContent='등록할 서비스 도메인: '+d.origin;$('mapHealth').append(p);for(const check of d.checks){const row=document.createElement('p');row.textContent=check.name+': '+check.message;$('mapHealth').append(row);}const caution=document.createElement('small');caution.textContent=d.caution+' · 검사 '+fmt(d.checkedAt);$('mapHealth').append(caution);}catch(e){$('mapHealth').textContent=e.message;}finally{$('checkMaps').disabled=false;}};
 $('settingsOpen').onclick=()=>$('settings').showModal();$('sourcesOpen').onclick=()=>$('sources').showModal();$('settings').addEventListener('close',()=>$('googleKey').value='');
-$('repeat').onclick=()=>speak($('reply').textContent);$('stop').onclick=()=>{stopVoice();recognition?.abort();$('voiceStatus').textContent='음성을 멈췄어요.';};
+$('repeat').onclick=()=>speak($('reply').textContent);$('stop').onclick=()=>{syntheticVoiceQueue.clear();stopVoice();recognition?.abort();$('voiceStatus').textContent='음성을 멈췄어요.';};
 $('connect').onclick=async()=>{const key=$('googleKey').value.trim();$('googleKey').value='';$('connect').disabled=true;try{const d=await api('/api/voice/key',{key,provider:$('voiceProvider').value});advanced=d.connected;if(d.provider)$('voiceProvider').value=d.provider;keyStatus();$('keyStatus').textContent=d.message;await loadVoices();}catch(e){$('keyStatus').textContent=e.message;}finally{$('connect').disabled=false;}};
 $('disconnect').onclick=async()=>{try{await api('/api/voice/key',null,'DELETE');advanced=false;stopVoice();keyStatus();loadVoices();}catch(e){$('keyStatus').textContent=e.message;}};
 function loadVoices(){const provider=$('voiceProvider').value,voices=voiceCatalog(provider);$('voiceChoice').replaceChildren();for(const v of voices){const o=document.createElement('option');o.value=v.name;o.textContent=v.label;$('voiceChoice').append(o);}let saved;try{saved=localStorage.getItem('sunnyVoice:'+provider);}catch{}if(voices.some(v=>v.name===saved))$('voiceChoice').value=saved;$('voiceChoice').disabled=false;}
@@ -1139,6 +1143,8 @@ async function syntheticRiskDemoRoute(config){
  finally{if(run===routeSeq)for(const id of ['demoLiveRisk','navDemoLiveRisk','routeSearch','studioRouteSearch'])if($(id))$(id).disabled=false;}
 }
 dummyUI=initDummyScenarioUI({document,storage:(()=>{try{return window.localStorage}catch{return null}})(),search:async query=>(await api('/api/search',{query})).places||[],onStart:syntheticRiskDemoRoute,isActive:()=>drivingUI.isActive(),onInject:()=>{if(route?.syntheticRiskDemo&&drivingUI.isActive())injectSyntheticRiskWarning();}});
+llmUI=initLLMExplanation({document,api,onSpeak:text=>reply(text,true),onEvent:(value,automatic)=>{if(route?.syntheticRiskDemo)dummyUI.brief(value.status==='llm'?'LLM 브리핑: '+value.text:'정형 근거 설명: '+value.text,{llm:value,automatic});}});
+void llmUI.refresh();
 for(const id of ['demoLiveRisk','navDemoLiveRisk'])$(id)?.addEventListener('click',()=>{if(!dummyUI.open())toast('안내를 종료한 뒤 더미 시나리오를 설정해주세요.');});
 $('realTrip').onclick=()=>{if(playing||$('routeSearch').disabled)return;originPlace={name:'진천군청',lat:36.855,lng:127.436};destPlace={name:'서울시청',lat:37.566,lng:126.978};$('origin').value=originPlace.name;$('destination').value=destPlace.name;$('departure').value=localInput(new Date(Date.now()+120000));$('searchForm').requestSubmit();};
 
@@ -1200,6 +1206,7 @@ function renderRouteHazards(){
   // Each dedicated risk entrypoint supplies the correct mobility mode and provider filter.
  }),assessmentScope:context.scope};
  architecturePanel.update({route:context.route,weather:{...weather,samples:context.weatherSamples},profile:riskProfile});
+ if(typeof llmUI!=='undefined')llmUI?.update(riskProfile,route);
  if(syntheticDemo){route.syntheticRiskProfile=riskProfile;status.textContent='더미 시연 · Risk Engine 2.0 '+(riskProfile?.state==='evaluated'?'판정 '+riskProfile.coveredSamples+'/'+riskProfile.totalSamples+' 지점 · 위험 신호 '+riskProfile.signalCount+'건 · 상대지수 '+riskProfile.signalIndex:'평가 보류')+(route.demoDetourSelected?' · 우회경로로 재안내':' · 시연자료 전용');}
  else if(isDemo)status.textContent=route.demoWalking?'도보 시연 위험지점 '+count+'개 · 🌧️ 강수 / ⚠️ 빗길 주의'+(route.demoBreakingWarning?' / 🚨 강수 강화':' · 보행 중 🚨 상황 변화')+' · 아이콘 선택':'시연 위험지점 '+count+'개 · 🌧️ 강수 / 🌫️ 안개'+(route.demoBreakingWarning?' / 🚨 긴급특보':' · 주행 중 🚨 특보 추가')+' · 아이콘 선택';
  else{
@@ -1310,7 +1317,7 @@ function demoDetourStatus(title,description,showChoices=false){
  $('sunnyDemoDetourTitle').textContent=title;
  $('sunnyDemoDetourDescription').textContent=description;
  $('sunnyDemoDetourChoices').hidden=!showChoices;
- if(showChoices)$('sunnyDemoDetourYes').textContent='예 · 우회 탐색';
+ if(showChoices){$('sunnyDemoDetourYes').textContent='예 · 우회 탐색';$('sunnyDemoDetourNo').textContent='아니오';}
 }
 function finishDemoDetourPopup(trip,resumePlayback){
  demoDetourHideTimer=setTimeout(()=>{
@@ -1326,41 +1333,28 @@ async function chooseDemoDetourYes(trip,resumePlayback){
  const synthetic=!!trip.syntheticRiskDemo;
  const alertPoint=synthetic?trip.syntheticFloodSignal:trip.demoBreakingWarning;
  const target=synthetic?destPlace:DEMO_SEOUL_BUSAN.destination;
- const candidatesToQuery=synthetic?[
-  {id:'recommended',label:'카카오 추천',waypoints:[]},
-  ...syntheticDetourWaypoints(trip,alertPoint.seconds)
- ]:DEMO_DETOUR_CANDIDATES;
  demoDetourStatus('카카오 우회경로 비교 중…',synthetic?'Risk Engine이 표시한 가상 침수 지점을 피하는 실제 도로 후보를 확인합니다.':'구미 특보지점에서 벗어나는 도로 경로 후보의 거리와 예상 시간을 비교합니다.');
  try{
   const current=demoPointAtSeconds(trip.rainPath,trip.duration*progress/100);
   if(!current)throw Error('현재 시연 차량 위치가 없습니다.');
   const departure=new Date().toISOString();
-  // Compare real Kakao routes, do not force distant waypoints regardless of cost.
-  const queryCandidate=async candidate=>{
-   const mode=synthetic?trip.travelMode:'driving';
-   const start={name:'현재 가상 이동 위치',lat:current.lat,lng:current.lng};
-   if(synthetic&&mode==='walking'&&candidate.waypoints.length){
-    const via=candidate.waypoints[0];
-    const first=await api('/api/route',{origin:start,destination:via,departure,travelMode:'walking',walkingPriority:'BROAD_FIRST'});
-    const second=await api('/api/route',{origin:via,destination:target,departure:new Date(Date.parse(departure)+first.duration*1000).toISOString(),travelMode:'walking',walkingPriority:'BROAD_FIRST'});
-    return {candidate,route:joinSyntheticWalkingLegs(first,second)};
-   }
-   return {candidate,route:await api('/api/route',{origin:start,destination:target,waypoints:candidate.waypoints,travelMode:mode,departure})};
-  };
-  const candidates=synthetic?await Promise.allSettled(candidatesToQuery.map(queryCandidate)):
-   await Promise.allSettled(DEMO_DETOUR_CANDIDATES.map(queryCandidate));
-  if(route!==trip||!drivingUI.isActive())return;
-  const completed=candidates.filter(item=>item.status==='fulfilled').map(item=>item.value);
-  const validRoadCandidates=completed.filter(item=>item.route?.travelMode===(synthetic?trip.travelMode:'driving')&&
-   item.route?.mode===(synthetic?trip.travelMode:'driving')&&Array.isArray(item.route?.rainPath)&&item.route.rainPath.length>1);
-  const engineCandidates=synthetic?validRoadCandidates.map(item=>({...item,
-   engineCheck:evaluateSyntheticAlternative(item.route,trip.syntheticRiskHazards)})):
-   validRoadCandidates;
-  const decisionCandidates=synthetic?engineCandidates.filter(item=>item.engineCheck.avoidsAlert&&
-   item.engineCheck.profile.state==='evaluated'&&item.engineCheck.profile.coverage>=80&&
-   item.engineCheck.profile.signalCount===0):engineCandidates;
-  const chosen=synthetic?selectOptimalDemoDetour(decisionCandidates,alertPoint,{minClearanceMeters:alertPoint.affectedRadiusMeters||450}):
-   selectOptimalDemoDetour(validRoadCandidates,trip.demoBreakingWarning);
+  let candidates,chosen;
+  if(synthetic){
+   const report=await searchSyntheticDetour({trip,current,destination:target,
+    query:params=>api('/api/route',params),isCurrent:()=>route===trip&&drivingUI.isActive(),
+    onProgress:(name,count)=>{demoDetourStatus('우회경로 탐색 중',name+' 후보 조회 · '+count+'개 도로 확인');dummyUI.brief('우회 탐색: '+name);}});
+   if(report.canceled)return;
+   candidates=report.attempts;trip.syntheticDetourAttempts=report.attempts;chosen=report.chosen;
+  }else{
+   const queryCandidate=async candidate=>({candidate,route:await api('/api/route',{
+    origin:{name:'구미 접근 중 · 시연 차량',lat:current.lat,lng:current.lng},destination:target,
+    waypoints:candidate.waypoints,travelMode:'driving',departure})});
+   candidates=await Promise.allSettled(DEMO_DETOUR_CANDIDATES.map(queryCandidate));
+   if(route!==trip||!drivingUI.isActive())return;
+   const validRoadCandidates=candidates.filter(item=>item.status==='fulfilled').map(item=>item.value).filter(item=>item.route?.travelMode==='driving'&&item.route?.mode==='driving'&&item.route?.rainPath?.length>1);
+   chosen=selectOptimalDemoDetour(validRoadCandidates,trip.demoBreakingWarning);
+  }
+  if(synthetic&&!chosen&&candidates.length&&candidates.every(c=>c.status==='request-failed'))throw Error('경로 API 응답 실패 · '+candidates[0].reason);
   if(!chosen)
    throw Error(synthetic?'가상 침수 지점과 충분히 떨어지는 실제 도로 후보를 찾지 못했습니다. 기존 경로를 안전하다고 판단하지 않고 안내를 중단합니다.':'위험 구간에서 3km 이상 떨어지는 실제 도로 우회경로를 찾지 못했습니다. 기존 경로를 안전하다고 판단하지 않고 안내를 중단합니다.');
   const result=chosen.route,clearance=chosen.clearance;
@@ -1390,17 +1384,22 @@ async function chooseDemoDetourYes(trip,resumePlayback){
   await showMap('kakao',{preserveCamera:true});
   if(route!==updated||!drivingUI.isActive())return;
   drawDemoOverlays();moveCar();
-  if(synthetic)dummyUI.brief('우회경로 선택 완료 · 안내 계속',{action:'reroute',candidate:chosen.candidate,profile:chosen.engineCheck?.profile,clearance,route:{rainPath:updated.rainPath,duration:updated.duration,distance:updated.distance}});
+  if(synthetic)dummyUI.brief('우회경로 선택 완료 · 안내 계속',{action:'reroute',candidate:chosen.candidate,attempts:trip.syntheticDetourAttempts,profile:chosen.engineCheck?.profile,clearance,route:{rainPath:updated.rainPath,duration:updated.duration,distance:updated.distance}});
   demoDetourStatus(synthetic?'Risk Engine 권고 우회경로 선택':'최적 우회 후보 선택 완료',
    'Risk Engine 대안 확인 '+(chosen.engineCheck?chosen.engineCheck.profile.coveredSamples+'/'+chosen.engineCheck.profile.totalSamples+' 지점 · 경로상 경보 신호 '+chosen.engineCheck.profile.signalCount+'건':'')+
-    ' · 카카오 실제 도로 후보 '+candidates.length+'개 비교 · '+chosen.candidate.label+' · 남은 '+(updated.distance/1000).toFixed(1)+'km · 약 '+Math.round(updated.duration/60)+'분 · 가상 경보지점에서 약 '+(clearance/1000).toFixed(1)+'km 거리');
+    ' · 실제 '+(synthetic&&trip.travelMode==='walking'?'보행':'차량')+' 경로 후보 '+candidates.length+'개 비교 · '+chosen.candidate.label+' · 남은 '+(updated.distance/1000).toFixed(1)+'km · 약 '+Math.round(updated.duration/60)+'분 · 가상 경보지점에서 약 '+(clearance/1000).toFixed(1)+'km 거리');
+  if(synthetic)reply('위험 구간을 피하는 '+(trip.travelMode==='walking'?'보행':'차량')+' 경로를 찾았습니다. '+destPlace.name+'까지 남은 거리 '+(updated.distance/1000).toFixed(1)+'킬로미터, 약 '+Math.ceil(updated.duration/60)+'분입니다.',appPrefs.voiceAlerts);
   finishDemoDetourPopup(updated,resumePlayback);
  }catch(error){
   if(route!==trip||!drivingUI.isActive())return;
-  if(trip.syntheticRiskDemo)dummyUI.brief('우회경로 미확인 · 이동 시연 정지',{action:'stop',error:String(error?.message||'')});
+  if(trip.syntheticRiskDemo)dummyUI.brief('우회경로 재탐색 필요 · 이동 대기',{action:'wait',attempts:trip.syntheticDetourAttempts,error:String(error?.message||'')});
   demoDetourStatus('우회경로 탐색 실패',
    '검증된 우회경로가 없어 주행 시연을 정지했습니다. 기존 경로가 안전하다는 뜻이 아닙니다. '+String(error?.message||'도로 경로 정보를 확인할 수 없습니다.'));
-  finishDemoDetourPopup(trip,false);
+  if(synthetic){
+   demoDetourPending=false;$('sunnyDemoDetourChoices').hidden=false;
+   $('sunnyDemoDetourYes').textContent='다시 탐색';$('sunnyDemoDetourYes').onclick=()=>void chooseDemoDetourYes(trip,resumePlayback);
+   $('sunnyDemoDetourNo').textContent='대기';$('sunnyDemoDetourNo').onclick=()=>clearDemoDetourPopup();
+  }else finishDemoDetourPopup(trip,false);
  }
 }
 function simulateDemoDetourSelection(){
@@ -1623,6 +1622,7 @@ function advance(value){
   route.demoWalking?(!route.demoWarningIssued&&previous<WALK_DEMO_TRIGGER&&progress>=WALK_DEMO_TRIGGER&&injectWalkingDemoWarning()):
   (!route.demoWarningIssued&&shouldTriggerDemoBreakingWarning(previous,progress,false,demoBreakingTiming(route).triggerPercent)
   &&injectDemoBreakingWarning());
+ const syntheticNotices=[];
  for(const h of route.demoHazards||[]){
   if(h.breaking||demoAnnounced.has(h.id))continue;
   const warnAt=demoLeadSeconds(route.rainPath,h.seconds,route.demoWalking?90:500);
@@ -1630,10 +1630,11 @@ function advance(value){
     !justIssued){
    demoAnnounced.add(h.id);
    const aheadMeters=demoDistanceMeters(route.rainPath,elapsed,h.seconds);
-   const speech=route.demoWalking?walkingDemoSpokenWarning(h,aheadMeters??90):demoSpokenWarning(h,aheadMeters??500);
-   if(speech)reply(speech,appPrefs.voiceAlerts);
+   const speech=route.syntheticRiskDemo?syntheticSpokenWarning(h,aheadMeters??0):route.demoWalking?walkingDemoSpokenWarning(h,aheadMeters??90):demoSpokenWarning(h,aheadMeters??500);
+   if(speech){if(route.syntheticRiskDemo)syntheticNotices.push(speech);else reply(speech,appPrefs.voiceAlerts);}
   }
  }
+ if(syntheticNotices.length)reply(syntheticNotices.join(' '),appPrefs.voiceAlerts);
  if(progress>=100){
   if(route.syntheticRiskDemo)dummyUI.brief('목적지 도착 · 더미 시연 완료',{action:'arrived'});
   pauseDrive();$('driveStatus').textContent='시연 완료';

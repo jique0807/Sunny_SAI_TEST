@@ -1,0 +1,181 @@
+{
+  "scope": "Synthetic route and input; real engine execution, no physical audio/device verification",
+  "cases": [
+    {
+      "scenario": "폭우·침수경보",
+      "mode": "driving",
+      "state": "evaluated",
+      "action": "reroute",
+      "coverage": 100,
+      "signalCount": 2
+    },
+    {
+      "scenario": "폭염·대피 안내",
+      "mode": "driving",
+      "state": "evaluated",
+      "action": "heat-advisory",
+      "coverage": 100,
+      "signalCount": 1
+    },
+    {
+      "scenario": "자료 누락·판정 보류",
+      "mode": "driving",
+      "state": "insufficient-data",
+      "action": "abstain",
+      "coverage": 0,
+      "signalCount": 0
+    },
+    {
+      "scenario": "폭우 예보만 수신 · 주의 안내",
+      "mode": "driving",
+      "state": "evaluated",
+      "action": "advisory",
+      "coverage": 100,
+      "signalCount": 1
+    },
+    {
+      "scenario": "약한 비 · 경로 유지",
+      "mode": "driving",
+      "state": "evaluated",
+      "action": "advisory",
+      "coverage": 100,
+      "signalCount": 1
+    },
+    {
+      "scenario": "위험 신호 없음",
+      "mode": "driving",
+      "state": "evaluated",
+      "action": "continue",
+      "coverage": 100,
+      "signalCount": 0
+    },
+    {
+      "scenario": "눈 예보 · 미끄럼 주의",
+      "mode": "driving",
+      "state": "evaluated",
+      "action": "advisory",
+      "coverage": 100,
+      "signalCount": 1
+    },
+    {
+      "scenario": "강풍 · 이동 주의",
+      "mode": "driving",
+      "state": "evaluated",
+      "action": "advisory",
+      "coverage": 100,
+      "signalCount": 1
+    },
+    {
+      "scenario": "오래된 예보 · 유효시각 불일치",
+      "mode": "driving",
+      "state": "insufficient-data",
+      "action": "abstain",
+      "coverage": 0,
+      "signalCount": 0
+    },
+    {
+      "scenario": "경로 밖 자료 · 정합 실패",
+      "mode": "driving",
+      "state": "insufficient-data",
+      "action": "abstain",
+      "coverage": 0,
+      "signalCount": 0
+    },
+    {
+      "scenario": "예보 일부 누락 · 판단 보류",
+      "mode": "driving",
+      "state": "partial",
+      "action": "abstain",
+      "coverage": 60,
+      "signalCount": 0
+    },
+    {
+      "scenario": "폭우·침수경보",
+      "mode": "walking",
+      "state": "evaluated",
+      "action": "reroute",
+      "coverage": 100,
+      "signalCount": 2
+    },
+    {
+      "scenario": "폭염·대피 안내",
+      "mode": "walking",
+      "state": "evaluated",
+      "action": "heat-advisory",
+      "coverage": 100,
+      "signalCount": 1
+    },
+    {
+      "scenario": "자료 누락·판정 보류",
+      "mode": "walking",
+      "state": "insufficient-data",
+      "action": "abstain",
+      "coverage": 0,
+      "signalCount": 0
+    },
+    {
+      "scenario": "폭우 예보만 수신 · 주의 안내",
+      "mode": "walking",
+      "state": "evaluated",
+      "action": "advisory",
+      "coverage": 100,
+      "signalCount": 1
+    },
+    {
+      "scenario": "약한 비 · 경로 유지",
+      "mode": "walking",
+      "state": "evaluated",
+      "action": "advisory",
+      "coverage": 100,
+      "signalCount": 1
+    },
+    {
+      "scenario": "위험 신호 없음",
+      "mode": "walking",
+      "state": "evaluated",
+      "action": "continue",
+      "coverage": 100,
+      "signalCount": 0
+    },
+    {
+      "scenario": "눈 예보 · 미끄럼 주의",
+      "mode": "walking",
+      "state": "evaluated",
+      "action": "advisory",
+      "coverage": 100,
+      "signalCount": 1
+    },
+    {
+      "scenario": "강풍 · 이동 주의",
+      "mode": "walking",
+      "state": "evaluated",
+      "action": "advisory",
+      "coverage": 100,
+      "signalCount": 1
+    },
+    {
+      "scenario": "오래된 예보 · 유효시각 불일치",
+      "mode": "walking",
+      "state": "insufficient-data",
+      "action": "abstain",
+      "coverage": 0,
+      "signalCount": 0
+    },
+    {
+      "scenario": "경로 밖 자료 · 정합 실패",
+      "mode": "walking",
+      "state": "insufficient-data",
+      "action": "abstain",
+      "coverage": 0,
+      "signalCount": 0
+    },
+    {
+      "scenario": "예보 일부 누락 · 판단 보류",
+      "mode": "walking",
+      "state": "partial",
+      "action": "abstain",
+      "coverage": 60,
+      "signalCount": 0
+    }
+  ]
+}

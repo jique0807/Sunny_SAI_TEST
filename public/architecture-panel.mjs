@@ -59,7 +59,7 @@ export function initArchitecturePanel({document,fetcher=globalThis.fetch,waitFor
       ' · 실수신 별도 검증'+(source.swapInApp?' · 제공자 선택 가능':''));
     }
     row(catalog,'위험판단 정책',report.riskModels.filter(m=>m.status==='implemented').map(m=>m.id).join(' / '));
-    row(catalog,'LLM 설명 어댑터','미연결 · 실제 위험판단 결과를 변경하지 않음');
+    row(catalog,'LLM 설명 어댑터','선택 연결 · 환경설정의 LLM 상태 확인 · 위험판정 변경 없음');
    }
   }catch{
    if(catalog)catalog.textContent='API 구성 조회 실패 · 환경설정 데이터 연결 상태를 확인하세요.';

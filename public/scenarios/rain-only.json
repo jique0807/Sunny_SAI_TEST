@@ -1,0 +1,13 @@
+{
+  "schema": "sunny-dummy-scenario-v1",
+  "scenario": {
+    "id": "rain-only",
+    "name": "폭우 예보만 수신 · 주의 안내",
+    "type": "flood",
+    "initialRain": 0,
+    "rain": 65,
+    "temperature": 25,
+    "warning": false,
+    "trigger": 38
+  }
+}

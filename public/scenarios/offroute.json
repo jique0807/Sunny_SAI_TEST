@@ -1,0 +1,13 @@
+{
+  "schema": "sunny-dummy-scenario-v1",
+  "scenario": {
+    "id": "offroute",
+    "name": "경로 밖 자료 · 정합 실패",
+    "type": "offroute",
+    "initialRain": 0,
+    "rain": 0,
+    "temperature": 25,
+    "warning": false,
+    "trigger": 38
+  }
+}

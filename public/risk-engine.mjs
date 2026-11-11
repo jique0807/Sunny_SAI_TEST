@@ -77,12 +77,12 @@ export function assessRouteHazard(h,{now=Date.now(),syntheticScenario=false}={})
  if(h.kind==='wind'){
   const w=h.windSpeed;
   if(!Number.isFinite(w)||w<14)return assessment('unknown','강풍 기준 미확인','풍속 예보 검증 필요','실제 순간돌풍은 별도 확인이 필요합니다.',0);
-  return assessment('caution','강풍 예보 주의','기상청 격자예보 풍속 '+w+'m/s · 앱 주의 기준 14m/s 이상',
+  return assessment('caution','강풍 예보 주의',(synthetic?'더미 풍속 ':'기상청 격자예보 풍속 ')+w+'m/s · 앱 주의 기준 14m/s 이상',
    '공식 강풍특보나 실제 구조물 낙하 위험 판정이 아닙니다.',58);
  }
  if(h.kind==='snow'||h.kind==='mixed')
   return assessment('notice',h.kind==='snow'?'눈 예보':'비·눈 예보',
-   '기상청 강수형태 · '+(h.snowLabel?'신적설 '+h.snowLabel:'적설량 확인 불가'),
+   (synthetic?'더미 강수형태 · ':'기상청 강수형태 · ')+(h.snowLabel?'신적설 '+h.snowLabel:'적설량 확인 불가'),
    '실제 도로 결빙 여부는 미확인입니다.',45);
  const amount=Number.isFinite(h.rainMm)?h.rainMm:Number.isFinite(h.rainMin)&&h.rainMin>0?h.rainMin:null;
  if(amount!==null&&amount>=30)

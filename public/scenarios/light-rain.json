@@ -1,0 +1,13 @@
+{
+  "schema": "sunny-dummy-scenario-v1",
+  "scenario": {
+    "id": "light-rain",
+    "name": "약한 비 · 경로 유지",
+    "type": "flood",
+    "initialRain": 0,
+    "rain": 4,
+    "temperature": 25,
+    "warning": false,
+    "trigger": 38
+  }
+}

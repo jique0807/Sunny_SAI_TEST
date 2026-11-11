@@ -1,0 +1,13 @@
+{
+  "schema": "sunny-dummy-scenario-v1",
+  "scenario": {
+    "id": "heat",
+    "name": "폭염·대피 안내",
+    "type": "heat",
+    "initialRain": 0,
+    "rain": 0,
+    "temperature": 35,
+    "warning": false,
+    "trigger": 38
+  }
+}

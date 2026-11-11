@@ -5,7 +5,7 @@ import {evaluateDrivingRisk,evaluateWalkingRisk} from './safe-route-engine.mjs';
 export const DEFAULT_RISK_MODEL='rules-v2';
 export const EXPLANATION_CONTRACT=Object.freeze({
  input:'validated-risk-profile',output:'advisory-text-only',mayAlterEvidence:false,
- availability:'no-third-party-llm-adapter-connected'
+ availability:'optional-gemini-or-compatible-adapter'
 });
 const ID=/^[a-z][a-z0-9-]{2,40}$/;
 const policy=(id,name,refine)=>Object.freeze({id,name,refine});
