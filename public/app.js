@@ -1388,7 +1388,7 @@ async function chooseDemoDetourYes(trip,resumePlayback){
   demoDetourStatus(synthetic?'Risk Engine 권고 우회경로 선택':'최적 우회 후보 선택 완료',
    'Risk Engine 대안 확인 '+(chosen.engineCheck?chosen.engineCheck.profile.coveredSamples+'/'+chosen.engineCheck.profile.totalSamples+' 지점 · 경로상 경보 신호 '+chosen.engineCheck.profile.signalCount+'건':'')+
     ' · 실제 '+(synthetic&&trip.travelMode==='walking'?'보행':'차량')+' 경로 후보 '+candidates.length+'개 비교 · '+chosen.candidate.label+' · 남은 '+(updated.distance/1000).toFixed(1)+'km · 약 '+Math.round(updated.duration/60)+'분 · 가상 경보지점에서 약 '+(clearance/1000).toFixed(1)+'km 거리');
-  if(synthetic)reply('위험 구간을 피하는 '+(trip.travelMode==='walking'?'보행':'차량')+' 경로를 찾았습니다. '+destPlace.name+'까지 남은 거리 '+(updated.distance/1000).toFixed(1)+'킬로미터, 약 '+Math.ceil(updated.duration/60)+'분입니다.',appPrefs.voiceAlerts);
+  if(synthetic)reply('위험 구간을 피하는 '+(trip.travelMode==='walking'?'보행':'차량')+' 경로를 찾았습니다. '+destPlace.name+'까지 남은 거리 '+(updated.distance/1000).toFixed(1)+'킬로미터, 약 '+Math.round(updated.duration/60)+'분입니다.',appPrefs.voiceAlerts);
   finishDemoDetourPopup(updated,resumePlayback);
  }catch(error){
   if(route!==trip||!drivingUI.isActive())return;
