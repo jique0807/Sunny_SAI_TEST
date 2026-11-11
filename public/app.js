@@ -1,6 +1,6 @@
-const {initRoadWeatherOverlay}=await import('/road-weather-overlay.mjs');
 (async()=>{
 'use strict';
+const {initRoadWeatherOverlay}=await import('/road-weather-overlay.mjs');
 if(window.sunnyInitialized)return;window.sunnyInitialized=true;
 const {assess,AlertGate}=await import('/rules.mjs');
 const {makeDemoScenario,makeDemoBreakingWarning,shouldTriggerDemoBreakingWarning,DEMO_BREAKING_TRIGGER,DEMO_SEOUL_BUSAN,DEMO_INITIAL_WAYPOINTS,DEMO_DETOUR_CANDIDATES,selectOptimalDemoDetour,demoPointAtSeconds,demoDistanceMeters,demoLeadSeconds,demoSpokenWarning,demoBreakingTiming,demoEventAtPlace,demoClosestRouteDistance}=await import('/demo-scenario.mjs');

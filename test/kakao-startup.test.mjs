@@ -72,3 +72,5 @@ test('initial map failure never invokes OSM or schematic fallback',()=>{
  assert.doesNotMatch(app,/await showMap\(window\.matchMedia\('\(max-width:900px\)'\)\.matches\?'osm':'schematic'\)/);
  assert.match(app,/button\.textContent='카카오맵 다시 연결'/);
 });
+
+test('app entry parses as the classic browser script served by the page',()=>{assert.doesNotThrow(()=>new vm.Script(app));});
