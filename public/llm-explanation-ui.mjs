@@ -9,7 +9,9 @@ export function initLLMExplanation({document,api,getMode=()=> 'off',onEvent=()=>
  <label for="llmModel">모델 ID</label><input id="llmModel" maxlength="120" placeholder="계정에서 사용 가능한 모델 ID"/>
  <label for="llmKey">개인 LLM API 키</label><input id="llmKey" type="password" autocomplete="off" placeholder="임시 연결용 API 키"/>
  <div class="buttonrow"><button id="llmConnect" type="button">임시 연결·모델 변경</button><button id="llmDisconnect" type="button">연결 삭제</button></div>
- <p class="hint">키는 암호화된 HttpOnly 쿠키에 최대 30분 보관합니다. 같은 연결에서 모델 ID만 바꿀 때는 키를 다시 입력하지 않아도 됩니다. 모델 사용료가 발생할 수 있습니다. 호환 API 주소는 운영자가 서버 환경변수로 관리합니다.</p><p id="llmConfigStatus" role="status">연결 상태 확인 전</p>`;
+ <p class="hint">키는 암호화된 HttpOnly 쿠키에 최대 30분 보관합니다. 같은 연결에서 모델 ID만 바꿀 때는 키를 다시 입력하지 않아도 됩니다. 모델 사용료가 발생할 수 있습니다. 호환 API 주소는 운영자가 서버 환경변수로 관리합니다.</p><p id="llmConfigStatus" role="status">연결 상태 확인 전</p>
+ <button id="llmTestConnection" type="button" disabled>선택한 모델 실제 연결 시험 (Preview 전용)</button>
+ <p class="hint">Gemma 또는 GPT-OSS에 허구의 판정 근거만 한 번 전송합니다. API 사용료가 발생할 수 있습니다.</p><p id="llmTestResult" role="status">실제 연결 미검증</p>`;
  const settings=document.getElementById('settings'),voice=document.getElementById('voicePreferencesHeading')?.closest('section');
  if(settings)settings.insertBefore(section,voice?.parentElement===settings?voice:null);
  const dialog=document.createElement('dialog');dialog.className='sunny-llm-dialog';
@@ -30,9 +32,24 @@ export function initLLMExplanation({document,api,getMode=()=> 'off',onEvent=()=>
    else if(!configured)status((selected==='gemma'?'Gemma':selected==='gpt-oss'?'GPT-OSS':'개인 연결')+' 미설정 · 정형 설명으로 대체');
    else status('모델 설정 확인 · 실제 설명 응답 검증 전');
    $('llmAuto').disabled=selected==='off';
+   $('llmTestConnection').disabled=!d.diagnosticAvailable||!['gemma','gpt-oss'].includes(selected)||!configured;
    if(selected==='off')floating.hidden=true;
-  }catch{configured=false;status('모델 연결 상태 미확인 · 정형 설명 사용');}
+  }catch{configured=false;$('llmTestConnection').disabled=true;status('모델 연결 상태 미확인 · 정형 설명 사용');}
  }
+ $('llmTestConnection').onclick=async()=>{
+  const selected=mode();if(!['gemma','gpt-oss'].includes(selected))return;
+  const button=$('llmTestConnection'),output=$('llmTestResult'),version=revision;
+  button.disabled=true;output.textContent='실제 API 응답 확인 중입니다.';
+  try{
+   const d=await api('/api/llm/diagnostic',{mode:selected});
+   if(version!==revision)return;
+   if(d.verified)output.textContent='실제 응답 검증 통과 · '+selected+' / '+d.requestedModel+
+    ' · '+d.latencyMs+'ms · 응답 모델 ID '+(d.reportedModel||'미제공')+
+    ' · 모델 ID 일치 '+(d.modelIdentityMatched===null?'확인 불가':d.modelIdentityMatched?'확인':'불일치');
+   else output.textContent='실제 연결 시험 미통과 · '+(d.reason||'응답 미검증');
+  }catch(e){if(version===revision)output.textContent='연결 시험 실패 · '+(e?.message||'응답 없음');}
+  finally{if(version===revision)void refresh();}
+ };
  $('llmConnect').onclick=async()=>{const key=$('llmKey').value;$('llmKey').value='';$('llmConnect').disabled=true;revision++;answerText='';$('llmRead').disabled=true;
   try{await api('/api/llm/key',{key,provider:$('llmProvider').value,model:$('llmModel').value.trim()});await refresh();lastAuto='';}
   catch(e){status('연결 설정 실패: '+e.message);}finally{$('llmConnect').disabled=false;}};
@@ -60,6 +77,7 @@ export function initLLMExplanation({document,api,getMode=()=> 'off',onEvent=()=>
  return {refresh,setMode(){
   revision++;lastAuto='';clearTimeout(timer);floating.hidden=true;answerText='';$('llmRead').disabled=true;
   $('llmAnswerSource').textContent='';$('llmAnswer').textContent='설명 모델이 변경되었습니다. 새 설명을 요청해주세요.';
+  $('llmTestConnection').disabled=true;$('llmTestResult').textContent='새 모델 실제 연결 미검증';
   void refresh();
  },update(profile,routeIdentity){
   let next=null;try{if(profile){buildExplanationContext(profile);next={engine:profile.engine,mode:profile.mode,state:profile.state,coverage:profile.coverage,
