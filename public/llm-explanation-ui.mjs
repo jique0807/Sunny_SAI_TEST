@@ -25,8 +25,10 @@ export function initLLMExplanation({document,api,onEvent=()=>{},onSpeak=()=>{}})
  const modelDrafts={off:'',gemini:defaultGeminiModel,'gpt-oss':'openai/gpt-oss-120b',custom:''};
  let serverModels=[],selectedProvider='gemini',appliedMode=null;
  function showMode(){
-  const off=selectedProvider==='off';
-  $('llmModel').disabled=off;$('llmKey').disabled=off;$('llmAuto').disabled=off;
+  const off=selectedProvider==='off',preset=['gemini','gpt-oss'].includes(selectedProvider);
+  $('llmModel').disabled=off;$('llmKey').disabled=off||preset;$('llmAuto').disabled=off;
+  $('llmKey').placeholder=preset?'자동입력 · 서버 저장 키 사용':off?'LLM 미사용':'호환 모델 제공자가 발급한 API 키';
+  if(off||preset)$('llmKey').value='';
   if(off){$('llmAuto').checked=false;clearTimeout(timer);floating.hidden=true;}
  }
  $('llmProvider').addEventListener('change',()=>{
