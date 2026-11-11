@@ -8,6 +8,6 @@
     "rain": 65,
     "temperature": 25,
     "warning": false,
-    "trigger": 38
+    "trigger": 20
   }
 }

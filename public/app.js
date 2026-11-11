@@ -1625,7 +1625,7 @@ function advance(value){
  const syntheticNotices=[];
  for(const h of route.demoHazards||[]){
   if(h.breaking||demoAnnounced.has(h.id))continue;
-  const warnAt=demoLeadSeconds(route.rainPath,h.seconds,route.demoWalking?90:500);
+  const warnAt=demoLeadSeconds(route.rainPath,h.seconds,route.demoWalking?500:3000);
   if(previous*route.duration/100<=warnAt&&elapsed>=warnAt&&gate.take('demo:'+h.id) &&
     !justIssued){
    demoAnnounced.add(h.id);
@@ -1693,7 +1693,7 @@ $('sunnyDemoNext')?.addEventListener('click',()=>{
   if(route.demoShelterRerouted){advance(100);toast('무더위쉼터 도착 장면을 표시했습니다.');return;}
   const elapsed=route.duration*progress/100;
   const next=(route.demoHazards||[]).find(h=>!h.breaking&&!demoAnnounced.has(h.id));
-  const notice=next?demoLeadSeconds(route.rainPath,next.seconds,90):Infinity;
+  const notice=next?demoLeadSeconds(route.rainPath,next.seconds,500):Infinity;
   const trigger=route.demoWarningIssued?Infinity:route.duration*WALK_DEMO_TRIGGER/100;
   if(trigger>elapsed+1&&trigger<notice)advance(Math.min(100,trigger/route.duration*100+.03));
   else if(next&&notice>=elapsed)advance(Math.min(100,(notice+.01)/route.duration*100));
@@ -1703,7 +1703,7 @@ $('sunnyDemoNext')?.addEventListener('click',()=>{
  }
  const elapsed=route.duration*progress/100;
  const next=(route.demoHazards||[]).find(h=>!h.breaking&&!demoAnnounced.has(h.id));
- const nextNotice=next?demoLeadSeconds(route.rainPath,next.seconds,500):Infinity;
+ const nextNotice=next?demoLeadSeconds(route.rainPath,next.seconds,3000):Infinity;
  const triggerAt=route.demoWarningIssued?Infinity:demoBreakingTiming(route).triggerSeconds;
  // The third and final demo event is the surprise warning and scripted detour.
  if(!route.demoWarningIssued&&triggerAt>elapsed+1&&triggerAt<nextNotice)

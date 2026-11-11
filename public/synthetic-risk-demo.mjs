@@ -4,7 +4,7 @@ import {demoPointAtSeconds, demoSegmentMeters, demoClosestRouteDistance} from '.
 import {evaluateSyntheticDrivingRisk} from './safe-route-engine.mjs';
 
 export const SYNTHETIC_RISK_SOURCE='Sunny SAI 더미 시연자료';
-export const SYNTHETIC_RISK_TRIGGER=38;
+export const SYNTHETIC_RISK_TRIGGER=20;
 const valid=p=>Number.isFinite(p?.lat)&&Number.isFinite(p?.lng)&&Number.isFinite(p?.seconds);
 
 function samplePoints(route){
@@ -44,7 +44,7 @@ export function makeSyntheticRiskFixture(route,phase='initial'){
  if(phase!=='clear'&&config.initialRain>0)base[1]={...weatherRecord(points[1],config.initialRain),demoHazard:firstRain};
  let signals=phase==='clear'||!(config.initialRain>0)?[]:[firstRain];
  if(phase==='alert'){
-  // The initial event lies behind the simulated traveller when this feed arrives.
+  // Replace the initial feed with the newly received emergency forecast.
   signals=[];
   const point=points[3];
   if(['missing','stale','offroute','partial'].includes(config.type)){

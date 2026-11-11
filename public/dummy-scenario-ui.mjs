@@ -36,6 +36,6 @@ export function initDummyScenarioUI({document,storage,search,onStart,isActive=()
  briefing.querySelector('[data-inject]').onclick=()=>onInject();briefing.querySelector('[data-report]').onclick=()=>{if(run)download(run,'sunny-dummy-run.json');};refresh();
  return {open(){if(isActive()){return false;}dialog.showModal();return true;},
   begin(data){run={schema:'sunny-dummy-run-v1',startedAt:new Date().toISOString(),...data,events:[]};briefing.querySelector('ol').replaceChildren();briefing.hidden=false;briefing.open=true;},
-  brief(message,data={}){if(!run)return;const event={at:new Date().toISOString(),message,...data};run.events.push(event);const li=document.createElement('li');li.textContent=new Date(event.at).toLocaleTimeString('ko-KR',{hour12:false})+' '+message;const list=briefing.querySelector('ol');list.append(li);while(list.children.length>5)list.firstChild.remove();},
+  brief(message,data={}){if(!run)return;const event={at:new Date().toISOString(),message,...data};run.events.push(event);if(/^(음성 출력|Google 음성 실패)/.test(message))return;const li=document.createElement('li');li.textContent=new Date(event.at).toLocaleTimeString('ko-KR',{hour12:false})+' '+message;const list=briefing.querySelector('ol');list.append(li);while(list.children.length>5)list.firstChild.remove();},
   end(){briefing.hidden=true;},getRun(){return run;}};
 }

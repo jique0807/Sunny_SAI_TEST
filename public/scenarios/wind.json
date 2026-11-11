@@ -9,6 +9,6 @@
     "temperature": 20,
     "windSpeed": 18,
     "warning": false,
-    "trigger": 38
+    "trigger": 20
   }
 }
