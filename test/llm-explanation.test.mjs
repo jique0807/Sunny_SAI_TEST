@@ -58,3 +58,24 @@ test('authenticated explain endpoint falls back without claiming a real LLM call
  const r=await handle(req('/api/llm/explain','POST',{profile},a.cookie,a.session.csrf),env,async()=>{called=true;throw Error('unexpected')});
  assert.equal(r.status,200);assert.equal((await r.json()).status,'template');assert.equal(called,false);
 });
+test('server presets switch providers without putting server keys in selection cookies or responses',async()=>{
+ const a=await client();
+ const settings={...env,LLM_PROVIDER:'compatible',LLM_MODEL:'oss-test',LLM_BASE_URL:'https://groq.example/v1',
+  LLM_API_KEY:'groq-test-secret-123456789',GEMINI_API_KEY:'gemini-test-secret-123456789',LLM_GEMINI_MODEL:'gemini-test'};
+ const snapshot=JSON.stringify(profile);
+ for(const provider of ['gemini','compatible']){
+  const model=provider==='gemini'?'gemini-test':'oss-test';
+  const selected=await handle(req('/api/llm/key','POST',{provider,model,key:''},a.cookie,a.session.csrf),settings);
+  assert.equal(selected.status,200);
+  const token=selected.headers.getSetCookie()[0].split(';')[0],cookies=a.cookie+'; '+token;
+  const status=await (await handle(req('/api/llm/status','GET',null,cookies),settings)).json();
+  assert.equal(status.connection,'server');assert.equal(status.provider,provider);assert.equal(status.model,model);
+  for(const secret of [settings.LLM_API_KEY,settings.GEMINI_API_KEY])assert.ok(!JSON.stringify(status).includes(secret)&&!token.includes(secret));
+  const result=await (await handle(req('/api/llm/explain','POST',{profile},cookies,a.session.csrf),settings,async(url,options)=>{
+   if(provider==='gemini'){assert.equal(options.headers['x-goog-api-key'],settings.GEMINI_API_KEY);assert.equal(options.headers.Authorization,undefined);}
+   else{assert.equal(options.headers.Authorization,'Bearer '+settings.LLM_API_KEY);assert.equal(options.headers['x-goog-api-key'],undefined);}
+   return Response.json(provider==='gemini'?{candidates:[{content:{parts:[{text:JSON.stringify(selection)}]}}]}:{choices:[{message:{content:JSON.stringify(selection)}}]});
+  })).json();
+  assert.equal(result.status,'llm');assert.equal(result.action,'reroute');assert.equal(JSON.stringify(profile),snapshot);
+ }
+});
