@@ -32,6 +32,16 @@ function onRoute(path,point,limit=1000){
  }
  return false;
 }
+// Deduplicate the same localized episode, never separate route locations.
+// Different stations or source record ids can be distinct evidence even at
+// similar passage times. This does not certify a road/lane match.
+function sameEvidenceEpisode(a,b){
+ if(a.kind!==b.kind||a.provider!==b.provider||Math.abs(a.seconds-b.seconds)>=600)return false;
+ if(distanceMeters(a,b)>100)return false;
+ if(a.id&&b.id&&a.id!==b.id)return false;
+ if(a.stationId&&b.stationId&&a.stationId!==b.stationId)return false;
+ return true;
+}
 const validForecastSample=(s,syntheticScenario=false)=>s?.status==='forecast'&&
  (s.forecast?.provider==='kma'||(syntheticScenario&&s.synthetic===true&&s.forecast?.provider==='sunny-synthetic'))&&
  geo(s)&&time(s.eta)&&time(s.forecast.time)&&Number.isFinite(s.seconds)&&
@@ -84,7 +94,7 @@ export function evaluateRouteRisk(route,{weatherSamples=[],extraHazards=[],mode=
    // Historical pedestrian accident clusters cannot become motor-vehicle risk scores.
    unknown.push(h);continue;
   }
-  if(accepted.some(x=>x.kind===h.kind&&Math.abs(x.seconds-h.seconds)<600&&x.provider===h.provider))continue;
+  if(accepted.some(x=>sameEvidenceEpisode(x,h)))continue;
   accepted.push({...h,assessment:a});
  }
  accepted.sort((a,b)=>a.seconds-b.seconds);
@@ -112,8 +122,8 @@ export function evaluateRouteRisk(route,{weatherSamples=[],extraHazards=[],mode=
 
 // Dedicated entrypoints: do not mix pedestrian traffic history with driving hazards.
 export const RISK_SOURCE_GROUPS=Object.freeze({
- driving:Object.freeze({name:'자동차 위험판단',displayGroup:'지도에 표시',roadFeeds:['ITS 돌발상황','기상청 도로위험','기상특보'],shared:['강수·눈·풍속 예보']}),
- walking:Object.freeze({name:'도보 위험판단',displayGroup:'교통·보행 정보',walkingFeeds:['TAAS 과거 보행사고','TMAP 보행시설(위치정보)'],shared:['강수·폭염·기상특보 예보']})
+ driving:Object.freeze({name:'자동차 위험판단',displayGroup:'지도에 표시',roadFeeds:['ITS 돌발상황','기상청 도로위험','기상특보'],shared:['강수·눈(PTY/SNO)·기온·바람 예보','GK2A RR/CI/FOG','CCTV 기반 도로날씨']}),
+ walking:Object.freeze({name:'도보 위험판단',displayGroup:'교통·보행 정보',walkingFeeds:['TAAS 2024년 과거 보행사고','TMAP 보행시설(위치정보)'],shared:['강수·눈(PTY/SNO)·기온·바람 예보','기상특보','GK2A RR/CI/FOG','CCTV 기반 도로날씨']})
 });
 export function evaluateDrivingRisk(route,{weatherSamples=[],extraHazards=[],now=Date.now()}={}){
  const accepted=Array.isArray(extraHazards)?extraHazards.filter(h=>

@@ -17,6 +17,8 @@ const source=(id,label,rawStatus,signals,kind)=>{
   road:'route-matched-verified-grade',
   warning:'weather-warning-proximity-only',
   taas:'historical-route-context',
+  satellite:'fresh-validated-satellite-pixel',
+  observations:'nearby-cctv-weather-classification',
   weather:'forecast-risk-signal'}[id]||'matched-advisory';
  else if(status==='received'||status==='partial')evaluation=id==='weather'?'forecast-time-matched':'received-not-route-verified';
  return {id,label,reception:status,evaluation,acceptedSignals:matched.length};
@@ -33,6 +35,12 @@ export function summarizeRiskSourceEligibility({route=null,profile=null}={}){
  const sources=[source('weather','경로별 기상청 예보',profile?.state==='evaluated'?'received':
   profile?.state==='partial'?'partial':'not-checked',signals,
   h=>h.provider==='기상청 격자예보')];
+ // These are collected independently of their map toggle for both modes.
+ // A received feed with zero accepted route pixels is not a risk observation.
+ sources.push(source('satellite','GK2A RR·CI·FOG 원본 픽셀',route?.satelliteEvidenceStatus,signals,
+  h=>['satellite-rain','satellite-convection','satellite-fog'].includes(h.kind)&&h.provider==='기상청 GK2A 수치 산출물'));
+ sources.push(source('observations','CCTV 기반 도로 안개·비·눈',route?.observationsEvidenceStatus,signals,
+  h=>['observed-road-fog','observed-road-rain','observed-road-snow'].includes(h.kind)&&h.provider==='기상청 CCTV 도로날씨'));
  if(mode==='driving'){
   sources.push(source('its','ITS 사고·공사·통제',route?.itsEvidenceStatus,signals,h=>h.kind==='its-incident'));
   sources.push(source('road','도로 살얼음·안개',route?.roadEvidenceStatus,signals,h=>
