@@ -2,13 +2,14 @@ import {buildExplanationContext,templateExplanation} from './risk-explanation-co
 export function initLLMExplanation({document,api,onEvent=()=>{},onSpeak=()=>{}}){
  let current=null,identity=null,revision=0,busy=false,timer=null,lastRequest=0,lastAuto='',configured=false,answerText='';
  const section=document.createElement('section');section.className='sunny-settings-section';
- section.innerHTML=`<h3>LLM 상황 브리핑·근거 설명</h3><p class="hint">엔진이 확인한 근거 문장을 모델이 선택·배열합니다. 위험판정과 경로를 변경하지 않습니다. 요청 시 최소 판정 근거와 입력 질문이 선택한 모델 제공자에게 전송됩니다. 정확한 GPS·목적지·도로 형상은 보내지 않습니다.</p>
+ section.innerHTML=`<h3>LLM 상황 브리핑·근거 설명</h3><p class="hint">위험판단의 이유를 설명합니다. LLM 미연결 시 정형 설명을 제공합니다. 연결 시 판정 근거와 질문만 모델 제공자에게 보내며, GPS·목적지는 보내지 않습니다.</p>
  <label class="checklabel"><input id="llmAuto" type="checkbox"/> 새 위험판정 시 자동 브리핑</label>
+ <details><summary>LLM 연결 설정 (선택)</summary>
  <label for="llmProvider">모델 연결 방식</label><select id="llmProvider"><option value="gemini">Google Gemini</option><option value="compatible">서버에 등록된 호환 API</option></select>
  <label for="llmModel">모델 ID</label><input id="llmModel" maxlength="120" placeholder="계정에서 사용 가능한 모델 ID"/>
  <label for="llmKey">개인 LLM API 키</label><input id="llmKey" type="password" autocomplete="off" placeholder="임시 연결용 API 키"/>
  <div class="buttonrow"><button id="llmConnect" type="button">임시 연결·모델 변경</button><button id="llmDisconnect" type="button">연결 삭제</button></div>
- <p class="hint">키는 암호화된 HttpOnly 쿠키에 최대 30분 보관합니다. 같은 연결에서 모델 ID만 바꿀 때는 키를 다시 입력하지 않아도 됩니다. 모델 사용료가 발생할 수 있습니다. 호환 API 주소는 운영자가 서버 환경변수로 관리합니다.</p><p id="llmConfigStatus" role="status">연결 상태 확인 전</p>`;
+ <p class="hint">키는 암호화해 최대 30분 동안 임시 보관합니다. 모델 사용료가 발생할 수 있습니다.</p></details><p id="llmConfigStatus" role="status">연결 상태 확인 전</p>`;
  const settings=document.getElementById('settings'),voice=document.getElementById('voicePreferencesHeading')?.closest('section');
  if(settings)settings.insertBefore(section,voice?.parentElement===settings?voice:null);
  const dialog=document.createElement('dialog');dialog.className='sunny-llm-dialog';
