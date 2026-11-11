@@ -2546,3 +2546,8 @@ body.sunny-guiding .sunny-demo-detour-popup{
  .planner #originSearchToggle{flex:0 0 54px;min-width:54px;white-space:nowrap;font-size:13px}
  .planner .field #locate,.planner .field #mic{flex-shrink:0}
 }
+
+/* Radar and explanation share one flow row, so neither can cover the other. */
+body.sunny-guiding .sunny-drive-footer>.sunny-drive-tools{position:absolute;left:0;bottom:calc(100% + 6px);display:flex!important;flex-direction:row!important;align-items:center;gap:8px!important;flex:none!important;width:max-content;max-width:calc(100vw - 24px)}
+body.sunny-guiding .sunny-drive-footer .sunny-drive-tools #sunnyDriveRadar,
+body.sunny-guiding .sunny-drive-tools .sunny-llm-why{position:static!important;min-height:44px!important;white-space:nowrap;flex:none;display:block;padding:6px 10px;font-size:12px}

@@ -1,5 +1,5 @@
 import {buildExplanationContext,templateExplanation} from './risk-explanation-context.mjs';
-export function initLLMExplanation({document,api,onEvent=()=>{},onSpeak=()=>{}}){
+export function initLLMExplanation({document,api,onEvent=()=>{},onSpeak=()=>{},onStopSpeak=()=>{}}){
  let current=null,identity=null,revision=0,busy=false,timer=null,lastRequest=0,lastAuto='',configured=false,answerText='';
  const section=document.createElement('section');section.className='sunny-settings-section';
  section.innerHTML=`<h3>LLM 상황 브리핑·근거 설명</h3><p class="hint">위험판단의 이유를 설명합니다. LLM 미연결 시 정형 설명을 제공합니다. 연결 시 판정 근거와 질문만 모델 제공자에게 보내며, GPS·목적지는 보내지 않습니다.</p>
@@ -16,7 +16,8 @@ export function initLLMExplanation({document,api,onEvent=()=>{},onSpeak=()=>{}})
  const dialog=document.createElement('dialog');dialog.className='sunny-llm-dialog';
  dialog.innerHTML=`<form method="dialog" class="dialog-head"><h2>왜 이렇게 판단했나요?</h2><button aria-label="근거 설명 닫기">×</button></form><p class="hint">현재 엔진 판정 근거를 설명합니다.</p><label for="llmQuestion">질문</label><select id="llmQuestion"><option>현재 상황을 간단히 설명해주세요.</option><option>왜 이 조치를 권고했나요?</option><option>어떤 자료가 부족하거나 불확실한가요?</option></select><button id="llmGenerate" type="button">근거 설명 요청</button><p id="llmAnswer" role="status"></p><p id="llmAnswerSource" class="hint"></p><button id="llmRead" type="button">설명 읽어주기</button>`;
  document.body.append(dialog);
- const driveButton=document.createElement('button');driveButton.type='button';driveButton.className='sunny-llm-why';driveButton.textContent='판단 근거';document.body.append(driveButton);
+ dialog.addEventListener('close',()=>{onStopSpeak();});
+ const driveButton=document.createElement('button');driveButton.type='button';driveButton.className='sunny-llm-why';driveButton.textContent='판단 근거';(document.querySelector('.sunny-drive-tools')||document.body).append(driveButton);
  const routeButton=document.createElement('button');routeButton.type='button';routeButton.id='llmRouteWhy';routeButton.textContent='왜 이렇게 판단했나요?';document.getElementById('navRouteRiskStatus')?.after(routeButton);
  const floating=document.createElement('details');floating.className='sunny-llm-floating';floating.hidden=true;floating.innerHTML='<summary>LLM 상황 브리핑</summary><p></p>';document.body.append(floating);
  const $=id=>document.getElementById(id);
