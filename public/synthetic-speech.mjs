@@ -5,6 +5,9 @@ export function syntheticSpokenWarning(hazard,distanceMeters){
  if(hazard.kind==='rain'&&Number.isFinite(hazard.rainMm))return prefix+'1시간 강수량 '+hazard.rainMm+'밀리미터 예보입니다. '+(hazard.rainMm>=30?'강한 비에 주의하세요.':'빗길에 주의하세요.');
  if(hazard.kind==='heat'&&Number.isFinite(hazard.temperature))return prefix+'기온 '+hazard.temperature+'도 예보입니다. 고온에 주의하고 휴식을 취하세요.';
  if(hazard.kind==='wind'&&Number.isFinite(hazard.windSpeed))return prefix+'초속 '+hazard.windSpeed+'미터 강풍 예보입니다. 이동에 주의하세요.';
+ if(hazard.kind==='fog')return prefix+'시정 '+hazard.visibility+'미터 안개 구간입니다. 주의하세요.';
+ if(hazard.kind==='ice')return prefix+'살얼음 주의 구간입니다. 속도를 줄이세요.';
+ if(hazard.kind==='hotspot')return prefix+'사고다발지역입니다. 주변을 확인하세요.';
  if(hazard.kind==='snow')return prefix+'눈 예보입니다. 미끄럼에 주의하세요. 실제 적설량과 노면 결빙은 확인되지 않았습니다.';
  return null;
 }

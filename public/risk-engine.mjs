@@ -13,6 +13,11 @@ export function assessRouteHazard(h,{now=Date.now(),syntheticScenario=false}={})
  if(h.synthetic===true&&!synthetic)
   return assessment('unknown','더미 자료 판정 보류','전용 시뮬레이션 평가 경로가 아닙니다.',
    '시험용 자료는 실제 운영 위험자료와 분리합니다.',0);
+ if(synthetic&&['fog','ice','hotspot'].includes(h.kind)){
+  if(!located(h)||!validTime(h.eta)||!validTime(h.validTime))return assessment('unknown','더미 자료 검증 필요','위치·시각 미확인','판정 보류',0);
+  if(h.kind==='fog')return Number.isFinite(h.visibility)&&h.visibility<=1000?assessment('caution','가상 안개 주의','더미 시정 '+h.visibility+'m','실제 시정 관측이 아닙니다.',60):assessment('info','가상 시정 자료','더미 시정 '+h.visibility+'m','시험 자료입니다.',20);
+  return assessment('notice',h.kind==='ice'?'가상 살얼음 주의':'가상 사고다발지역','더미 시험 자료','실제 결빙이나 현재 사고를 의미하지 않습니다.',45);
+ }
  // Historic crash clusters are cautionary context, NOT observed real-time collisions.
  if(h.kind==='pedestrian-hotspot'){
   if(source!=='한국도로교통공단 TAAS'||h.historic!==true||h.live!==false||

@@ -128,7 +128,7 @@ export function evaluateSyntheticDrivingRisk(route,{weatherSamples=[],extraHazar
   return {...evaluateRouteRisk(route,{mode:'driving',now}),simulation:true,evidenceMode:'synthetic-fixture'};
  const accepted=Array.isArray(extraHazards)?extraHazards.filter(h=>
   h?.synthetic===true&&h?.provider==='Sunny SAI 더미 시연자료'&&
-  ['rain','warning','heat','snow','wind'].includes(h?.kind)):[];
+  ['rain','warning','heat','snow','wind','fog','ice','hotspot'].includes(h?.kind)):[];
  return {...evaluateRouteRisk(route,{weatherSamples,extraHazards:accepted,mode:route.travelMode==='walking'?'walking':'driving',now,syntheticScenario:true}),
   simulation:true,evidenceMode:'synthetic-fixture',riskSystem:route.travelMode==='walking'?'walking':'driving',sourceGroup:'시뮬레이션 시험 자료'};
 }

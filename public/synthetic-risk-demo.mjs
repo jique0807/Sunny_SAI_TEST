@@ -13,7 +13,7 @@ function samplePoints(route){
   throw Error('실제 주행경로 좌표와 소요시간이 필요합니다.');
  const depart=Date.parse(route.departure);
  if(!Number.isFinite(depart))throw Error('경로 출발시각을 확인할 수 없습니다.');
- return [.12,.3,.5,.68,.86].map((fraction,index)=>{
+ return [.12,.3,.5,Number.isFinite(route.dummyScenario?.eventPosition)?route.dummyScenario.eventPosition/100:.68,.86].map((fraction,index)=>{
   const seconds=Math.round(route.duration*fraction),point=demoPointAtSeconds(path,seconds);
   if(!valid({...point,seconds}))throw Error('더미 예보 지점을 경로에 맞추지 못했습니다.');
   const eta=new Date(depart+seconds*1000).toISOString();
@@ -38,6 +38,19 @@ function syntheticSignal(route,point,{kind,rainMm=0}={}){
   ...(flood?{impact:'flood'}:{rainMm,rainLabel:rainMm+'mm'})};
 }
 export function makeSyntheticRiskFixture(route,phase='initial'){
+ const scenario=route.dummyScenario;
+ if(Array.isArray(scenario?.events)){
+  const count=phase==='alert'?(route.syntheticEventCount||1):0;
+  const entries=phase==='clear'?[]:[...scenario.events,...scenario.emergencies.slice(0,count)];
+  const fixtures=entries.map(event=>makeSyntheticRiskFixture({...route,dummyScenario:{type:event.kind==='rain'?'flood':event.kind,initialRain:0,rain:event.value,warning:event.kind==='flood',temperature:event.value,windSpeed:event.value,eventValue:event.value,eventPosition:event.position}},'alert'));
+  if(!fixtures.length){const clear=makeSyntheticRiskFixture({...route,dummyScenario:{type:'flood',initialRain:0,rain:0,warning:false}},'clear');return {...clear,route:{...clear.route,dummyScenario:scenario}};}
+  const invalid=fixtures.find(f=>f.profile.state!=='evaluated');
+  const weatherSamples=invalid?invalid.weatherSamples:fixtures.flatMap(f=>f.weatherSamples);
+  const samples=invalid?invalid.route.samples:fixtures.flatMap(f=>f.route.samples);
+  const inputSignals=fixtures.flatMap(f=>f.inputSignals),fixtureRoute={...route,demo:true,syntheticRiskDemo:true,samples};
+  const profile=evaluateSyntheticDrivingRisk(fixtureRoute,{weatherSamples,extraHazards:inputSignals});
+  return {route:fixtureRoute,weatherSamples,samples:weatherSamples,signals:profile.signals,inputSignals,profile,phase,source:SYNTHETIC_RISK_SOURCE,synthetic:true};
+ }
  const config=route.dummyScenario||{type:'flood',initialRain:8,rain:65,warning:true,temperature:35};
  const points=samplePoints(route),base=points.map(point=>weatherRecord(point));
  const firstRain=syntheticSignal(route,points[1],{kind:'rain',rainMm:config.initialRain});
@@ -55,6 +68,9 @@ export function makeSyntheticRiskFixture(route,phase='initial'){
     else base[i]={...base[i],status:'unavailable',forecast:null};
    }
    signals=[];
+   }else if(['fog','ice','hotspot'].includes(config.type)){
+   const h={...syntheticSignal(route,point,{kind:config.type}),kind:config.type,title:({fog:'안개',ice:'도로 살얼음',hotspot:'사고다발지역'})[config.type],icon:({fog:'🌫️',ice:'🧊',hotspot:'⚠️'})[config.type],measure:'더미 시험 자료',visibility:config.eventValue,accidentCount:config.eventValue};
+   signals=[h];base[3]={...base[3],demoHazard:h};
   }else if(['snow','wind'].includes(config.type)){
    const snow=config.type==='snow';const h={...syntheticSignal(route,point,{kind:config.type}),kind:config.type,icon:snow?'❄️':'💨',title:snow?'눈 예보':'강풍 예보',measure:snow?'더미 강수형태: 눈':'더미 풍속 '+config.windSpeed+'m/s',description:'시험용 기상 예보입니다.',...(snow?{}:{windSpeed:config.windSpeed})};
    signals=[h];base[3]={...base[3],forecast:{...base[3].forecast,precipitationType:snow?3:0,windSpeed:config.windSpeed},demoHazard:h};

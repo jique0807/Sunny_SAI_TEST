@@ -1359,7 +1359,7 @@ async function chooseDemoDetourYes(trip,resumePlayback){
    throw Error(synthetic?'가상 침수 지점과 충분히 떨어지는 실제 도로 후보를 찾지 못했습니다. 기존 경로를 안전하다고 판단하지 않고 안내를 중단합니다.':'위험 구간에서 3km 이상 떨어지는 실제 도로 우회경로를 찾지 못했습니다. 기존 경로를 안전하다고 판단하지 않고 안내를 중단합니다.');
   const result=chosen.route,clearance=chosen.clearance;
   const samples=[];
-  const updated={...result,demo:true,syntheticRiskDemo:synthetic,dummyScenario:trip.dummyScenario,demoWalking:synthetic&&trip.travelMode==='walking',demoWarningIssued:true,
+  const updated={...result,demo:true,syntheticRiskDemo:synthetic,dummyScenario:trip.dummyScenario,syntheticEventCount:trip.syntheticEventCount||0,demoWalking:synthetic&&trip.travelMode==='walking',demoWarningIssued:true,
    syntheticAlertIssued:true,demoDetourSelected:true,demoHazards:[],syntheticRiskHazards:[],
    samples,demoDetourClearanceMeters:Math.round(clearance),
    demoArchivedHazards:trip.demoHazards||[],demoBreakingWarning:trip.demoBreakingWarning,
@@ -1525,7 +1525,7 @@ async function offerDummyShelter(trip){
     const next=await api('/api/route',{origin:{...current,name:'현재 가상 보행 위치'},destination:shelter,departure:new Date().toISOString(),travelMode:'walking',walkingPriority:'BROAD_FIRST'});
     if(route!==trip||!drivingUI.isActive())return;
     if(next.provider!=='TMAP'||next.travelMode!=='walking'||next.mode!=='walking')throw Error('TMAP 실제 보행 경로를 확인하지 못했습니다.');
-    const fixture=makeSyntheticRiskFixture({...next,demo:true,syntheticRiskDemo:true,dummyScenario:trip.dummyScenario},'clear');
+    const fixture=makeSyntheticRiskFixture({...next,demo:true,syntheticRiskDemo:true,dummyScenario:trip.dummyScenario,syntheticEventCount:trip.syntheticEventCount||0},'clear');
     route={...fixture.route,demo:true,demoWalking:true,demoDetourSelected:true,syntheticAlertIssued:true,demoWarningIssued:true,demoHazards:[],syntheticRiskHazards:[]};
     originPlace={...current,name:'현재 가상 보행 위치'};destPlace=shelter;weather={...fixture,fetchedAt:new Date().toISOString()};
     progress=0;gate.reset();renderRoute();renderCards();drivingUI.start(route,weather);
@@ -1537,14 +1537,18 @@ async function offerDummyShelter(trip){
   };
  }catch(e){if(route===trip){dummyUI.brief('쉼터 검색 실패',{error:e.message});demoDetourStatus('쉼터 검색 실패',e.message);finishDemoDetourPopup(trip,resume);}}
 }
+function nextSyntheticTrigger(trip){
+ if(Array.isArray(trip?.dummyScenario?.emergencies))return trip.dummyScenario.emergencies[trip.syntheticEventCount||0]?.trigger??null;
+ return trip?.syntheticAlertIssued?null:trip?.dummyScenario?.trigger||SYNTHETIC_RISK_TRIGGER;
+}
 function injectSyntheticRiskWarning(){
- if(!route?.syntheticRiskDemo||route.syntheticAlertIssued||!drivingUI.isActive())return false;
+ if(!route?.syntheticRiskDemo||(route.dummyScenario?.emergencies? (route.syntheticEventCount||0)>=route.dummyScenario.emergencies.length:route.syntheticAlertIssued)||!drivingUI.isActive())return false;
  const activeRoute=route;
  try{
-  const fixture=makeSyntheticRiskFixture(activeRoute,'alert'),profile=fixture.profile;
+  const fixture=makeSyntheticRiskFixture({...activeRoute,syntheticEventCount:(activeRoute.syntheticEventCount||0)+1},'alert'),profile=fixture.profile;
   dummyUI.brief('API 자료 수신(더미)',{input:fixture.weatherSamples,signals:fixture.inputSignals});
   Object.assign(activeRoute,fixture.route,{demo:true,demoRiskEngine:true,syntheticAlertIssued:true,demoWarningIssued:true,
-   syntheticRiskPhase:'alert',syntheticRiskHazards:fixture.signals,demoHazards:fixture.signals,syntheticRiskProfile:profile,
+   syntheticEventCount:(activeRoute.syntheticEventCount||0)+1,syntheticRiskPhase:'alert',syntheticRiskHazards:fixture.signals,demoHazards:fixture.signals,syntheticRiskProfile:profile,
    syntheticFloodSignal:fixture.signals.find(h=>h.kind==='warning')||null});
   weather={...fixture,source:SYNTHETIC_RISK_SOURCE+' · 이동 중 새로 수신',fetchedAt:new Date().toISOString()};
   renderCards();drawDemoOverlays();moveCar();renderRouteHazards();drivingUI.setWeather(weather);
@@ -1592,7 +1596,7 @@ function resetDemoBreakingWarning(){
   Object.assign(route,fixture.route,{demo:true,demoRiskEngine:true,syntheticAlertIssued:false,
    demoWarningIssued:false,demoDetourSelected:false,syntheticRiskPhase:'initial',
    syntheticRiskHazards:fixture.signals,demoHazards:fixture.signals,syntheticFloodSignal:null,
-   syntheticRiskProfile:fixture.profile});
+   syntheticEventCount:0,syntheticRiskProfile:fixture.profile});
   weather={...fixture,source:SYNTHETIC_RISK_SOURCE+' · 최초 더미 예보',fetchedAt:new Date().toISOString()};
   renderCards();drawDemoOverlays();moveCar();renderRouteHazards();drivingUI.setWeather(weather);drivingUI.render();
   return;
@@ -1618,7 +1622,7 @@ function advance(value){
  if(drivingUI.isActive())drivingUI.update(elapsed,null,false);
  // Place new warning on the ahead-of-driver route only when it is issued mid-trip.
  const justIssued=route.syntheticRiskDemo?
-  (!route.syntheticAlertIssued&&previous<(route.dummyScenario?.trigger||SYNTHETIC_RISK_TRIGGER)&&progress>=(route.dummyScenario?.trigger||SYNTHETIC_RISK_TRIGGER)&&injectSyntheticRiskWarning()):
+  (nextSyntheticTrigger(route)!==null&&progress>=nextSyntheticTrigger(route)&&injectSyntheticRiskWarning()):
   route.demoWalking?(!route.demoWarningIssued&&previous<WALK_DEMO_TRIGGER&&progress>=WALK_DEMO_TRIGGER&&injectWalkingDemoWarning()):
   (!route.demoWarningIssued&&shouldTriggerDemoBreakingWarning(previous,progress,false,demoBreakingTiming(route).triggerPercent)
   &&injectDemoBreakingWarning());
@@ -1685,7 +1689,7 @@ $('sunnyDemoNext')?.addEventListener('click',()=>{
  pauseDrive();
  if(!$('sunnyDemoDetourPopup').hidden||route.demoDetourPending||!$('sunnyWalkHeatPopup').hidden||walkHeatPending)return;
  if(route.syntheticRiskDemo){
-  if(!route.syntheticAlertIssued)advance(Math.min(100,(route.dummyScenario?.trigger||SYNTHETIC_RISK_TRIGGER)+.02));
+  if(nextSyntheticTrigger(route)!==null)advance(Math.min(100,Math.max(progress,nextSyntheticTrigger(route))+.02));
   else{advance(100);toast('위험자료 시연의 도착 지점으로 이동했습니다.');}
   return;
  }
