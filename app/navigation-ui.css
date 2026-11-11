@@ -2526,3 +2526,17 @@ body.sunny-guiding .sunny-demo-detour-popup{
 .sunny-dummy-briefing[hidden]{display:none}.sunny-dummy-briefing summary{font-weight:750;color:#815514;cursor:pointer}.sunny-dummy-briefing ol{padding-left:16px;margin:8px 0;line-height:1.6}.sunny-dummy-briefing button{font-size:11px;padding:6px 8px}
 
 .sunny-llm-dialog{width:min(500px,calc(100vw - 24px));max-height:80dvh;padding:18px;border:1px solid #ccd9ea;border-radius:16px;color:#16243b;overflow:auto}.sunny-llm-dialog::backdrop{background:#14253d65}.sunny-llm-dialog select,#llmProvider,#llmModel,#llmKey{width:100%;padding:10px;border:1px solid #ccd9ea;border-radius:8px;font:inherit;background:white;color:#16243b;margin:6px 0 10px}#llmAnswer{line-height:1.8;white-space:pre-line}.sunny-llm-why{display:none;position:fixed;z-index:66;bottom:115px;left:12px;padding:8px 12px;font-size:12px;box-shadow:0 2px 10px #1232}body.sunny-guiding .sunny-llm-why{display:block}.sunny-llm-floating{position:fixed;left:12px;bottom:160px;z-index:65;background:#fffffff2;border:1px solid #a4c3ed;border-radius:12px;padding:10px;width:min(315px,calc(100vw - 75px));max-height:30dvh;overflow:auto;font-size:12px;line-height:1.6}.sunny-llm-floating[hidden]{display:none}#llmRouteWhy{font-size:12px;margin:8px 0}
+
+/* Desktop users need the same layer and upload controls as mobile users. */
+@media(min-width:901px){
+ .nav-layers-sheet:not([hidden]){display:block;position:fixed;right:24px;top:88px;width:min(440px,calc(100vw - 48px));max-height:calc(100dvh - 112px);overflow:auto;background:#fff;color:#263a50;padding:20px;border:1px solid #dce4ef;border-radius:18px;box-shadow:0 14px 48px #172b4733;z-index:1200;box-sizing:border-box}
+ .nav-layers-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+ .nav-layer-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #edf1f5}
+ .nav-layer-row span{display:flex;flex-direction:column;gap:4px}
+ .nav-layer-row small{font-size:12px;line-height:1.5}
+ .nav-layer-row input{flex:none;width:20px;height:20px}
+}
+@media(max-width:900px){#desktopLayersOpen{display:none}}
+.nav-layers-sheet input[type=file]{max-width:100%;box-sizing:border-box}
+.nav-layers-sheet pre{white-space:pre-wrap;overflow-wrap:anywhere}
+.nav-layers-sheet .buttonrow{flex-wrap:wrap}

@@ -137,6 +137,7 @@ function showNavLayers(open){
  if(!navLayersSheet)return;
  navLayersSheet.hidden=!open;
  document.getElementById('navLayers')?.setAttribute('aria-expanded',String(open));
+ document.getElementById('desktopLayersOpen')?.setAttribute('aria-expanded',String(open));
  if(open){showNavSearch(false);setNavTab('navLayers');ensureNavigationKakao();}
  else setNavTab(drivingUI.isActive()?'navRoute':document.getElementById('navSearchSheet')?.hidden?'navHome':'navRoute');
 }
@@ -181,6 +182,7 @@ document.getElementById('navRoute')?.addEventListener('click',()=>{
  setNavTab('navRoute');
 });
 document.getElementById('navLayers')?.addEventListener('click',()=>showNavLayers(navLayersSheet?.hidden!==false));
+document.getElementById('desktopLayersOpen')?.addEventListener('click',()=>showNavLayers(navLayersSheet?.hidden!==false));
 const minimizeNavLayers=event=>{event?.preventDefault?.();event?.stopPropagation?.();showNavLayers(false);document.getElementById('navLayers')?.focus?.({preventScroll:true});};
 const disableMapLayers=()=>{
  for(const id of ['navLayersnow','navLayerroad','navLayerfog','navLayerflood','navLayerWarning','navLayerWalkFacilities','navLayerTrafficIncidents','navLayerPedestrianWms','navLayerChildWms','navLayerElderlyWms','navGk2aRr','navGk2aCi','navGk2aFog']){
