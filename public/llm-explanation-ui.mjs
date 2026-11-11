@@ -4,12 +4,13 @@ export function initLLMExplanation({document,api,onEvent=()=>{},onSpeak=()=>{}})
  const section=document.createElement('section');section.className='sunny-settings-section';
  section.innerHTML=`<h3>LLM 상황 브리핑·근거 설명</h3><p class="hint">위험판단의 이유를 설명합니다. LLM 미연결 시 정형 설명을 제공합니다. 연결 시 판정 근거와 질문만 모델 제공자에게 보내며, GPS·목적지는 보내지 않습니다.</p>
  <label class="checklabel"><input id="llmAuto" type="checkbox"/> 새 위험판정 시 자동 브리핑</label>
- <details><summary>LLM 연결 설정 (선택)</summary>
- <label for="llmProvider">모델 연결 방식</label><select id="llmProvider"><option value="gemini">Google Gemini</option><option value="compatible">서버에 등록된 호환 API</option></select>
+ <label for="llmProvider">LLM 설명 모델</label><select id="llmProvider"><option value="off">LLM 미사용 · 정형 설명</option><option value="gemini">Google Gemini</option><option value="gpt-oss">GPT-OSS</option><option value="custom">서버에 등록된 호환 API</option></select>
+ <p class="hint">Gemini·GPT-OSS는 저장된 키로 연결합니다. 호환 API는 운영자가 별도 등록한 다른 모델 서버용입니다.</p>
+ <details><summary>모델·연결 상세 설정</summary>
  <label for="llmModel">모델 ID</label><input id="llmModel" value="gemini-3.5-flash-lite" maxlength="120" placeholder="계정에서 사용 가능한 모델 ID"/>
  <label for="llmKey">개인 LLM API 키</label><input id="llmKey" type="password" autocomplete="off" placeholder="임시 연결용 API 키"/>
- <div class="buttonrow"><button id="llmConnect" type="button">연결·모델 적용</button><button id="llmDisconnect" type="button">서버 기본 연결로 복원</button></div>
- <p class="hint">서버에 등록된 모델은 키 입력 없이 적용할 수 있습니다. 별도로 입력한 키만 최대 30분 임시 보관합니다. 모델 사용료가 발생할 수 있습니다.</p></details><p id="llmConfigStatus" role="status">연결 상태 확인 전</p>`;
+
+ <p class="hint">서버에 등록된 모델은 키 입력 없이 적용할 수 있습니다. 별도로 입력한 키만 최대 30분 임시 보관합니다. 모델 사용료가 발생할 수 있습니다.</p></details><div class="buttonrow"><button id="llmConnect" type="button">선택한 모델 적용</button><button id="llmDisconnect" type="button">서버 기본 연결로 복원</button></div><p id="llmConfigStatus" role="status">연결 상태 확인 전</p>`;
  const settings=document.getElementById('settings'),voice=document.getElementById('voicePreferencesHeading')?.closest('section');
  if(settings)settings.insertBefore(section,voice?.parentElement===settings?voice:null);
  const dialog=document.createElement('dialog');dialog.className='sunny-llm-dialog';
@@ -21,30 +22,45 @@ export function initLLMExplanation({document,api,onEvent=()=>{},onSpeak=()=>{}})
  const $=id=>document.getElementById(id);
  const status=text=>{$('llmConfigStatus').textContent=text;};
  const defaultGeminiModel='gemini-3.5-flash-lite';
- const modelDrafts={gemini:defaultGeminiModel,compatible:''};
- let serverModels=[];
- let selectedProvider='gemini';
+ const modelDrafts={off:'',gemini:defaultGeminiModel,'gpt-oss':'openai/gpt-oss-120b',custom:''};
+ let serverModels=[],selectedProvider='gemini',appliedMode=null;
+ function showMode(){
+  const off=selectedProvider==='off';
+  $('llmModel').disabled=off;$('llmKey').disabled=off;$('llmAuto').disabled=off;
+  if(off){$('llmAuto').checked=false;clearTimeout(timer);floating.hidden=true;}
+ }
  $('llmProvider').addEventListener('change',()=>{
   modelDrafts[selectedProvider]=$('llmModel').value.trim();
   selectedProvider=$('llmProvider').value;
-  $('llmModel').value=modelDrafts[selectedProvider]||(selectedProvider==='gemini'?defaultGeminiModel:'');
-  // A provider change must not accidentally reuse an unsubmitted secret.
-  $('llmKey').value='';
-  status('선택한 모델을 사용하려면 연결·모델 적용을 눌러주세요.');
+  $('llmModel').value=modelDrafts[selectedProvider]||'';$('llmKey').value='';
+  clearTimeout(timer);floating.hidden=true;configured=false;showMode();status('선택한 모델 적용을 눌러 저장해주세요.');
  });
- async function refresh(){try{const d=await api('/api/llm/status',null,'GET');configured=d.configured===true;serverModels=d.serverModels||[];for(const preset of serverModels){if(preset.configured&&!modelDrafts[preset.provider])modelDrafts[preset.provider]=preset.model;}$('llmProvider').value=d.provider||'gemini';selectedProvider=$('llmProvider').value;$('llmModel').value=d.model||(selectedProvider==='gemini'?defaultGeminiModel:'');modelDrafts[selectedProvider]=$('llmModel').value;status(configured?(d.connection==='server'?'서버 저장 모델 · ':'임시 연결 · ')+d.model+' · 실제 설명 응답 검사 전':'미연결 · 정형 근거 설명을 사용할 수 있습니다.');}catch{configured=false;status('연결 상태 미확인 · 정형 근거 설명 사용');}}
- $('llmConnect').onclick=async()=>{const key=$('llmKey').value;$('llmKey').value='';$('llmConnect').disabled=true;revision++;answerText='';$('llmRead').disabled=true;
-  try{await api('/api/llm/key',{key,provider:$('llmProvider').value,model:$('llmModel').value.trim()});await refresh();lastAuto='';}
-  catch(e){status('연결 설정 실패: '+e.message);}finally{$('llmConnect').disabled=false;}};
+ async function refresh(){try{
+  const d=await api('/api/llm/status',null,'GET');configured=d.configured===true;serverModels=d.serverModels||[];
+  for(const preset of serverModels){if(preset.configured&&preset.mode)modelDrafts[preset.mode]=preset.model;}
+  selectedProvider=d.mode||'off';appliedMode=selectedProvider;$('llmProvider').value=selectedProvider;
+  $('llmModel').value=d.model||modelDrafts[selectedProvider]||'';modelDrafts[selectedProvider]=$('llmModel').value;
+  showMode();status(selectedProvider==='off'?'LLM 미사용 · 외부 모델 호출 없이 정형 설명을 제공합니다.':
+   configured?(d.connection==='server'?'서버 저장 모델 · ':'임시 연결 · ')+d.model+' · 실제 설명 응답 검사 전':
+   '미연결 · 호환 모델 서버 주소와 키를 운영자가 등록해야 합니다. 정형 설명을 사용합니다.');
+ }catch{configured=false;status('연결 상태 미확인 · 정형 근거 설명 사용');}}
+ $('llmConnect').onclick=async()=>{
+  const key=$('llmKey').value;$('llmKey').value='';$('llmConnect').disabled=true;$('llmProvider').disabled=true;
+  revision++;answerText='';$('llmRead').disabled=true;$('llmAnswerSource').textContent='';clearTimeout(timer);floating.hidden=true;
+  try{await api('/api/llm/key',{mode:selectedProvider,key,model:$('llmModel').value.trim()});await refresh();lastAuto='';}
+  catch(e){configured=false;status('연결 설정 실패: '+e.message);}finally{$('llmConnect').disabled=false;$('llmProvider').disabled=false;}
+ };
  $('llmDisconnect').onclick=async()=>{try{await api('/api/llm/key',null,'DELETE');revision++;floating.hidden=true;await refresh();}catch(e){status(e.message);}};
  $('llmAuto').onchange=()=>{clearTimeout(timer);if(!$('llmAuto').checked)floating.hidden=true;else if(current&&configured)void generate(true);};
  document.getElementById('settings')?.addEventListener('close',()=>{$('llmKey').value='';});
  async function generate(automatic=false){
-  if(!current||busy)return;const snapshot=current,version=revision,routeIdentity=identity;
+  if(!current||busy)return;
+  if(selectedProvider!=='off'&&selectedProvider!==appliedMode){$('llmAnswer').textContent='환경설정에서 선택한 모델 적용을 먼저 눌러주세요.';return;}
+  const snapshot=current,version=revision,routeIdentity=identity;
   busy=true;$('llmGenerate').disabled=true;lastRequest=Date.now();
-  $('llmAnswer').textContent='현재 판정 근거로 설명을 준비합니다.';
+  $('llmAnswer').textContent='현재 판정 근거로 설명을 준비합니다.';$('llmAnswerSource').textContent='';
   let d;
-  try{d=await api('/api/llm/explain',{profile:snapshot,question:$('llmQuestion').value});}
+  try{if(selectedProvider==='off'){d={status:'template',text:templateExplanation(buildExplanationContext(snapshot)),reason:'llm-disabled'};}else d=await api('/api/llm/explain',{profile:snapshot,question:$('llmQuestion').value});}
   catch{const context=buildExplanationContext(snapshot);d={status:'template',text:templateExplanation(context),reason:'request-failed'};}
   finally{busy=false;$('llmGenerate').disabled=false;}
   if(version!==revision||identity!==routeIdentity||(automatic&&!$('llmAuto').checked))return;

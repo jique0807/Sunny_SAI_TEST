@@ -79,3 +79,26 @@ test('server presets switch providers without putting server keys in selection c
   assert.equal(result.status,'llm');assert.equal(result.action,'reroute');assert.equal(JSON.stringify(profile),snapshot);
  }
 });
+test('explicit off disables a configured server model and custom is separate from GPT-OSS',async()=>{
+ const a=await client();
+ const settings={...env,LLM_PROVIDER:'compatible',LLM_MODEL:'openai/gpt-oss-120b',LLM_BASE_URL:'https://groq.example/v1',LLM_API_KEY:'groq-test-secret-123456789',GEMINI_API_KEY:'gemini-test-secret-123456789'};
+ const selected=await handle(req('/api/llm/key','POST',{mode:'off'},a.cookie,a.session.csrf),settings);
+ assert.equal(selected.status,200);
+ const cookies=a.cookie+'; '+selected.headers.getSetCookie()[0].split(';')[0];
+ const status=await (await handle(req('/api/llm/status','GET',null,cookies),settings)).json();
+ assert.equal(status.mode,'off');assert.equal(status.configured,false);
+ assert.equal(status.serverModels.find(x=>x.mode==='gpt-oss').configured,true);
+ assert.equal(status.serverModels.find(x=>x.mode==='custom').configured,false);
+ let calls=0;
+ const result=await (await handle(req('/api/llm/explain','POST',{profile},cookies,a.session.csrf),settings,async()=>{calls++;throw Error('must not call');})).json();
+ assert.equal(calls,0);assert.equal(result.status,'template');assert.equal(result.action,'reroute');
+ const unsupported=await handle(req('/api/llm/key','POST',{mode:'custom',key:''},cookies,a.session.csrf),settings);
+ assert.equal(unsupported.status,400);
+ for(const mode of ['gemini','gpt-oss']){
+  const response=await handle(req('/api/llm/key','POST',{mode,key:''},a.cookie,a.session.csrf),settings);
+  assert.equal(response.status,200);
+  const selectedCookies=a.cookie+'; '+response.headers.getSetCookie()[0].split(';')[0];
+  const actual=await (await handle(req('/api/llm/status','GET',null,selectedCookies),settings)).json();
+  assert.equal(actual.mode,mode);assert.equal(actual.connection,'server');assert.equal(actual.configured,true);
+ }
+});

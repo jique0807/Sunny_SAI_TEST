@@ -119,18 +119,7 @@ export const ui = `
  <p class="sunny-source-caution">인증키 등록 ≠ 실제 수신 성공. 연결 검사는 서울시청 인근 고정 좌표를 사용하며 GPS를 전송하지 않습니다. ITS 도로 링크, TAAS 과거 사고건수, 위험등급·유효시각은 검증되기 전까지 확정 위험으로 사용하지 않습니다. API 키나 GPS 위치는 표시하지 않습니다.</p>
  </details>
 </section>
-<section class="sunny-settings-section" aria-label="자료 흐름 및 연동 구조">
- <details id="settingArchitectureDetails" class="sunny-source-fold">
-  <summary><strong>자료 처리 흐름·연결 구성</strong><small>실제 경로의 수집·검증·판단 근거 및 API 어댑터</small></summary>
-  <p class="sunny-source-guide">실제 경로 형상 → 예상 통과시각 → 자료 수집 → 출처·좌표·시각 검증 → 위험정책 → 안내의 순서로 처리합니다. 표출 스위치는 위험자료 수집과 별개입니다.</p>
-  <p id="settingPipelineSummary" class="sunny-source-summary" role="status">실제 경로를 탐색하면 자료 흐름이 표시됩니다.</p>
-  <div id="settingPipelineStages" class="sunny-source-items" role="list" aria-label="실제 경로 자료 흐름"></div>
-  <p class="sunny-source-guide"><strong>서버 API 어댑터 목록</strong> · 등록키와 실제 수신·정합 검증은 서로 다릅니다. 아래 목록은 연결 구성이지 실시간 장애 진단이 아닙니다.</p>
-  <button id="settingCapabilityRefresh" type="button" class="sunny-source-check-button">API·모델 구성 다시 확인</button>
-  <div id="settingCapabilitySources" class="sunny-source-items" role="list" aria-label="교체 가능한 데이터 공급자 목록"></div>
-  <p class="sunny-source-caution">공공자료 API 키는 Vercel 환경변수에서 관리합니다. 개인 LLM 키는 별도 설정에서 임시 연결할 수 있습니다. LLM은 판정 근거를 설명하며 위험판단은 규칙 엔진이 수행합니다.</p>
- </details>
-</section>
+
 </details>
 <div class="sunny-settings-bottom">
  <button id="settingReset" type="button">기본값으로 복원</button>
