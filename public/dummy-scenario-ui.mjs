@@ -16,7 +16,7 @@ export function initDummyScenarioUI({document,storage,search,onStart,isActive=()
  const briefing=document.createElement('details');briefing.id='dummyBriefing';briefing.className='sunny-dummy-briefing';briefing.hidden=true;briefing.open=true;
  briefing.innerHTML='<summary>더미 모드 · 진행 브리핑</summary><ol role="log" aria-live="polite"></ol><div class="buttonrow"><button type="button" data-inject>새 자료 입력</button><button type="button" data-report>실행 기록 JSON</button></div>';
  document.body.append(briefing);
- let shared=[],sharedLoaded=false;
+ let shared=[],sharedLoaded=false,opened=false;
  const scenarios=()=>readScenarios(storage,shared);
  const $=id=>dialog.querySelector('#'+id);let places={origin:null,destination:null},run=null;
  const download=(value,name)=>{const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
@@ -50,7 +50,7 @@ export function initDummyScenarioUI({document,storage,search,onStart,isActive=()
  briefing.querySelector('[data-inject]').onclick=()=>onInject();briefing.querySelector('[data-report]').onclick=()=>{if(run)download(run,'sunny-dummy-run.json');};refresh();
  return {async open(){if(isActive()){return false;}
    if(!sharedLoaded){sharedLoaded=true;try{const response=await fetch('/scenarios/shared.json',{cache:'no-cache',signal:AbortSignal.timeout(8000)});if(!response.ok)throw Error('공유 구성 조회 실패');const raw=await response.json();if(raw.schema!=='sunny-shared-scenarios-v1'||!Array.isArray(raw.scenarios)||raw.scenarios.length>20)throw Error('공유 구성 형식 오류');shared=raw.scenarios.map(sanitizeScenario);refresh();}catch{$('dummyStatus').textContent='공유 구성 수신 실패 · 기본 구성 또는 JSON 가져오기를 사용하세요.';}}
-   if(isActive())return false;dialog.showModal();return true;},
+   if(isActive())return false;if(!opened){opened=true;places={origin:null,destination:null};$('dummyOrigin').value='';$('dummyDestination').value='';}dialog.showModal();return true;},
   begin(data){run={schema:'sunny-dummy-run-v1',startedAt:new Date().toISOString(),...data,events:[]};briefing.querySelector('ol').replaceChildren();briefing.hidden=false;briefing.open=true;},
   brief(message,data={}){if(!run)return;const event={at:new Date().toISOString(),message,...data};run.events.push(event);if(/^(음성 출력|Google 음성 실패)/.test(message))return;const li=document.createElement('li');li.textContent=new Date(event.at).toLocaleTimeString('ko-KR',{hour12:false})+' '+message;const list=briefing.querySelector('ol');list.append(li);while(list.children.length>5)list.firstChild.remove();},
   end(){briefing.hidden=true;},getRun(){return run;}};
