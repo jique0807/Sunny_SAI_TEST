@@ -124,7 +124,8 @@ export function initVectorDriving({element,onSelect=()=>{},onFailure=()=>{}}){
   try{
    const lib=await loadLibrary();
    if(ticket!==sequence)return false;
-   if(!lib.supported?.())throw Error('이 기기의 브라우저에서 WebGL 지도를 지원하지 않습니다.');
+   // MapLibre 5 has no supported() export; its Map constructor checks WebGL.
+   if(typeof lib.supported==='function'&&!lib.supported())throw Error('이 기기의 브라우저에서 WebGL 지도를 지원하지 않습니다.');
    element.hidden=false;
    api=lib;route=nextRoute;
    map=new lib.Map({container:element,style:VECTOR_STYLE,
