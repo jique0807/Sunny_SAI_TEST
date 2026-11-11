@@ -81,6 +81,7 @@ export function initVectorDriving({element,onSelect=()=>{},onFailure=()=>{}}){
   sequence++;ready=false;clearMarkers();vehicle?.remove?.();vehicle=null;
   map?.remove?.();map=null;api=null;route=null;lastPoint=null;lastBearing=null;
   element.hidden=true;
+  element.replaceChildren();
   element.dataset.navigationState='idle';
  }
  function applyCamera(point,bearing,mode='course',animate=true){
