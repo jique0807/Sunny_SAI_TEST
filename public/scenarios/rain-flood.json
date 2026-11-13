@@ -1,0 +1,13 @@
+{
+  "schema": "sunny-dummy-scenario-v1",
+  "scenario": {
+    "id": "rain-flood",
+    "name": "폭우·침수경보",
+    "type": "flood",
+    "initialRain": 8,
+    "rain": 65,
+    "temperature": 35,
+    "warning": true,
+    "trigger": 20
+  }
+}

@@ -1,5 +1,6 @@
 // Sunny SAI in-app foreground driving panel.
 import {buildRouteHazards,renderHazardRail,showHazardDetail} from './route-hazards.mjs';
+import {prioritizeRouteHazards} from './risk-engine.mjs';
 // All progress comes from GPS projected onto the real Kakao Mobility route.
 // Live mode only uses real provider records. Separate demo mode is explicitly fictional.
 const EARTH=111320;
@@ -52,7 +53,7 @@ export function upcomingRisks(samples,seconds,limit=2){
  }
  return selected;
 }
-export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()=>[], isWeatherEnabled=()=>true}){
+export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()=>[],getWeatherSamples=null, isWeatherEnabled=()=>true}){
  const root=document.getElementById('sunnyDriveOverlay');
  const alerts=document.getElementById('sunnyDriveAlerts');
  const fill=document.getElementById('sunnyDriveProgressFill');
@@ -69,6 +70,7 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
  reroute?.addEventListener('click',()=>onReroute?.());
  const setText=(node,text)=>{if(node)node.textContent=text;};
  function combinedSamples(){
+  if(getWeatherSamples)return getWeatherSamples();
   const data=[...(weather?.samples||[]),...(aheadSamples||[])];
   return data.filter(x=>x?.status==='forecast'&&x.forecast);
  }
@@ -97,19 +99,19 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
       return ordered.slice(0,alertCount)
        .map(h=>({...h,minutes:Math.max(0,Math.round((h.seconds-seconds)/60))}));
      })()
-   :upcomingRisks(combinedSamples(),seconds,alertCount);
+   :prioritizeRouteHazards([...buildRouteHazards(combinedSamples(),{limit:20}),...getRoadHazards(route)],seconds,alertCount);
   if(alerts){
    alerts.replaceChildren();
    const slots=[];
    if(offRoute){
-    slots.push({title:'경로 이탈 감지',subtitle:'이탈이 계속되면 자동 재탐색 · 정차 후 수동 재탐색 가능',icon:'!',status:true});
+    slots.push({title:'경로 이탈 감지',subtitle:route?.travelMode==='walking'?'이탈이 계속되면 자동 재탐색 · 안전한 장소에서 재탐색 가능':'이탈이 계속되면 자동 재탐색 · 정차 후 수동 재탐색 가능',icon:'!',status:true});
     if(showWeather)slots.push({title:'전방 기상안내 일시중지',subtitle:'경로 복귀 후 다시 확인',icon:'·',status:true});
    }else if(showWeather){
     for(const item of risks)slots.push({
-      title:item.breaking?'🚨 신규 호우특보 발효':
-       (item.minutes===0?'현재 부근':item.minutes+'분 후')+' · '+item.title,
-      subtitle:item.label+' · '+(route.demo?'시연 경로':item.source),
-      icon:item.icon,status:false,urgent:!!item.breaking
+      title:item.breaking?(route.demoWalking?'무더위 위험 알림':'신규 호우특보 발효'):
+       (item.minutes===0?'현재 부근':item.minutes+'분 후')+' · '+(route.demo?item.title:item.assessment?.label||item.title),
+      subtitle:item.label+' · '+(route.demo?'시연 경로':item.assessment?.evidence||item.provider||'기상정보'),
+      icon:item.icon,status:false,urgent:!!item.breaking||item.assessment?.level==='high'
     });
     if(!slots.length){
       const known=route.demo||combinedSamples().length>0;
@@ -147,7 +149,7 @@ export function initDriveGuidance({onStop,onReroute,formatTime,getRoadHazards=()
   route=newRoute;weather=forecast||null;aheadSamples=null;seconds=0;offRoute=false;active=true;
   if(root)root.hidden=false;
   if(reroute)reroute.hidden=true;
-  document.body.classList.add('sunny-guiding');setText(gps,route.demo?'시연 모드 · 실제 특보·위험정보 아님':'GPS 위치 확인 중');render();
+  document.body.classList.add('sunny-guiding');setText(gps,route.demo?'시연 모드 · 실제 특보·위험정보 아님':route.travelMode==='walking'?'도보 GPS 위치 확인 중':'GPS 위치 확인 중');render();
  }
  function stop(){
   active=false;route=null;weather=null;aheadSamples=null;seconds=0;offRoute=false;

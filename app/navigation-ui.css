@@ -2096,6 +2096,7 @@ body:not(.sunny-guiding) #sunnyVectorMap{display:none!important;}
  display:grid;place-items:center;width:48px;height:54px;pointer-events:none;
  filter:drop-shadow(0 3px 3px #1e305c8c);will-change:rotate;
 }
+.sunny-vector-pedestrian{font-size:32px;line-height:1;background:#fff;border-radius:50%;border:2px solid #1769dd;width:48px;height:48px;box-shadow:0 2px 8px #1233}
 .sunny-vector-risk{
  display:grid;place-items:center;width:36px;height:36px;border:2px solid #fff;
  border-radius:50%;background:#fdf8e9;color:#15233b;font-size:18px;
@@ -2107,3 +2108,446 @@ body:not(.sunny-guiding) #sunnyVectorMap{display:none!important;}
   bottom:calc(var(--sunny-bottom-nav-height,68px) + 78px)!important;
  }
 }
+
+
+/* Final touch QA: prevent safety controls being covered by layer panel. */
+@media(max-width:900px){
+ body.sunny-guiding .nav-layers-sheet:not([hidden]){
+  bottom:calc(var(--sunny-bottom-nav-height,64px) + 72px)!important;
+  max-height:min(54dvh,calc(100dvh - var(--sunny-bottom-nav-height,64px) - 85px))!important;
+  overflow-y:auto!important;
+ }
+}
+/* The footer is the sole control surface while guiding; hide the old
+   desktop/legacy demo slider, which sits under the map and can't be tapped. */
+body.sunny-guiding #driveControls{display:none!important;}
+/* Individual risk icons stay at legible, separated display locations. */
+.sunny-rail-hazard[data-cluster="true"]{
+ border-color:#d07e25!important;
+ background:#fff5df!important;
+ isolation:isolate;
+}
+.sunny-rail-hazard[data-cluster="true"]::after{
+ content:attr(data-count);
+ position:absolute;right:-10px;top:-10px;
+ display:grid;place-items:center;
+ min-width:17px;height:17px;padding:0 3px;border-radius:10px;
+ background:#f17a27;color:white;font-size:10px;font-weight:850;
+ border:1px solid white;box-shadow:0 1px 3px #26354b55;
+}
+.sunny-rail-hazard:active{outline:2px solid #1769ed;outline-offset:1px;}
+@media(max-width:650px){
+ .sunny-rain-grid-head-actions button{
+  width:44px!important;min-width:44px!important;max-width:44px!important;
+  height:44px!important;min-height:44px!important;flex-basis:44px!important;
+ }
+ #navRainGridClose,#navWeatherTimeClose,#navSearchClose,#navRouteResultClose,
+ .nav-layers-close,.sunny-hazard-detail-heading button{
+  min-width:44px!important;min-height:44px!important;
+ }
+ .sunny-rain-grid-head strong{font-size:11px;gap:2px 4px!important;}
+}
+
+
+/* Three-event demo: an unmistakably fictional detour-selection status.
+   The notice stays visible for 3 seconds AFTER selection, then disappears. */
+.sunny-demo-detour-popup[hidden]{display:none!important;}
+body.sunny-guiding .sunny-demo-detour-popup{
+ position:absolute;left:50%;top:clamp(144px,33%,250px);
+ transform:translateX(-50%);z-index:70;
+ width:min(330px,calc(100% - 36px));box-sizing:border-box;
+ padding:16px 17px 14px;border:2px solid #faac54;border-radius:17px;
+ background:#fffdf7;color:#23394d;box-shadow:0 12px 32px #182e4973;
+ pointer-events:auto;text-align:left;
+}
+.sunny-demo-detour-header{display:flex;align-items:center;gap:9px;
+ color:#93450f;font-size:16px;font-weight:850;line-height:1.3;}
+.sunny-demo-detour-sign{flex:none;font-size:22px;}
+.sunny-demo-detour-popup p{font-size:13px;line-height:1.45;margin:8px 0;}
+.sunny-demo-detour-popup small{display:block;border-top:1px solid #edd8b8;
+ padding-top:7px;color:#6f5940;font-size:11px;line-height:1.35;}
+@media(max-width:370px){
+ body.sunny-guiding .sunny-demo-detour-popup{
+  top:clamp(130px,30%,190px);padding:11px 12px;}
+ .sunny-demo-detour-header{font-size:14px;}
+ .sunny-demo-detour-popup p{font-size:12px;}
+}
+
+/* Demo-only route-choice dialog with real reroute request on 'Yes'. */
+.sunny-demo-detour-choices{display:flex;gap:10px;justify-content:stretch;margin:11px 0 10px;}
+.sunny-demo-detour-choices[hidden]{display:none!important;}
+.sunny-demo-detour-choices button{flex:1;min-width:0;min-height:44px;
+ border-radius:10px;border:1px solid #b6bdc6;background:#f6f8fa;
+ color:#20394d;font-weight:800;font-size:14px;touch-action:manipulation;}
+#sunnyDemoDetourYes{color:white;background:#1769dd;border-color:#1769dd;}
+.sunny-demo-detour-choices button:focus-visible{outline:3px solid #d4822e;outline-offset:2px;}
+
+
+@media(max-width:370px){
+ body.sunny-guiding .sunny-demo-detour-popup{
+  left:50vw!important;width:calc(100vw - 26px)!important;max-width:none!important;
+  transform:translateX(-50%)!important;
+ }
+}
+
+
+/* Car and pedestrian route choice; keeps the same navigation-first layout. */
+.sunny-travel-modes{display:flex;align-items:center;gap:8px;border:0;padding:0;margin:0 0 12px;flex-wrap:wrap;min-width:0}
+.sunny-travel-modes legend{width:100%;font-size:13px;font-weight:800;color:var(--sunny-ink,#294155);margin:0 0 6px;padding:0}
+.sunny-travel-modes label{display:inline-flex;align-items:center;gap:7px;padding:10px 12px;min-height:44px;border:1px solid #b8cbd7;border-radius:11px;background:#fff;font-weight:700;font-size:14px;cursor:pointer}
+.sunny-travel-modes label:has(input:checked){background:#e8f3ff;border-color:#1870c8;color:#115796}
+.sunny-travel-modes input{accent-color:#1769dd;width:16px;height:16px;cursor:pointer}
+#walkExternalLink:not([hidden]){display:block;margin:5px 0 12px;font-size:13px;font-weight:700;color:#1365c8;text-decoration:underline}
+
+
+/* Integrated Sunny SAI mobility UX: progressive enhancement, one map and one route form.
+   Keep the legacy vehicle demo and fixed navigation footer untouched. */
+.sunny-mobile-mobility,.sunny-mobile-mobility-hint{display:none}
+.sunny-travel-modes{box-sizing:border-box;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0;margin:0 0 14px}
+.sunny-travel-modes legend{margin-bottom:8px}
+.sunny-travel-modes label{box-sizing:border-box;display:flex;align-items:center;justify-content:center;min-width:0;min-height:48px;
+ padding:10px 12px;border-radius:13px;font-size:14px;font-weight:750;transition:background-color .15s,border-color .15s}
+.sunny-travel-modes label:focus-within{outline:3px solid rgba(23,104,237,.37);outline-offset:2px}
+.sunny-route-mode-badge{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;
+ padding:5px 9px;border:1px solid #cfe2f9;background:#eef5ff;border-radius:999px;color:#195d9e;font-size:12px;font-weight:800}
+.sunny-walk-facilities:not([hidden]){display:block;padding:9px 11px;margin:8px 0;
+ background:#f0f8f7;border:1px solid #c7e7e3;border-radius:11px;color:#1f625d;
+ font-size:12px;font-weight:650;line-height:1.5}
+#navRouteDescription{overflow-wrap:anywhere}
+#navRouteModeBadge[hidden],#navRouteFacilitySummary[hidden]{display:none!important}
+@media(max-width:900px){
+ .nav-search-sheet:not([hidden]){padding-top:10px}
+ .nav-search-sheet .sunny-travel-modes{display:none!important}
+ .sunny-mobile-mobility{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;
+  box-sizing:border-box;background:#edf3fa;border:1px solid #d9e6f5;border-radius:16px;padding:5px;margin:2px 0 0}
+ .sunny-mobile-mobility button{display:flex;align-items:center;justify-content:center;gap:9px;
+  min-width:0;min-height:49px;border:1px solid transparent;border-radius:12px;padding:10px 12px;
+  background:transparent;color:#51687f;font-weight:800;font-size:15px;touch-action:manipulation;cursor:pointer}
+ .sunny-mobile-mobility button[aria-pressed="true"]{background:#fff;border-color:#a9cbf7;color:#145db2;
+  box-shadow:0 2px 9px rgba(18,68,123,.12)}
+ .sunny-mobile-mobility button:focus-visible{outline:3px solid #1768ed;outline-offset:2px}
+ .sunny-mobile-mobility-hint{display:block;min-height:18px;margin:8px 2px 15px;
+  color:#536c83;font-size:12px;line-height:1.5}
+ .nav-route-result:not([hidden]){box-sizing:border-box;max-height:calc(100dvh - 142px);
+  overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+ .nav-route-result-head{gap:8px}
+ #navRouteModeBadge{margin-left:auto}
+ .sunny-walk-facilities:not([hidden]){margin:6px 0;font-size:11.5px}
+ .nav-search-sheet #walkModeNotice:not([hidden]){display:block;padding:10px 12px;margin:10px 0;
+  border-radius:11px;background:#eff7ff;border:1px solid #d1e4fc;color:#365c83;line-height:1.5}
+ #navStartGuidance:focus-visible{outline:3px solid #ffbb54;outline-offset:3px}
+}
+@media(max-width:370px){
+ .nav-route-result-head{flex-wrap:wrap}
+ #navRouteModeBadge{margin-left:0}
+ .sunny-mobile-mobility button{font-size:14px;padding:9px 5px}
+}
+@media(prefers-reduced-motion:reduce){
+ .sunny-travel-modes label{transition:none}
+}
+
+/* Walking-only presentation trigger shares the existing safe-area-aware route sheet. */
+.sunny-walk-demo-launch{margin:7px 0 12px!important;background:#f0f9f6!important;border:1px solid #aadbc8!important;color:#176b52!important}
+.sunny-walk-demo-launch small{color:#327a68!important}
+.sunny-live-risk-demo-launch{margin:7px 0 12px!important;background:#fff8ec!important;border:1px solid #efc277!important;color:#795016!important}
+.sunny-live-risk-demo-launch small{display:block;color:#92601b!important;font-size:11px;font-weight:650}
+.sunny-desktop-walk-demo{min-height:44px}
+@media(max-width:900px){
+ .sunny-route-studio .sunny-walk-demo-launch{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;min-height:48px}
+ .sunny-route-studio .sunny-walk-demo-launch small{flex:1 0 100%;text-align:center}
+}
+
+/* Server-owned provider settings help; no API keys or GPS values in the browser. */
+#settings .sunny-source-guide{margin:12px 0 7px;padding:11px 12px;border-radius:11px;border:1px solid #cee3f5;background:#edf6ff;
+ color:#28516e;font-size:11px;line-height:1.65;overflow-wrap:anywhere}
+#settings .sunny-source-guide strong{font-weight:800}
+#settings .sunny-source-guide code{font-family:ui-monospace,Consolas,monospace;
+ font-size:11px;padding:1px 4px;border-radius:4px;background:#fff}
+
+/* TMAP walking facility location markers; informational, never live hazard marks. */
+.sunny-optional-layer-status{display:block;padding:5px 4px 11px;color:#52677f;font-size:11px;line-height:1.5}
+.sunny-optional-layer-note{margin:8px 0 12px;color:#60758a;font-size:11px;line-height:1.5}
+.sunny-walk-facility-pin,.sunny-walk-facility-emoji{display:flex;align-items:center;justify-content:center;
+ width:34px;height:34px;box-sizing:border-box;border:2px solid #fff;border-radius:50%;background:#eaf8ef;box-shadow:0 2px 8px #174d3940;font-size:17px;line-height:1}
+.sunny-walk-facility-pin{cursor:pointer;touch-action:manipulation}
+.sunny-walk-facility-pin:focus-visible{outline:3px solid #1768ed;outline-offset:3px}
+.nav-layers-sheet .nav-layer-unavailable{opacity:.66}
+.nav-layers-sheet .nav-layer-unavailable input{cursor:not-allowed}
+
+/* Walking demo heat-redirect choice; display remains visibly identified as fictional. */
+.sunny-walk-heat-popup:not([hidden]){display:block;z-index:1600;border:2px solid #eab15d;background:#fffaf2}
+.sunny-walk-heat-popup .sunny-demo-detour-sign{font-size:24px}
+.sunny-walk-heat-popup .sunny-demo-detour-choices button:first-child{background:#ce6f21;color:#fff}
+.sunny-real-walk-launch{background:#eef6ff!important;border:1px solid #b4d4fd!important;color:#175a9b!important;min-height:48px}
+.sunny-real-walk-launch small{color:#496a99!important}
+@media(max-width:900px){
+ .sunny-walk-heat-popup:not([hidden]){max-width:calc(100vw - 24px);box-sizing:border-box}
+ .sunny-route-studio .sunny-real-walk-launch{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;width:100%;gap:6px}
+ .sunny-route-studio .sunny-real-walk-launch small{flex:1 0 100%;text-align:center}
+}
+
+/* Historical KOROAD data: intentionally distinct from real-time incident/warning pins. */
+.sunny-historic-hotspot-pin{display:flex;align-items:center;justify-content:center;width:34px;height:34px;
+ border:2px solid #fff;border-radius:50%;background:#fff2cc;box-shadow:0 3px 8px #83641a45;
+ font-size:17px;cursor:pointer;touch-action:manipulation}
+.sunny-historic-hotspot-pin:focus-visible{outline:3px solid #1768ed;outline-offset:3px}
+.nav-layers-sheet .nav-layer-row:has(#navLayerPedestrianHotspots:enabled){opacity:1}
+
+/* 2026-11-10 iOS fix: one continuous scroll surface for every road + walking layer.
+   Nested 43dvh list scrollboxes made the menu appear to stop at ITS.
+   Keep fixed bottom navigation and sticky layer header without clipping TAAS items. */
+@media(max-width:900px){
+ .nav-layers-sheet:not([hidden]){
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+  scroll-padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));
+  padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))!important;
+ }
+ .nav-layers-sheet .nav-layer-list{
+  max-height:none!important;
+  height:auto!important;
+  overflow:visible!important;
+  overscroll-behavior:auto!important;
+ }
+ .nav-layers-sheet .nav-layer-group{
+  display:block;
+  scroll-margin-top:70px;
+ }
+ .nav-layers-scroll-guide{
+  display:block;
+  margin:2px 0 8px!important;
+  padding:7px 10px!important;
+  background:#eff5ff;
+  border-radius:8px;
+  color:#315780!important;
+  font-size:11px!important;
+  line-height:1.5;
+ }
+ .nav-layers-sheet .nav-layers-head{
+  position:sticky;
+  top:-12px;
+ }
+}
+
+/* 2026-11-10 Rain popup restoration: one wide, low panel over the existing Kakao map.
+   The actual HSR LCC projection / RN1 5 km cell projection remain in kma-rain-overlay.mjs.
+   These rules intentionally override older 335px/hidden-label experimental styles. */
+#navRainGridTimeBar:not([hidden]){
+ display:block!important;
+ width:min(900px,calc(100vw - 24px))!important;
+ max-height:min(330px,52dvh)!important;
+ padding:11px 14px!important;
+ overflow-x:hidden!important;
+ overflow-y:auto!important;
+ left:50%!important;
+ right:auto!important;
+ transform:translateX(-50%)!important;
+ bottom:calc(var(--sunny-bottom-nav-height,68px) + 12px)!important;
+ box-sizing:border-box!important;
+ border-radius:16px!important;
+ border:1px solid #accbe2!important;
+ background:rgba(255,255,255,.97)!important;
+ color:#153e60!important;
+ box-shadow:0 10px 32px #1734533d!important;
+ z-index:900!important;
+}
+#navRainGridTimeBar .sunny-rain-grid-head{justify-content:space-between!important}
+#navRainGridTimeBar .sunny-rain-grid-head strong{display:flex!important;font-size:14px!important;align-items:center;gap:6px}
+#navRainGridTimeBar .sunny-rain-grid-head strong small{font-size:11px!important}
+#navRainGridTimeBar .sunny-rain-grid-head-actions{display:flex;align-items:center;gap:6px}
+#navRainGridTimeBar .sunny-rain-grid-head-actions button{
+ display:inline-grid!important;place-items:center;
+ min-width:31px!important;min-height:31px!important;
+ width:31px!important;height:31px!important;
+ border-radius:8px!important;
+}
+#navRainGridTimeBar #navRainGridRefresh,
+#navRainGridTimeBar.sunny-grid-active #navRainGridRefresh{display:inline-grid!important}
+#navRainGridTimeBar .sunny-rain-mode-buttons,
+#navRainGridTimeBar.sunny-grid-active .sunny-rain-mode-buttons{
+ display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ gap:8px!important;margin:8px 0!important;
+}
+#navRainGridTimeBar .sunny-rain-mode-buttons button{
+ min-height:48px!important;padding:7px 10px!important;
+ border:1px solid #c3d7e8!important;border-radius:10px!important;
+ background:#eef5fb!important;color:#244967!important;
+ font-size:12px!important;font-weight:800!important;
+ line-height:1.3!important;cursor:pointer;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+}
+#navRainGridTimeBar .sunny-rain-mode-buttons button small{
+ color:#5e7891;font-size:10px;font-weight:600;
+}
+#navRainGridTimeBar .sunny-rain-mode-buttons button[aria-pressed="true"]{
+ background:#1668d5!important;border-color:#1668d5!important;
+ color:white!important;box-shadow:0 2px 8px #1558a42d;
+}
+#navRainGridTimeBar .sunny-rain-mode-buttons button[aria-pressed="true"] small{color:#e7f2ff}
+#navRainGridTimeBar .sunny-rain-time-details{
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ flex-wrap:wrap;margin:3px 0 6px;
+}
+#navRainGridTimeBar #navRainGridValid{
+ display:block!important;margin:0!important;font-size:11px!important;
+ color:#244d71!important;font-weight:750;
+}
+#navRainGridTimeBar #navRainMapStatus{
+ font-size:10px;line-height:1.4;color:#0e7658;font-weight:750;
+}
+#navRainGridTimeBar #navRainMapStatus[data-state="waiting"]{color:#a26616}
+#navRainGridTimeBar .sunny-rain-playback-strip{
+ display:grid;grid-template-columns:auto minmax(0,1fr);
+ gap:10px;align-items:center;min-width:0;
+ margin:5px 0 4px;
+}
+#navRainGridTimeBar .sunny-rain-grid-controls{
+ display:flex!important;align-items:center;gap:5px;
+ margin:0!important;flex-wrap:nowrap!important;
+}
+#navRainGridTimeBar .sunny-rain-grid-controls button{
+ min-height:33px!important;padding:5px 10px!important;
+ white-space:nowrap!important;font-size:11px!important;
+}
+#navRainGridTimeBar #navRainGridStep{
+ display:block!important;margin-left:2px!important;
+ min-width:44px!important;font-size:11px!important;
+}
+#navRainGridTimeBar .sunny-rain-timeline-axis{min-width:0}
+#navRainGridTimeBar #navRainGridLead{
+ display:block!important;min-height:24px!important;
+ width:100%!important;margin:0!important;accent-color:#1764cb!important;
+}
+#navRainGridTimeBar .sunny-rain-timeline-axis .sunny-rain-grid-ticks{
+ display:flex!important;justify-content:space-between!important;
+ font-size:10px!important;color:#617d95!important;
+}
+#navRainGridTimeBar #navHsrReception:not([hidden]),
+#navRainGridTimeBar #navGridReception:not([hidden]){
+ display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;
+ grid-auto-flow:unset!important;gap:4px!important;max-width:360px;
+ margin:6px 0 3px;
+}
+#navRainGridTimeBar :is(#navHsrReception,#navGridReception)[hidden]{display:none!important}
+#navRainGridTimeBar :is(#navHsrReception,#navGridReception) span{
+ display:block;min-height:7px!important;height:7px!important;
+ border-radius:4px!important;padding:0!important;
+}
+#navRainGridTimeBar #navRainGridStatus{
+ display:block!important;font-size:10px!important;
+ margin:4px 0!important;max-height:none!important;overflow:visible!important;
+}
+#navRainGridTimeBar.sunny-hsr-active #navRainGridStatus{display:block!important}
+#navRainGridTimeBar > .sunny-rain-grid-legend,
+#navRainGridTimeBar:not(.sunny-hsr-active) > .sunny-rain-grid-legend{
+ display:flex!important;align-items:center;gap:7px!important;margin:4px 0!important;
+ font-size:10px!important;flex-wrap:nowrap!important;
+}
+#navRainGridTimeBar #navRainGridLegend[data-mode="radar"] .nav-weather-gradient{display:none!important}
+#navRainGridTimeBar #navRainGridLegend[data-mode="radar"] #navRainLegendScale{font-size:10px!important}
+#navRainGridTimeBar .sunny-rain-opacity{
+ display:flex;align-items:center;gap:9px;
+ font-size:10px!important;font-weight:700;
+ margin:4px 0 2px;color:#355d7c;
+}
+#navRainGridTimeBar .sunny-rain-opacity input{
+ flex:1;min-width:50px;max-width:320px;height:22px;accent-color:#1764cb;
+}
+#navRainGridTimeBar .sunny-rain-opacity output{
+ width:34px;text-align:right;font-variant-numeric:tabular-nums;
+}
+#navRainGridTimeBar #navRainGridDisclaimer{
+ display:block!important;font-size:9px!important;line-height:1.4!important;
+ margin-top:3px!important;
+}
+@media(max-width:650px){
+ #navRainGridTimeBar:not([hidden]){
+  width:calc(100vw - 16px)!important;left:8px!important;
+  right:8px!important;transform:none!important;
+  padding:8px 10px!important;
+  max-height:min(345px,51dvh)!important;
+  bottom:calc(var(--sunny-bottom-nav-height,68px) + 8px)!important;
+ }
+ #navRainGridTimeBar .sunny-rain-mode-buttons button{min-height:43px!important;font-size:11px!important}
+ #navRainGridTimeBar .sunny-rain-mode-buttons button small{font-size:9px}
+ #navRainGridTimeBar .sunny-rain-playback-strip{grid-template-columns:minmax(0,1fr);gap:2px}
+ #navRainGridTimeBar .sunny-rain-grid-controls button{padding:4px 6px!important;min-height:30px!important}
+ #navRainGridTimeBar .sunny-rain-time-details{gap:4px}
+ #navRainGridTimeBar #navRainGridValid{font-size:10px!important}
+ #navRainGridTimeBar .sunny-rain-grid-head strong{font-size:12px!important}
+ body.sunny-rain-grid-active.sunny-guiding #navRainGridTimeBar{
+  width:calc(100vw - 16px)!important;left:8px!important;
+  bottom:calc(135px + env(safe-area-inset-bottom,0px))!important;
+  max-height:min(300px,42dvh)!important;
+ }
+}
+
+/* Keep the HSR and nationwide RN1 popup limited to two visible header actions.
+   The hidden legacy controls remain in DOM for internal compatibility only. */
+#navRainGridTimeBar #navRainGridRefresh,
+#navRainGridTimeBar #navRainGridReset,
+#navRainGridTimeBar #navRainSourceSub,
+#navRainGridTimeBar #navRainGridLegend[data-mode="radar"],
+#navRainGridTimeBar #navRainGridLegend[hidden],
+#navRainGridTimeBar #navRainGridDisclaimer[hidden]{display:none!important}
+
+/* GK2A raster canvas sits above Kakao basemap tiles and below route/risk pins.
+   Child satellite imagery remains pointer-transparent for route interaction. */
+#kakaoMap > .sunny-gk2a-map-overlay{position:absolute!important;inset:0!important;z-index:13!important;pointer-events:none!important}
+
+/* Existing sheet compact dual-state labels: API key/response separate from actual data. */
+.nav-layers-sheet .sunny-layer-health{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 6px;font-size:10px;line-height:1.25;margin:0;max-width:100%}
+.nav-layers-sheet .sunny-layer-health-tag{display:inline-block;font-style:normal;font-size:10px;font-weight:650;padding:2px 6px;border:1px solid #d8e1ec;border-radius:7px;background:#f1f5f9;color:#536277;white-space:normal}
+.nav-layers-sheet .sunny-layer-health-tag[data-health="ok"]{background:#e3f7e8;color:#116b35;border-color:#c9eed3}
+.nav-layers-sheet .sunny-layer-health-tag[data-health="error"]{background:#ffe8e8;color:#9d2b2b;border-color:#f3c8c8}
+.nav-layers-sheet #navLayerStatusCheckedAt{display:block;font-size:10px;color:#62758b;margin-top:2px}
+.nav-layers-sheet #navLayerStatusRefresh[disabled]{opacity:.5;cursor:progress}
+
+/* Existing Sunny SAI layer sheet: keep a short status visible even when toggle is OFF.
+   API and actual reception badges remain independent and only use verified provider data. */
+.nav-layers-sheet .nav-layer-row .nav-layer-reception:not(:empty){display:inline-block}
+.nav-layers-sheet .nav-layer-row .nav-layer-reception[data-state="waiting"]{
+ border:0;background:transparent;color:#738499;padding:0;font-weight:500
+}
+
+/* Dummy scenario controls are scoped to their own modal and briefing panel. */
+.sunny-dummy-dialog{width:min(540px,calc(100vw - 24px));max-height:85dvh;padding:18px;border:1px solid #ccd9ea;border-radius:18px;color:#16243b;overflow:auto}
+.sunny-dummy-dialog::backdrop{background:#13283d70}
+.sunny-dummy-dialog label{display:block;margin:10px 0;font-size:13px;font-weight:600}
+.sunny-dummy-dialog input:not([type=checkbox]),.sunny-dummy-dialog select{width:100%;padding:10px;border:1px solid #ccd9ea;border-radius:8px;font:inherit;background:white;color:#16243b}
+.dummy-place{display:flex;align-items:end;gap:8px}.dummy-place label{flex:1}.dummy-place>button{margin-bottom:10px}
+.dummy-results{display:grid;gap:4px}.dummy-results button{text-align:left;font-size:12px}
+.dummy-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.sunny-dummy-dialog .buttonrow{display:flex;flex-wrap:wrap;gap:6px}.dummy-import{font-weight:400!important;font-size:11px!important}.dummy-import input{font-size:11px!important}
+.sunny-dummy-dialog #dummyStart{width:100%}.sunny-dummy-dialog details{border:1px solid #dbe4f0;padding:12px;border-radius:12px;margin-top:14px}
+.sunny-dummy-briefing{position:fixed;z-index:65;left:12px;bottom:160px;width:min(315px,calc(100vw - 75px));padding:10px 12px;background:#fffffff2;border:1px solid #efc277;border-radius:12px;box-shadow:0 6px 18px #182c4224;font-size:12px;max-height:36dvh;overflow:auto}
+.sunny-dummy-briefing[hidden]{display:none}.sunny-dummy-briefing summary{font-weight:750;color:#815514;cursor:pointer}.sunny-dummy-briefing ol{padding-left:16px;margin:8px 0;line-height:1.6}.sunny-dummy-briefing button{font-size:11px;padding:6px 8px}
+
+.sunny-llm-dialog{width:min(500px,calc(100vw - 24px));max-height:80dvh;padding:18px;border:1px solid #ccd9ea;border-radius:16px;color:#16243b;overflow:auto}.sunny-llm-dialog::backdrop{background:#14253d65}.sunny-llm-dialog select,#llmProvider,#llmModel,#llmKey{width:100%;padding:10px;border:1px solid #ccd9ea;border-radius:8px;font:inherit;background:white;color:#16243b;margin:6px 0 10px}#llmAnswer{line-height:1.8;white-space:pre-line}.sunny-llm-why{display:none;position:fixed;z-index:66;bottom:115px;left:12px;padding:8px 12px;font-size:12px;box-shadow:0 2px 10px #1232}body.sunny-guiding .sunny-llm-why{display:block}.sunny-llm-floating{position:fixed;left:12px;bottom:160px;z-index:65;background:#fffffff2;border:1px solid #a4c3ed;border-radius:12px;padding:10px;width:min(315px,calc(100vw - 75px));max-height:30dvh;overflow:auto;font-size:12px;line-height:1.6}.sunny-llm-floating[hidden]{display:none}#llmRouteWhy{font-size:12px;margin:8px 0}
+
+/* Desktop users need the same layer and upload controls as mobile users. */
+@media(min-width:901px){
+ .nav-layers-sheet:not([hidden]){display:block;position:fixed;right:24px;top:88px;width:min(440px,calc(100vw - 48px));max-height:calc(100dvh - 112px);overflow:auto;background:#fff;color:#263a50;padding:20px;border:1px solid #dce4ef;border-radius:18px;box-shadow:0 14px 48px #172b4733;z-index:1200;box-sizing:border-box}
+ .nav-layers-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+ .nav-layer-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #edf1f5}
+ .nav-layer-row span{display:flex;flex-direction:column;gap:4px}
+ .nav-layer-row small{font-size:12px;line-height:1.5}
+ .nav-layer-row input{flex:none;width:20px;height:20px}
+}
+@media(max-width:900px){#desktopLayersOpen{display:none}}
+.nav-layers-sheet input[type=file]{max-width:100%;box-sizing:border-box}
+.nav-layers-sheet pre{white-space:pre-wrap;overflow-wrap:anywhere}
+.nav-layers-sheet .buttonrow{flex-wrap:wrap}
+@media(min-width:901px){
+ .topbar .brand,.topbar nav>button{color:#233c30}
+ .planner .field input{flex:1;min-width:0}
+ .planner #originSearchToggle{flex:0 0 54px;min-width:54px;white-space:nowrap;font-size:13px}
+ .planner .field #locate,.planner .field #mic{flex-shrink:0}
+}
+
+/* Radar and explanation share one flow row, so neither can cover the other. */
+body.sunny-guiding .sunny-drive-footer>.sunny-drive-tools{position:absolute;left:0;bottom:calc(100% + 6px);display:flex!important;flex-direction:row!important;align-items:center;gap:8px!important;flex:none!important;width:max-content;max-width:calc(100vw - 24px)}
+body.sunny-guiding .sunny-drive-footer .sunny-drive-tools #sunnyDriveRadar,
+body.sunny-guiding .sunny-drive-tools .sunny-llm-why{position:static!important;min-height:44px!important;white-space:nowrap;flex:none;display:block;padding:6px 10px;font-size:12px}

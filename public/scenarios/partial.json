@@ -1,0 +1,13 @@
+{
+  "schema": "sunny-dummy-scenario-v1",
+  "scenario": {
+    "id": "partial",
+    "name": "예보 일부 누락 · 판단 보류",
+    "type": "partial",
+    "initialRain": 0,
+    "rain": 0,
+    "temperature": 25,
+    "warning": false,
+    "trigger": 20
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "schema": "sunny-dummy-scenario-v1",
+  "scenario": {
+    "id": "missing",
+    "name": "자료 누락·판정 보류",
+    "type": "missing",
+    "initialRain": 0,
+    "rain": 0,
+    "temperature": 25,
+    "warning": false,
+    "trigger": 20
+  }
+}

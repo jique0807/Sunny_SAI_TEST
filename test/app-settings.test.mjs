@@ -10,7 +10,7 @@ const drive=readFileSync(new URL('../public/drive-guidance.mjs',import.meta.url)
 function fakeUI(){
  const elements=new Map();
  for(const id of ['settingFollowGps','settingHeadingMode','settingAlertCount','settingRefreshMinutes',
-  'settingOverlayOpacity','settingOverlayOpacityValue','autoVoice','speed','settingReset','appSettingsStatus']){
+  'settingOverlayOpacity','settingOverlayOpacityValue','settingRiskModel','autoVoice','speed','settingReset','appSettingsStatus']){
   elements.set(id,{id,checked:false,value:'',textContent:'',events:{},
    addEventListener(type,callback){this.events[type]=callback;},
    fire(type){assert.ok(this.events[type],id+': '+type+' missing');this.events[type]();}});
@@ -25,7 +25,7 @@ test('all user settings accept only safe allowed values, no location or API key 
  assert.deepEqual(sanitizeAppSettings({}),DEFAULT_APP_SETTINGS);
  assert.deepEqual(sanitizeAppSettings({followGps:false,headingMode:'north',alertCount:'1',
   refreshMinutes:'5',overlayOpacity:'90',voiceAlerts:false,voiceSpeed:1.2}),
- {followGps:false,headingMode:'north',alertCount:1,refreshMinutes:5,overlayOpacity:90,voiceAlerts:false,voiceSpeed:1.2});
+ {followGps:false,headingMode:'north',alertCount:1,refreshMinutes:5,overlayOpacity:90,voiceAlerts:false,voiceSpeed:1.2,riskModel:'rules-v2'});
  const malformed=sanitizeAppSettings({headingMode:'arbitrary',alertCount:999,refreshMinutes:-2,
    overlayOpacity:500,voiceSpeed:100,voiceAlerts:'false',followGps:null,apiKey:'secret',
    latitude:37.1,longitude:127.1});
@@ -53,12 +53,13 @@ test('settings controls immediately update, persist, report status and reset saf
  elements.get('settingOverlayOpacity').value='70';elements.get('settingOverlayOpacity').fire('input');
  elements.get('autoVoice').checked=false;elements.get('autoVoice').fire('change');
  elements.get('speed').value='1.2';elements.get('speed').fire('input');
+ elements.get('settingRiskModel').value='rules-v2-strict';elements.get('settingRiskModel').fire('change');
  assert.deepEqual(manager.get(),{followGps:false,headingMode:'north',alertCount:1,refreshMinutes:5,
-  overlayOpacity:70,voiceAlerts:false,voiceSpeed:1.2});
+  overlayOpacity:70,voiceAlerts:false,voiceSpeed:1.2,riskModel:'rules-v2-strict'});
  assert.equal(readAppSettings(store).overlayOpacity,70);
  assert.equal(elements.get('settingOverlayOpacityValue').textContent,'70%');
  assert.match(elements.get('appSettingsStatus').textContent,/저장/);
- assert.equal(events.length,7);
+ assert.equal(events.length,8);
  elements.get('settingReset').fire('click');
  assert.deepEqual(manager.get(),DEFAULT_APP_SETTINGS);
  assert.deepEqual(readAppSettings(store),DEFAULT_APP_SETTINGS);
@@ -66,7 +67,7 @@ test('settings controls immediately update, persist, report status and reset saf
 });
 test('all settings presented in modal are functional and bound to navigation',()=>{
  for(const id of ['settingFollowGps','settingHeadingMode','settingAlertCount','settingRefreshMinutes',
-  'settingOverlayOpacity','settingReset','appSettingsStatus','autoVoice','speed'])
+  'settingOverlayOpacity','settingRiskModel','settingReset','appSettingsStatus','autoVoice','speed'])
   assert.match(ui,new RegExp('id="'+id+'"'));
  assert.match(app,/appSettings=initAppSettings/);
  assert.match(app,/appPrefs\.headingMode==='north'/);
@@ -75,6 +76,7 @@ test('all settings presented in modal are functional and bound to navigation',()
  assert.match(app,/rainLastFetch<appPrefs\.refreshMinutes\*60000/);
  assert.match(app,/reply\(text,appPrefs\.voiceAlerts\)/);
  assert.match(app,/appSettings\.set\(\{overlayOpacity:/);
- assert.match(drive,/upcomingRisks\(combinedSamples\(\),seconds,alertCount\)/);
+ assert.match(drive,/prioritizeRouteHazards\(/);
+ assert.match(drive,/getRoadHazards\(route\)/);
  assert.match(drive,/slots\.slice\(0,alertCount\)/);
 });

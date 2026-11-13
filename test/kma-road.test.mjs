@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {extractZipFiles,geolocatedRisks,kmaRoadRisk,kmaAllRoadRisks,ROAD_NAMES} from '../lib/kma-road.mjs';
+import {readFileSync} from 'node:fs';
+import {extractZipFiles,geolocatedRisks,kmaRoadRisk,kmaAllRoadRisks,ROAD_NAMES,KMA_ROAD_GRADE_DEFINITION} from '../lib/kma-road.mjs';
 import {displayableRisks} from '../public/road-risk-overlay.mjs';
 import {handle} from '../lib/api.mjs';
 function makeZip(filename,source){
@@ -22,7 +23,7 @@ test('KMA road risk official route codes and archive parser handle known text co
  assert.equal(ROAD_NAMES['001'],'경부');
  const zip=makeZip('risk.csv',csv),files=extractZipFiles(zip),x=geolocatedRisks(files,'001');
  assert.equal(files.length,1);assert.equal(x.locations.length,2);
- assert.equal(x.locations[0].kind,'ice');assert.equal(x.locations[0].risk,2);
+ assert.equal(x.locations[0].kind,'ice');assert.equal(x.locations[0].risk,2);assert.equal(x.locations[0].gradeMeaningVerified,true);
  assert.deepEqual(x.locations[0].geometry.points,[{lat:37.501,lng:127.001}]);
  assert.equal(x.locations[1].kind,'visibility');assert.equal(x.locations[1].risk,3);
  assert.equal(displayableRisks(x.locations,true,false).length,1);
@@ -89,8 +90,31 @@ test('official KMA road link files supply risk grades, directed coordinates and 
  const data=geolocatedRisks(files,'045');
  assert.equal(data.dataTime,'2025-12-15T23:55:00.000Z');
  assert.deepEqual(data.locations.map(({kind,risk})=>[kind,risk]),[['ice',3],['visibility',2]]);
+ assert.ok(data.locations.every(x=>x.gradeMeaningVerified===true));
+ assert.equal(displayableRisks(data.locations,true,true).length,2);
+ assert.equal(data.locations[0].gradeDefinition.field,'B_ICE');
+ assert.equal(data.locations[0].gradeDefinition.page,3);
+ assert.equal(data.locations[1].gradeDefinition.field,'FOG');
+ assert.equal(data.locations[1].gradeDefinition.page,4);
  assert.deepEqual(data.locations[0].geometry.points,[{lat:35.673519,lng:128.438248},{lat:35.671051,lng:128.439667}]);
  assert.equal(geolocatedRisks(files,'001').locations.length,0);
+});
+
+test('official LINK grade contract excludes zero, unknown codes, wrong fields and unsupported file types',()=>{
+ const head='LINK_ID,F_NODE,T_NODE,F_LON,F_LAT,T_LON,T_LAT,';
+ const row='1570001502,1,2,128.438248,35.673519,128.439667,35.671051,';
+ for(const [product,field] of [['FRG','B_ICE'],['FOG','FOG']]){
+  const data=geolocatedRisks([{name:`R045_LINK_${product}_202611110000.csv`,
+   text:head+field+'\n'+['0','1','2','3','4','-1','unknown'].map(x=>row+x).join('\n')}],'045');
+  assert.deepEqual(data.locations.map(x=>x.risk),[1,2,3]);
+  assert.ok(data.locations.every(x=>x.gradeMeaningVerified===true));
+  assert.equal(KMA_ROAD_GRADE_DEFINITION.zeroMeaning,'no-information');
+ }
+ for(const name of ['R045_1KM_FRG_202611110000.csv','other.csv','R001_LINK_FRG_202611110000.csv',
+  'R045_LINK_FRG_202602300000.csv']){
+  assert.equal(geolocatedRisks([{name,text:head+'B_ICE\n'+row+'3'}],'045').locations.length,0);
+ }
+ assert.equal(geolocatedRisks([{name:'R045_LINK_FRG_202611110000.csv',text:head+'FOG\n'+row+'3'}],'045').locations.length,0);
 });
 
 test('all supported roads share a cached batch and report partial coverage',async()=>{
@@ -106,4 +130,42 @@ test('all supported roads share a cached batch and report partial coverage',asyn
  assert.equal(a.receivedRoads,1);
  assert.equal(a.totalRoads,12);
  assert.equal(a.locations.length,2);
+});
+
+test('official zero codes retain geometry reception without creating a safe or risk marker',async()=>{
+ const csv='LINK_ID,F_NODE,T_NODE,F_LON,F_LAT,T_LON,T_LAT,FOG\n1570001502,1,2,128.438248,35.673519,128.439667,35.671051,0';
+ const result=await kmaRoadRisk('045','fixture-key',async()=>new Response(makeZip('R045_LINK_FOG_202611110000.csv',csv)));
+ assert.equal(result.status,'georeferenced');
+ assert.equal(result.locations.length,0);
+ assert.equal(result.unmapped,0);
+ assert.equal(result.gradeSummary.noInformation,1);
+ assert.equal(result.gradeSummary.georeferencedLinkRows,1);
+ assert.equal(result.gradeSummary.riskRecords,0);
+ assert.equal(displayableRisks(result.locations,true,true).length,0);
+});
+
+test('risks after the first 2000 rows are parsed instead of silently omitted',()=>{
+ const head='LINK_ID,F_NODE,T_NODE,F_LON,F_LAT,T_LON,T_LAT,FOG';
+ const row=(id,risk)=>`${id},1,2,128.438248,35.673519,128.439667,35.671051,${risk}`;
+ const text=[head,...Array.from({length:2000},(_,i)=>row(i+1,0)),row(9001,3)].join('\n');
+ const result=geolocatedRisks(extractZipFiles(makeZip('R045_LINK_FOG_202611110000.csv',text)),'045');
+ assert.equal(result.recordCount,2001);
+ assert.equal(result.gradeSummary.noInformation,2000);
+ assert.equal(result.gradeSummary.riskRecords,1);
+ assert.equal(result.locations.length,1);
+ assert.equal(result.locations[0].linkId,'9001');
+ assert.equal(result.locations[0].risk,3);
+});
+
+test('road-risk collection and scoring are independent of map visibility',()=>{
+ const src=readFileSync(new URL('../public/road-risk-overlay.mjs',import.meta.url),'utf8');
+ const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+ assert.match(src,/async function collectForRisk\(\)/);
+ assert.match(src,/forRisk\?3:Number\(ice\?\.checked\)/);
+ assert.ok(src.includes('(!forRisk&&!enabled())'));
+ assert.ok(src.includes('Date.now()-riskReceivedAt>180000'));
+ assert.match(app,/roadRiskOverlay\.collectForRisk\(\)/);
+ assert.match(app,/warningOverlay\.collectForRisk\(\)/);
+ assert.match(app,/roadRiskOverlay\.routeHazards\(route,\{forRisk:true\}\)/);
+ assert.match(app,/warningOverlay\.routeHazards\(route,\{forRisk:true\}\)/);
 });

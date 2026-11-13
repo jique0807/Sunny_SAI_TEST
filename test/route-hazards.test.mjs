@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {buildRouteHazards,hazardDetails,renderHazardRail,showHazardDetail} from '../public/route-hazards.mjs';
+import {buildRouteHazards,hazardDetails,layoutHazardRail,renderHazardRail,showHazardDetail} from '../public/route-hazards.mjs';
 import {routeFraction} from '../public/drive-guidance.mjs';
 import {newSnowfall,matchKma} from '../lib/kma.mjs';
 const ui=readFileSync(new URL('../lib/ui.ts',import.meta.url),'utf8');
@@ -107,10 +107,57 @@ test('road risk icons require fresh link coordinates in the route direction', as
  const now=Date.parse('2026-11-08T03:30:00Z');
  const from={lat:36.8,lng:127.1,seconds:0};
  const to={lat:36.81,lng:127.1,seconds:70};
- const event={kind:'ice',risk:2,linkId:'1234',dataTime:new Date(now-300000).toISOString(),
+ const event={kind:'ice',risk:2,gradeMeaningVerified:true,linkId:'1234',dataTime:new Date(now-300000).toISOString(),
   geometry:{points:[from,to]}};
  const match=(points,records=[event])=>matchRouteRoadRisks(records,points,event.dataTime,now);
  assert.equal(match([from,to])[0].icon,'🧊');
+ assert.equal(match([from,to],[{...event,gradeMeaningVerified:false}]).length,0);
  assert.equal(match([{...to,seconds:0},{...from,seconds:70}]).length,0);
  assert.equal(match([from,to],[{...event,dataTime:new Date(now-960000).toISOString()}]).length,0);
+});
+
+
+test('close route risks become one accessible cluster with individually selectable details',()=>{
+ const old=globalThis.document;globalThis.document=mockDoc().document;
+ try{
+  const records=[
+   {kind:'rain',icon:'🌧️',title:'강수 예보',label:'고하대로',seconds:60},
+   {kind:'rain',icon:'🌧️',title:'강수 예보',label:'서해안고속도로',seconds:100},
+   {kind:'fog',icon:'🌫️',title:'안개',label:'중부고속도로',seconds:900}
+  ];
+  const p=[{seconds:0},{seconds:1200}],frac=(_path,seconds)=>seconds/1200;
+  const layout=layoutHazardRail(records,p,frac);
+  assert.equal(layout.length,2,'nearby 60 and 100 second hazards share a single hit target');
+  assert.deepEqual(layout.map(x=>x.members.length),[2,1]);
+  const target={children:[],replaceChildren(){this.children=[]},append(v){this.children.push(v)}};
+  const selected=[];
+  assert.equal(renderHazardRail(target,records,p,{fractionAt:frac,onSelect:h=>selected.push(h.label)}),3);
+  assert.equal(target.children.length,2);
+  const cluster=target.children[0];
+  assert.equal(cluster.dataset.count,'2');
+  assert.equal(cluster.dataset.cluster,'true');
+  assert.match(cluster.attrs['aria-label'],/위험정보 2건/);
+  cluster.on_click({stopPropagation(){}});
+  cluster.on_click({stopPropagation(){}});
+  cluster.on_click({stopPropagation(){}});
+  assert.deepEqual(selected,['고하대로','서해안고속도로','고하대로']);
+  const a=parseFloat(target.children[0].style.bottom),b=parseFloat(target.children[1].style.bottom);
+  assert.ok(b-a>=20,'individual marker centers are spread to avoid accidental taps');
+ }finally{globalThis.document=old;}
+});
+test('dense demo hazards are ordered and spread apart with explicit route fractions',()=>{
+ const pts=[{seconds:0},{seconds:1000}],f=(_path,t)=>t/1000;
+ const risks=[160,360,680,750].map((seconds,i)=>({kind:'demo',title:'risk '+i,icon:'!',seconds}));
+ const placed=layoutHazardRail(risks,pts,f,{clusterThreshold:.06});
+ assert.equal(placed.length,4);
+ const bottoms=placed.map(x=>x.displayFraction);
+ for(let i=1;i<bottoms.length;i++)assert.ok(bottoms[i]-bottoms[i-1]>=.22);
+ assert.ok(Math.min(...bottoms)>=.1&&Math.max(...bottoms)<=.9);
+});
+test('mobile UI regression protects the guidance stop button and large close targets',()=>{
+ assert.match(css,/body\.sunny-guiding \.nav-layers-sheet:not\(\[hidden\]\)/);
+ assert.match(css,/body\.sunny-guiding #driveControls\{display:none!important;\}/);
+ assert.match(css,/min-width:44px!important;max-width:44px!important/);
+ assert.match(driving,/title:item\.breaking\?\(route\.demoWalking\?'무더위 위험 알림':'신규 호우특보 발효'\)/);
+ assert.doesNotMatch(driving,/title:item\.breaking\?'🚨 신규 호우특보 발효'/);
 });

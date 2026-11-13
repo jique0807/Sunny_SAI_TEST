@@ -1,8 +1,15 @@
 (async()=>{
 'use strict';
+const {initRoadWeatherOverlay}=await import('/road-weather-overlay.mjs');
 if(window.sunnyInitialized)return;window.sunnyInitialized=true;
 const {assess,AlertGate}=await import('/rules.mjs');
-const {makeDemoScenario,makeDemoBreakingWarning,shouldTriggerDemoBreakingWarning,DEMO_BREAKING_TRIGGER,DEMO_SEOUL_BUSAN,demoPointAtSeconds}=await import('/demo-scenario.mjs');
+const {makeDemoScenario,makeDemoBreakingWarning,shouldTriggerDemoBreakingWarning,DEMO_BREAKING_TRIGGER,DEMO_SEOUL_BUSAN,DEMO_INITIAL_WAYPOINTS,DEMO_DETOUR_CANDIDATES,selectOptimalDemoDetour,demoPointAtSeconds,demoDistanceMeters,demoLeadSeconds,demoSpokenWarning,demoBreakingTiming,demoEventAtPlace,demoClosestRouteDistance}=await import('/demo-scenario.mjs');
+const {searchSyntheticDetour}=await import('/synthetic-detour-search.mjs');
+const {syntheticSpokenWarning,createSyntheticVoiceQueue}=await import('/synthetic-speech.mjs');
+const {initLLMExplanation}=await import('/llm-explanation-ui.mjs');
+const {initDummyScenarioUI}=await import('/dummy-scenario-ui.mjs');
+const {makeSyntheticRiskFixture,joinSyntheticWalkingLegs,evaluateSyntheticAlternative,syntheticDetourWaypoints,syntheticRiskRecommendsDetour,SYNTHETIC_RISK_TRIGGER,SYNTHETIC_RISK_SOURCE}=await import('/synthetic-risk-demo.mjs');
+const {WALK_DEMO,WALK_DEMO_TRIGGER,WALK_DEMO_SHELTER,makeWalkingDemoScenario,makeWalkingDemoBreakingWarning,walkingDemoSpokenWarning,walkingDemoAheadMeters}=await import('/walking-demo.mjs');
 const {projectRoute,roadSection,kakaoRouteLink}=await import('/map-geometry.mjs');
 const {coordinatePlace,nearestSample,tileHealth}=await import('/map-state.mjs');
 const {voiceCatalog}=await import('/voice-catalog.mjs');
@@ -11,18 +18,75 @@ const {ahead,locate,RainGate}=await import('/rain-monitor.mjs');
 const {setLayerReception,fetchWithReception,forecastReception}=await import('/layer-reception.mjs');
 const {initKmaMapOverlay}=await import('/kma-map-overlay.mjs');
 const {initNationalRainOverlay}=await import('/kma-rain-overlay.mjs');
+const {initGk2aNumericOverlay: initGk2aOverlay}=await import('/gk2a-numeric-overlay.mjs');
 const {createRoutePin}=await import('/route-pin.mjs');
 const {initWarningOverlay}=await import('/kma-warning-overlay.mjs');
 const {initRoadRiskOverlay}=await import('/road-risk-overlay.mjs');
+const {initWalkingFacilityOverlay}=await import('/walking-facilities-overlay.mjs');
+const {initKoroadHotspotOverlay}=await import('/koroad-hotspot-overlay.mjs');
+const {initTaasRestOverlay}=await import('/taas-rest-overlay.mjs');
+const {routeHistoryQueryPoints,buildPedestrianHistoryHazards}=await import('/pedestrian-history-risk.mjs');
+const {resolveRouteDeparture}=await import('/route-departure.mjs');
+const {buildItsRouteHazards}=await import('/its-route-risk.mjs');
+const {createItsFeedLifecycle}=await import('/its-feed-lifecycle.mjs');
+const {createRouteEvidenceRefresh}=await import('/route-evidence-refresh.mjs');
+const {buildLiveRiskContext,remainingRiskHazards}=await import('/live-risk-context.mjs');
 const {initDriveGuidance,segmentMeters,routeFraction}=await import('/drive-guidance.mjs');
 const {buildRouteHazards,renderHazardRail,showHazardDetail}=await import('/route-hazards.mjs');
+const {evaluateDrivingRisk,evaluateWalkingRisk,evaluateSyntheticDrivingRisk,formatRouteRiskSummary}=await import('/safe-route-engine.mjs');
 const {resolveDrivingHeading,angleStep,compassBearing}=await import('/heading-up.mjs');
 const {initVectorDriving}=await import('/vector-driving.mjs');
 const {DEFAULT_APP_SETTINGS,initAppSettings}=await import('/app-settings.mjs');
 const {initConnectionStatusPanel}=await import('/connection-status.mjs');
-let demoOverlays=[],carOverlay=null;
+const {initLayerHealth}=await import('/layer-health-status.mjs');
+const {createRiskModelRegistry}=await import('/risk-model-adapters.mjs');
+const {initArchitecturePanel}=await import('/architecture-panel.mjs');
+let dummyUI=null,llmUI=null,activeUtterance=null,syntheticSpeechPending=false;
+let demoOverlays=[],carOverlay=null,initialDemoRoute=null,initialWalkingDemoRoute=null;
 // Bind the DOM selector before any top-level UI event wiring (prevent TDZ startup crash).
 const $=id=>document.getElementById(id);
+const selectedTravelMode=()=>document.querySelector('input[name="travelMode"]:checked')?.value==='walking'?'walking':'driving';
+function updateTravelModeUI(){
+ const walking=selectedTravelMode()==='walking';
+ // Both mobile quick buttons and desktop form radios share one source of truth.
+ for(const [id,active] of [['navModeDriving',!walking],['navModeWalking',walking]]){
+  const button=$(id);
+  if(button)button.setAttribute('aria-pressed',String(active));
+ }
+ if($('navModeHint'))$('navModeHint').textContent=walking
+  ?'도보 경로를 탐색하고 예상 통과시각의 기상 위험을 확인합니다.'
+  :'자동차 경로와 예상 통과시각을 확인합니다.';
+ if($('walkModeNotice'))$('walkModeNotice').hidden=!walking;
+ if($('walkRoutePriorityRow'))$('walkRoutePriorityRow').hidden=!walking;
+ const notice=$('walkExternalLink');
+ if(notice){
+  notice.hidden=!(walking&&originPlace&&destPlace);
+  if(walking&&originPlace&&destPlace)notice.href=kakaoRouteLink(originPlace,destPlace,'walking');
+  else notice.removeAttribute('href');
+ }
+}
+for(const [id,mode] of [['navModeDriving','driving'],['navModeWalking','walking']]){
+ $(id)?.addEventListener('click',()=>{
+  if(playing||drivingUI.isActive()){toast('안내를 종료한 후 이동수단을 변경해주세요.');return;}
+  const radio=document.querySelector('input[name="travelMode"][value="'+mode+'"]');
+  if(!radio)return;
+  radio.checked=true;
+  radio.dispatchEvent(new Event('change',{bubbles:true}));
+  updateTravelModeUI();
+ });
+}
+document.querySelectorAll('input[name="travelMode"]').forEach(input=>input.addEventListener('change',()=>{
+ if(playing||drivingUI.isActive()){input.checked=route?.travelMode===input.value;return;}
+ updateTravelModeUI();
+ if(route&&!route.demo&&route.travelMode!==selectedTravelMode()){
+  if($('navStartGuidance'))$('navStartGuidance').disabled=true;
+  // Never leave a previous car line visible after the user selects walking.
+  routePolyline?.setMap(null);routePolyline=null;
+  if($('navRouteResult'))$('navRouteResult').hidden=true;
+  if($('navRouteRiskMarks'))$('navRouteRiskMarks').replaceChildren();
+  reply('이동수단을 변경했습니다. 이전 차량 경로를 지웠습니다. 도보 경로를 새로 탐색해주세요.');
+ }
+}));
 
 /* Navigation-first mobile shell. Existing services remain available behind search. */
 const navSheet=document.getElementById('navSearchSheet');
@@ -41,6 +105,13 @@ function showNavSearch(show){
 navOpen?.addEventListener('click',()=>showNavSearch(true));
 navClose?.addEventListener('click',()=>showNavSearch(false));
 const navLayersSheet=document.getElementById('navLayersSheet');
+const layerHealth=initLayerHealth({document});
+const riskModels=createRiskModelRegistry();
+const roadWeatherOverlay=initRoadWeatherOverlay({document,request:()=>api('/api/road-weather',{}),
+ getMap:()=>['kakao','skyview'].includes(activeMap)?kmap:null,ensureMap:()=>showMap('kakao'),
+ onChange:()=>{drawWeatherOverlays();renderRouteHazards();drivingUI.render();}});
+const gk2aOverlay=initGk2aOverlay({document,getMap:()=>['kakao','skyview'].includes(activeMap)?kmap:null,
+ ensureMap:()=>showMap('kakao'),waitForSession:()=>sessionPromise,request:(path,data)=>api(path,data)});
 // Provider-rendered forecast image: standalone view until georeferencing is validated.
 const rainGridOverlay=initNationalRainOverlay({
  waitForSession:()=>sessionPromise,
@@ -65,6 +136,7 @@ function showNavLayers(open){
  if(!navLayersSheet)return;
  navLayersSheet.hidden=!open;
  document.getElementById('navLayers')?.setAttribute('aria-expanded',String(open));
+ document.getElementById('desktopLayersOpen')?.setAttribute('aria-expanded',String(open));
  if(open){showNavSearch(false);setNavTab('navLayers');ensureNavigationKakao();}
  else setNavTab(drivingUI.isActive()?'navRoute':document.getElementById('navSearchSheet')?.hidden?'navHome':'navRoute');
 }
@@ -89,6 +161,7 @@ mobileViewport?.addEventListener('scroll',syncMobileViewport);
 window.addEventListener('pageshow',syncMobileViewport);
 syncMobileViewport();
 function goToInitialHome(){
+ if(typeof dummyUI!=='undefined')dummyUI?.end();
  stopPreviewPositionWatch();
  if(drivingUI.isActive())stopRain();
  stopVoice();
@@ -108,12 +181,15 @@ document.getElementById('navRoute')?.addEventListener('click',()=>{
  setNavTab('navRoute');
 });
 document.getElementById('navLayers')?.addEventListener('click',()=>showNavLayers(navLayersSheet?.hidden!==false));
+document.getElementById('desktopLayersOpen')?.addEventListener('click',()=>showNavLayers(navLayersSheet?.hidden!==false));
 const minimizeNavLayers=event=>{event?.preventDefault?.();event?.stopPropagation?.();showNavLayers(false);document.getElementById('navLayers')?.focus?.({preventScroll:true});};
 const disableMapLayers=()=>{
- for(const id of ['navLayersnow','navLayerroad','navLayerfog','navLayerflood','navLayerWarning']){
+ for(const id of ['navLayersnow','navLayerroad','navLayerfog','navLayerflood','navLayerWarning','navLayerWalkFacilities','navLayerTrafficIncidents','navLayerPedestrianWms','navLayerChildWms','navLayerElderlyWms','navGk2aRr','navGk2aCi','navGk2aFog']){
   const control=document.getElementById(id);
   if(control?.checked){control.checked=false;control.dispatchEvent(new Event('change'));}
  }
+ const radar=document.getElementById('navNationalRadar');
+ if(radar?.checked){radar.checked=false;radar.dispatchEvent(new Event('change'));}
  const rain=document.getElementById('navNationalRain');
  if(rain?.checked){rain.checked=false;rain.dispatchEvent(new Event('change'));}
 };
@@ -190,7 +266,18 @@ const warningOverlay=initWarningOverlay({
  ensureMap:()=>['kakao','skyview'].includes(activeMap)&&kmap?undefined:showMap('kakao'),
  onChange:()=>{drawWeatherOverlays();renderRouteHazards();drivingUI.render();}
 });
-const routeExtraHazards=route=>route?.demo?(route.demoHazards||[]):[...roadRiskOverlay.routeHazards(route),...warningOverlay.routeHazards(route)];
+const routeExtraHazards=route=>route?.demo?(route.demoHazards||[]):[
+ ...(route?.travelMode==='walking'?[]:roadRiskOverlay.routeHazards(route)),
+ ...warningOverlay.routeHazards(route),
+ ...gk2aOverlay.routeHazards(route),
+ ...roadWeatherOverlay.routeHazards(route),
+  ...(route?.travelMode==='driving'&&$('navLayerTrafficIncidents')?.checked?(route?.itsRiskEvents||[]):[]),
+ ...(route?.travelMode==='walking'&&$('navLayerPedestrianHotspots')?.checked?(route?.pedestrianRiskEvents||[]):[])
+];
+function currentRiskWeatherContext(){
+ return buildLiveRiskContext(route,{weather,aheadWeather:routeAheadWeather,progress:rainProgress,
+  active:rainWatch!==null,now:Date.now(),maxAgeMs:Math.max(180000,appPrefs.refreshMinutes*60000)});
+}
 const roadRiskOverlay=initRoadRiskOverlay({
  query:roadNum=>api('/api/road-risk',{roadNum}),
  onChange:()=>{drawWeatherOverlays();renderRouteHazards();drivingUI.render();},
@@ -226,6 +313,109 @@ const kmaMapOverlay=initKmaMapOverlay({
  getActiveMap:()=>activeMap,
  format:iso=>fmt(iso)
 });
+const walkingFacilities=initWalkingFacilityOverlay({
+ document,getRoute:()=>route,
+ getContext:()=>{
+  if(['kakao','skyview'].includes(activeMap)&&kmap)return{type:'kakao',map:kmap};
+  if(activeMap==='osm'&&osmMap)return{type:'leaflet',map:osmMap};
+  if(activeMap==='vworld'&&lmap)return{type:'leaflet',map:lmap};
+  return null;
+ },
+ ensureMap:()=>showMap('kakao')
+});
+const koroadHotspots=initKoroadHotspotOverlay({
+ document,request:()=>api('/api/pedestrian-route-context',{points:routeHistoryQueryPoints(route)}),
+ getRoute:()=>route,
+ onData:data=>{if(route&&!route.demo&&route.travelMode==='walking'){
+  route.pedestrianRiskEvents=buildPedestrianHistoryHazards(route,data);
+  renderRouteHazards();drawWeatherOverlays();
+ }},
+ onToggle:()=>{if(route&&!route.demo){renderRouteHazards();drawWeatherOverlays();drivingUI.render();}},
+ getContext:()=>['kakao','skyview'].includes(activeMap)&&kmap?{type:'kakao',map:kmap}:null,
+ ensureMap:()=>showMap('kakao')
+});
+// TAAS REST coordinates are drawn directly on Kakao; WMS images are not required.
+const taasPedestrianWms=initTaasRestOverlay({
+ document,
+ getMap:()=>['kakao','skyview'].includes(activeMap)?kmap:null,
+ ensureMap:()=>showMap('kakao'),
+ request:(kind,bounds)=>api('/api/taas-rest-map',{kind,bounds})
+});
+// ITS reports point locations; a nearby point never proves that the routed lane is closed.
+const refreshAdditionalRouteEvidence=createRouteEvidenceRefresh({
+ getRoute:()=>route,
+ collectRoad:()=>roadRiskOverlay.collectForRisk(),
+ collectWarnings:()=>warningOverlay.collectForRisk(),
+ collectObservations:()=>roadWeatherOverlay.collectForRisk(),
+ collectSatellite:activeRoute=>gk2aOverlay.collectForRisk(activeRoute),
+ collectPedestrian:async activeRoute=>{
+  await loadPedestrianRouteEvidence(activeRoute);
+  return {status:activeRoute.pedestrianEvidenceStatus};
+ },
+ onUpdate:()=>{drawWeatherOverlays();renderRouteHazards();drivingUI.render();}
+});
+let itsLoadSeq=0;
+const itsFeeds=new WeakMap();
+function itsFeed(activeRoute){
+ if(!itsFeeds.has(activeRoute))itsFeeds.set(activeRoute,createItsFeedLifecycle());
+ return itsFeeds.get(activeRoute);
+}
+function expireItsEvidence(activeRoute){
+ if(!activeRoute||activeRoute.demo||activeRoute.travelMode!=='driving')return;
+ if(itsFeed(activeRoute).isStale(Date.now())&&(activeRoute.itsRiskEvents?.length||['received','empty'].includes(activeRoute.itsEvidenceStatus))){
+  activeRoute.itsRiskEvents=[];activeRoute.itsEvidenceStatus='unavailable';
+  return true;
+ }
+}
+const itsControl=$('navLayerTrafficIncidents'),itsStatus=$('navTrafficIncidentsStatus');
+const itsSay=value=>{if(itsStatus)itsStatus.textContent=value;};
+async function loadItsRouteEvidence(activeRoute){
+ if(!activeRoute||activeRoute.demo||activeRoute.travelMode!=='driving')return;
+ if(expireItsEvidence(activeRoute)){drawWeatherOverlays();renderRouteHazards();drivingUI.render();}
+ const feed=itsFeed(activeRoute),token=feed.begin(Date.now());
+ if(token===null)return;
+ const seq=++itsLoadSeq;
+ const points=(activeRoute.samples||[]).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng))
+  .slice(0,24).map(p=>({lat:p.lat,lng:p.lng}));
+ if(points.length<2){feed.settle(token,'unavailable',Date.now());activeRoute.itsEvidenceStatus='unavailable';itsSay('실제 자동차 경로좌표 부족 · ITS 조회하지 않음');return;}
+ itsSay('국가교통정보센터 ITS 사고·공사·통제 조회 중…');
+ try{
+  const result=await api('/api/its-route-context',{points});
+  if(seq!==itsLoadSeq||route!==activeRoute)return;
+  feed.settle(token,result.status,Date.now());
+  activeRoute.itsEvidenceStatus=result.status;
+  activeRoute.itsRiskEvents=buildItsRouteHazards(activeRoute,result);
+  if(result.status==='failed'||result.status==='missing'){
+   itsSay('ITS 미수신 · '+(result.reason||'기관 응답 확인 필요')+' · 안전 판정 아님');
+  }else{
+   itsSay('ITS 경로 인접 돌발정보 '+activeRoute.itsRiskEvents.length+
+    '곳 · 소통정보 '+(result.traffic?.status==='received'?'링크 '+result.traffic.count+'건 수신(경로 매칭 전)':'확인 필요')+
+    ' · 같은 도로/통제 미확인');
+  }
+  drawWeatherOverlays();renderRouteHazards();drivingUI.render();
+ }catch(e){
+  if(seq!==itsLoadSeq||route!==activeRoute)return;
+  feed.settle(token,'failed',Date.now());
+  activeRoute.itsEvidenceStatus='failed';
+  activeRoute.itsRiskEvents=[];
+  itsSay('ITS 기관조회 실패 · '+String(e.message||'연결 확인 필요')+' · 안전 판정 아님');
+  renderRouteHazards();
+ }finally{feed.cancel(token);}
+}
+document.addEventListener('visibilitychange',()=>{
+ if(!document.hidden&&route&&!route.demo)void refreshAdditionalRouteEvidence(route);
+ if(!document.hidden&&route&&!route.demo&&route.travelMode==='driving'){
+  expireItsEvidence(route);drawWeatherOverlays();renderRouteHazards();
+  void loadItsRouteEvidence(route);
+ }
+});
+itsControl?.addEventListener('change',()=>{
+ if(!itsControl.checked){itsSay('지도 표시 해제 · 위험판단 자료 수집은 유지');drawWeatherOverlays();renderRouteHazards();drivingUI.render();return;}
+ if(route&&!route.demo&&route.travelMode==='driving'){
+  if(!route.itsEvidenceStatus)void loadItsRouteEvidence(route);
+  else{drawWeatherOverlays();renderRouteHazards();drivingUI.render();}
+ }else itsSay('실제 자동차 경로를 탐색하면 ITS 돌발정보를 조회합니다.');
+});
 function updateMapLayerOpacity(){
  const opacity=Number(document.getElementById('navDemoOpacity')?.value??45);
  const value=Math.max(0,Math.min(100,Number.isFinite(opacity)?opacity:45));
@@ -234,6 +424,7 @@ function updateMapLayerOpacity(){
  document.documentElement.style.setProperty('--sunny-weather-layer-opacity',String(1-value/100));
  if(floodOverlay)floodOverlay.setOpacity(1-value/100);
  kmaMapOverlay.updateOpacity();
+  taasPedestrianWms.updateOpacity();
  rainGridOverlay.redraw();
  const demo=document.getElementById('navDemoRainOverlay');
  if(demo)demo.remove(); // Old non-georeferenced demonstration is no longer presented as a weather layer.
@@ -325,10 +516,13 @@ function clearWeatherOverlays(){
  weatherOverlays=[];
 }
 function drawWeatherOverlays(){
+ expireItsEvidence(route);
  clearWeatherOverlays();
  if(document.getElementById('navLayerWeather')?.checked===false||!kmap||!route||route.demo||!['kakao','skyview'].includes(activeMap))return;
- const hazards=[...buildRouteHazards((routeAheadWeather||weather)?.samples),...routeExtraHazards(route)];
+ const context=currentRiskWeatherContext();
+ const hazards=[...buildRouteHazards(context.weatherSamples),...remainingRiskHazards(context,routeExtraHazards(route))];
  for(const hazard of hazards){
+  if(hazard.kind==='pedestrian-hotspot')continue;
   if(!Number.isFinite(hazard.lat)||!Number.isFinite(hazard.lng))continue;
   const marker=document.createElement('button');
   marker.type='button';
@@ -356,7 +550,8 @@ const drivingUI=initDriveGuidance({
  onReroute:()=>{void refreshRouteFromGps();},
  formatTime:fmt,
  isWeatherEnabled:routeWeatherEnabled,
- getRoadHazards:routeExtraHazards
+ getWeatherSamples:()=>currentRiskWeatherContext().weatherSamples,
+ getRoadHazards:activeRoute=>remainingRiskHazards(currentRiskWeatherContext(),routeExtraHazards(activeRoute))
 });
 // On-screen vector navigation starts only after guidance begins. Kakao still
 // provides geocoding, routing and the non-driving basemap.
@@ -366,12 +561,13 @@ const vectorDriving=initVectorDriving({
   const panel=drivingUI.isActive() ? $('sunnyDriveHazardDetail') : $('navRouteHazardDetail');
   showHazardDetail(panel,hazard,fmt);
  },
- onFailure:()=>{ if(drivingUI.isActive())toast('진행방향 지도를 연결하지 못해 기본 지도로 안내합니다.'); }
+ onFailure:error=>{ if(drivingUI.isActive())toast(/WebGL|webgl/i.test(error?.message||'')?'이 기기에서 진행방향 지도의 그래픽 기능을 사용할 수 없어 기본 지도로 안내합니다.':'진행방향 지도를 연결하지 못해 기본 지도로 안내합니다.'); }
 });
 function vectorGuidanceHazards(){
  if(!route||!routeWeatherEnabled())return [];
+ const context=currentRiskWeatherContext();
  return route.demo?(route.demoHazards||[]):
-  [...buildRouteHazards((routeAheadWeather||weather)?.samples),...routeExtraHazards(route)]
+  [...buildRouteHazards(context.weatherSamples),...remainingRiskHazards(context,routeExtraHazards(route))]
   .sort((a,b)=>(a.seconds??0)-(b.seconds??0));
 }
 function demoCourseAt(seconds){
@@ -404,7 +600,7 @@ const appSettings=initAppSettings({
  onChange:next=>{
   const old=appPrefs;appPrefs=next;
   drivingUI.setPreferences(next);
-  if(old.alertCount!==next.alertCount)renderRouteHazards();
+  if(old.alertCount!==next.alertCount||old.riskModel!==next.riskModel)renderRouteHazards();
   const slider=$('navDemoOpacity');
   if(slider){slider.value=String(next.overlayOpacity);updateMapLayerOpacity();}
   if(!next.voiceAlerts)stopVoice();
@@ -484,7 +680,7 @@ function followDrivingGps(){
  if(moved<6)return;
  try{
   const position=new kakao.maps.LatLng(rainPosition.lat,rainPosition.lng);
-  if(!lastFollowTime)kmap.setLevel(4);
+  if(!lastFollowTime)kmap.setLevel(route?.travelMode==='walking'?3:4);
   if(typeof kmap.panTo==='function')kmap.panTo(position);else kmap.setCenter(position);
   lastFollowTime=now;lastFollowPosition={lat:rainPosition.lat,lng:rainPosition.lng};
  }catch{/* GPS status still updates if map animation is unavailable. */}
@@ -506,7 +702,7 @@ function drawGps(){
     routeCurrentMarker?.setMap(null);routeCurrentMarker=null;
     gpsMarker?.setMap(null);gpsMarker=null;
     if(!gpsNavArrow){
-     const marker=document.createElement('span');marker.className='sunny-drive-gps-pointer';marker.innerHTML='<svg viewBox="0 0 32 36" width="32" height="36" aria-hidden="true"><path d="M16 3 29 31 16 25 3 31Z" fill="#1769ed" stroke="white" stroke-width="3" stroke-linejoin="round"/></svg>';marker.setAttribute('aria-label','GPS 실시간 차량 위치');
+     const marker=document.createElement('span');marker.className='sunny-drive-gps-pointer';marker.innerHTML='<svg viewBox="0 0 32 36" width="32" height="36" aria-hidden="true"><path d="M16 3 29 31 16 25 3 31Z" fill="#1769ed" stroke="white" stroke-width="3" stroke-linejoin="round"/></svg>';marker.setAttribute('aria-label',route?.travelMode==='walking'?'GPS 실시간 보행자 위치':'GPS 실시간 차량 위치');
      gpsNavArrow=new kakao.maps.CustomOverlay({map:kmap,position:pos,content:marker,xAnchor:.5,yAnchor:.5,zIndex:12});
     }else gpsNavArrow.setPosition(pos);
     const marker=gpsNavArrow.getContent?.();
@@ -524,7 +720,7 @@ function drawGps(){
   }
  if(lmap&&window.L){if(!gpsLeaflet)gpsLeaflet=L.circleMarker([p.lat,p.lng],{radius:9,color:'#fff',weight:3,fillColor:'#1769ff',fillOpacity:1}).bindTooltip('실제 GPS 현재 위치').addTo(lmap);else gpsLeaflet.setLatLng([p.lat,p.lng]);}
 }
-function stopRain(){vectorDriving.stop();lastMatchedPoint=null;offRouteFix=null;lastRerouteAt=0;routeAheadWeather=null;rerouteBusy=false;drivingUI.stop();resetDrivingMapHeading();lastFollowTime=0;lastFollowPosition=null;rainRun++;if(rainWatch!==null)navigator.geolocation?.clearWatch(rainWatch);rainWatch=null;clearInterval(rainTimer);rainTimer=null;rainPosition=null;rainProgress=0;rainBusy=null;rainLastFetch=0;rainLastPoint=null;rainGate=new RainGate();clearGpsMarker();$('rainStop').hidden=true;$('rainStart').disabled=false;$('rainStatus').textContent='비 예보 음성 안내 종료';}
+function stopRain(){if(typeof syntheticVoiceQueue!=='undefined')syntheticVoiceQueue.clear();if(typeof llmUI!=='undefined')llmUI?.clear();if(typeof dummyUI!=='undefined')dummyUI?.end();itsLoadSeq++;if(typeof clearDemoDetourPopup==='function')clearDemoDetourPopup();if(typeof clearWalkHeatPopup==='function')clearWalkHeatPopup();vectorDriving.stop();lastMatchedPoint=null;offRouteFix=null;lastRerouteAt=0;routeAheadWeather=null;rerouteBusy=false;drivingUI.stop();resetDrivingMapHeading();lastFollowTime=0;lastFollowPosition=null;rainRun++;if(rainWatch!==null)navigator.geolocation?.clearWatch(rainWatch);rainWatch=null;clearInterval(rainTimer);rainTimer=null;rainPosition=null;rainProgress=0;rainBusy=null;rainLastFetch=0;rainLastPoint=null;rainGate=new RainGate();clearGpsMarker();$('rainStop').hidden=true;$('rainStart').disabled=false;$('rainStatus').textContent='비 예보 음성 안내 종료';}
 function remainingRoutePoints(){
  if(!drivingUI.isActive()||!lastMatchedPoint)return route?.vertices??[];
  return [lastMatchedPoint,...route.rainPath.filter(p=>p.seconds>lastMatchedPoint.seconds)];
@@ -535,10 +731,12 @@ function drawRemainingRoute(){
  routePolyline.setPath(points.map(p=>new kakao.maps.LatLng(p.lat,p.lng)));
 }
 async function checkRain(){
+ if(!document.hidden&&route&&!route.demo)void refreshAdditionalRouteEvidence(route);
+ if(!document.hidden&&route&&!route.demo&&route.travelMode==='driving')void loadItsRouteEvidence(route);
  if(!rainPosition||!route||route.demo||document.hidden)return;
  const now=Date.now();if(now-rainPosition.timestamp>60000){$('gpsStatus').textContent='GPS 수신 지연 · 마지막 위치가 1분 이상 오래됨';return;}
  const found=locate(route.rainPath||[],rainPosition,Math.max(0,rainProgress-30));
- const threshold=Math.max(150,rainPosition.accuracy*3);
+ const threshold=route?.travelMode==='walking'?Math.max(40,rainPosition.accuracy*2.5):Math.max(150,rainPosition.accuracy*3);
  if(!found||found.meters>threshold){
   $('gpsStatus').textContent='GPS 수신됨 · 경로 이탈 확인 중';
   drivingUI.update(rainProgress,rainPosition,true);followDrivingGps();
@@ -555,6 +753,7 @@ async function checkRain(){
   if(rainPosition.accuracy<=60){lastMatchedPoint=found;drawRemainingRoute();}
  }
  drawGps();drivingUI.update(rainProgress,rainPosition);followDrivingGps();
+ drawWeatherOverlays();renderRouteHazards();
  $('gpsStatus').textContent='GPS '+fmt(rainPosition.timestamp)+' · 오차 ±'+Math.round(rainPosition.accuracy)+'m · '+rainPosition.lat.toFixed(5)+', '+rainPosition.lng.toFixed(5)+' · 경로와 '+Math.round(found.meters)+'m';
  if(!routeWeatherEnabled())return;
  if(!connections.kma){$('rainStatus').textContent='GPS 작동 중 · 기상청 키 미설정으로 비 예보 조회 대기';return;}
@@ -567,13 +766,20 @@ async function checkRain(){
   // Discard forecasts fetched for a position the vehicle has already left.
   if(!rainPosition||Math.hypot((rainPosition.lat-rainLastPoint.lat)*111320,(rainPosition.lng-rainLastPoint.lng)*88000)>1000){setLayerReception('navLayerWeather','waiting');return;}
   setLayerReception('navLayerWeather',forecastReception(d.samples,p=>p.status==='forecast'));
-  routeAheadWeather={...d,samples:d.samples.map((p,i)=>({...samples[i],...p,seconds:samples[i]?.seconds??rainProgress}))};
-  drivingUI.setAhead(routeAheadWeather.samples);drawWeatherOverlays();const text=rainGate.take(d.samples,Date.now());$('rainStatus').textContent='초단기예보 '+fmt(d.fetchedAt)+' · '+d.samples.filter(p=>p.status==='forecast').length+'/'+samples.length+' 구간 · 비가 없거나 변화 없으면 음성 생략';
+  routeAheadWeather={...d,routeRef:currentRoute,requestSamples:samples,
+   samples:d.samples.map((p,i)=>({...samples[i],...p,seconds:samples[i]?.seconds??rainProgress}))};
+  drivingUI.setAhead(routeAheadWeather.samples);drawWeatherOverlays();renderRouteHazards();
+  const text=rainGate.take(currentRiskWeatherContext().weatherSamples,Date.now());$('rainStatus').textContent='초단기예보 '+fmt(d.fetchedAt)+' · '+d.samples.filter(p=>p.status==='forecast').length+'/'+samples.length+' 구간 · 비가 없거나 변화 없으면 음성 생략';
   if(text)reply(text,appPrefs.voiceAlerts);
  }catch(e){if(run===rainRun&&route===currentRoute){setLayerReception('navLayerWeather',e.reception||'failed');$('rainStatus').textContent='GPS와 별도: '+e.message;}}finally{if(rainBusy===run)rainBusy=null;}
 }
 function startRainGuidance(){
- if(!route||route.demo||!route.rainPath?.length){toast('먼저 실제 차량 경로를 조회해주세요.');return;}
+ if(route&&!route.demo&&route.travelMode!==selectedTravelMode()){toast('이동수단 변경 후 새 경로를 탐색해주세요.');return;}
+ if(!route||route.demo||!route.rainPath?.length){toast('먼저 실제 자동차·도보 경로를 조회해주세요.');return;}
+ if(route.travelMode==='walking'&&(route.mode!=='walking'||
+    (route.provider!=='TMAP'&&route.source!=='Kakao Maps Walking'))){
+  toast('실제 보행자 전용 경로가 확인되지 않아 안내를 시작할 수 없습니다.');return;
+ }
  if(!window.isSecureContext){toast('GPS는 HTTPS 주소에서 사용해주세요.');return;}
  if(!navigator.geolocation){toast('이 기기는 GPS 위치를 지원하지 않는 환경입니다.');return;}
  stopRain();
@@ -608,23 +814,27 @@ async function refreshRouteFromGps(automatic=false){
  try{
   const origin={lat:location.lat,lng:location.lng,name:'현재 위치'};
   const result=await api('/api/route',{
-   origin,destination,departure:new Date().toISOString()
+   origin,destination,departure:new Date().toISOString(),travelMode:previous.travelMode||'driving',walkingPriority:previous.walkingPriority||'BROAD_FIRST'
   });
   // A newer user route or stopped guidance invalidates this in-flight reply.
   if(!drivingUI.isActive()||rainWatch===null||sessionRun!==rainRun||route!==previous||destPlace!==destination)return;
   if(automatic&&!offRouteFix)return;
-  if(!result.rainPath?.length||!result.vertices?.length)throw Error('새 도로 좌표를 받지 못했습니다.');
-  originPlace=origin;route={...result,demo:false};weather=null;routeAheadWeather=null;
+  if(result.travelMode!==previous.travelMode||result.mode!==previous.travelMode||
+    (previous.travelMode==='walking'&&result.provider!=='TMAP'&&result.source!=='Kakao Maps Walking'))
+   throw Error('보행 경로를 재탐색했으나 다른 이동수단의 노선이 반환되어 안내를 유지합니다.');
+  if(!result.rainPath?.length||!result.vertices?.length)throw Error('새 경로 좌표를 받지 못했습니다.');
+  originPlace=origin;route={...result,demo:false,walkingPriority:previous.walkingPriority||null};weather=null;routeAheadWeather=null;
   vectorDriving.setRoute(route);vectorDriving.refreshHazards(vectorGuidanceHazards());
   lastMatchedPoint=null;offRouteFix=null;rainProgress=0;rainLastFetch=0;rainLastPoint=null;rainGate=new RainGate();
   const updatedRoute=route;
   drivingUI.start(route,null);renderRoute();
+  void refreshAdditionalRouteEvidence(route);
   await showMap('kakao',{preserveCamera:true});
   if(!drivingUI.isActive()||sessionRun!==rainRun||route!==updatedRoute||!rainPosition)return;
   void loadWeather();
   rainPosition.directionStatus=updateDrivingMapHeading(rainPosition);
   drawGps();void checkRain();
-  toast('현재 GPS 위치 기준으로 차량 경로와 기상예보를 새로 조회했습니다.');
+  toast('현재 GPS 위치 기준으로 '+(route.travelMode==='walking'?'도보':'자동차')+' 경로와 기상예보를 새로 조회했습니다.');
  }catch(e){
   if(sessionRun!==rainRun||route!==previous)return;
   $('gpsStatus').textContent='재탐색 실패 · 기존 경로 유지';
@@ -635,24 +845,68 @@ $('rainStart').onclick=startRainGuidance;
 $('rainStop').onclick=()=>goToInitialHome();
 document.addEventListener('visibilitychange',()=>{if(rainWatch===null)return;if(document.hidden){stopVoice();$('gpsStatus').textContent='화면 숨김 · 안내 일시정지 (백그라운드 작동 보장 안 됨)';}else{rainLastFetch=0;checkRain();}});
 
-$('departure').value=localInput(new Date(Date.now()+120000));$('departure').min=localInput(new Date());$('departure').max=localInput(new Date(Date.now()+86400000));
+const departureInput=$('departure');
+let departureEdited=false;
+departureInput.value=localInput(new Date(Date.now()+120000));
+let autoDepartureValue=departureInput.value;
+departureInput.min=localInput(new Date());
+departureInput.max=localInput(new Date(Date.now()+86400000));
+departureInput.addEventListener('input',()=>{departureEdited=true;});
+departureInput.addEventListener('change',()=>{departureEdited=true;});
 function toast(t){$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').hidden=true,5500);}
-function reply(t,voice=false){$('reply').textContent=t;if(voice)speak(t);}
-function stopVoice(){voiceSeq++;window.speechSynthesis?.cancel();if(activeAudio){activeAudio.pause();URL.revokeObjectURL(activeAudio.src);activeAudio=null;}finishVoice?.();finishVoice=null;}
-async function speak(t){stopVoice();const seq=voiceSeq;$('voiceStatus').textContent='써니가 안내하고 있어요.';
- if(advanced){try{const d=await api('/api/voice/speak',{text:t,rate:Number($('speed').value),voiceName:$('voiceChoice').value||undefined,provider:$('voiceProvider').value});if(seq!==voiceSeq)return;const blob=new Blob([Uint8Array.from(atob(d.audioContent),c=>c.charCodeAt(0))],{type:d.mimeType||'audio/mpeg'});const a=new Audio(URL.createObjectURL(blob));activeAudio=a;await new Promise((resolve,reject)=>{finishVoice=resolve;a.onended=resolve;a.onerror=reject;a.play().catch(reject);});if(activeAudio===a){URL.revokeObjectURL(a.src);activeAudio=null;}if(seq===voiceSeq)$('voiceStatus').textContent='선택한 '+d.voiceName+' 목소리로 재생했어요.';return;}catch(e){if(seq!==voiceSeq)return;const message=e.message||'오디오 재생에 실패했습니다. 미리듣기를 다시 눌러주세요.';$('keyStatus').textContent=message;$('voiceStatus').textContent=message;toast(message);return;}}
- if(seq!==voiceSeq)return;if(!window.speechSynthesis){$('voiceStatus').textContent='음성을 지원하지 않는 기기입니다. 화면 안내를 확인해주세요.';return;}
- const u=new SpeechSynthesisUtterance(t);u.lang='ko-KR';u.rate=Number($('speed').value);u.onend=()=>{if(seq===voiceSeq)$('voiceStatus').textContent='안내를 마쳤어요.';};u.onerror=()=>{if(seq===voiceSeq)$('voiceStatus').textContent='음성 재생이 중단됐어요. 다시 듣기를 눌러주세요.';};speechSynthesis.speak(u);
+const syntheticVoiceQueue=createSyntheticVoiceQueue({speak:async text=>{syntheticSpeechPending=true;try{await speak(text)}finally{syntheticSpeechPending=false}},isBusy:()=>Boolean(syntheticSpeechPending||activeUtterance||activeAudio||window.speechSynthesis?.speaking),getRoute:()=>route});
+function reply(t,voice=false){
+ $('reply').textContent=t; // Visual notice always retains simulation disclosure.
+ if(voice){
+  const spoken=route?.demo?String(t).replace(/시연 안내입니다[.\s]*/g,'').replace(/시연(?:용| 모드)?[.·\s]*/g,'').trim():t;
+  if(route?.syntheticRiskDemo)syntheticVoiceQueue.push(spoken||t);else speak(spoken||t);
+ }
 }
-async function session(){const r=await fetch('/api/session',{credentials:'same-origin',cache:'no-store'});const d=await r.json();if(!r.ok)throw Error(d.error);csrf=d.csrf;advanced=d.connected;if(d.voiceProvider)$('voiceProvider').value=d.voiceProvider;loadVoices();mapConfig=d.mapConfig;connections=d.connections;kmaMapOverlay.availability(connections.kma);roadRiskOverlay.setAvailable(connections.roadRisk);if(floodControl){floodControl.disabled=!connections.safemap;if(!connections.safemap){floodControl.checked=false;clearFlood();floodMessage('SAFEMAP_API_KEY 미설정');}else floodMessage('서버 키 등록됨 · 실제 WMS 응답은 검사 전');}keyStatus();connectionStatus();return d;}
+function stopVoice(){activeUtterance=null;voiceSeq++;window.speechSynthesis?.cancel();if(activeAudio){activeAudio.pause();URL.revokeObjectURL(activeAudio.src);activeAudio=null;}finishVoice?.();finishVoice=null;}
+async function speak(t){
+ // Do not vocalize the presentation prefix; retain on-screen simulation disclosure.
+ if(route?.demo)t=String(t).replace(/시연(?:용| 모드)?[.·\s]*/g,'').trim();
+ if(!t)return;
+ stopVoice();const seq=voiceSeq;$('voiceStatus').textContent='써니가 안내하고 있어요.';
+ if(advanced&&(!route?.demo||route?.syntheticRiskDemo)){try{const d=await api('/api/voice/speak',{text:t,rate:Number($('speed').value),voiceName:$('voiceChoice').value||undefined,provider:$('voiceProvider').value});if(seq!==voiceSeq)return;const blob=new Blob([Uint8Array.from(atob(d.audioContent),c=>c.charCodeAt(0))],{type:d.mimeType||'audio/mpeg'});const a=new Audio(URL.createObjectURL(blob));activeAudio=a;a.onplaying=()=>{if(route?.syntheticRiskDemo)dummyUI?.brief('음성 출력 시작',{voiceText:t,voiceEngine:'google'});};await new Promise((resolve,reject)=>{finishVoice=resolve;a.onended=()=>{if(route?.syntheticRiskDemo)dummyUI?.brief('음성 출력 완료',{voiceText:t,voiceEngine:'google'});resolve();};a.onerror=reject;a.play().catch(reject);});if(activeAudio===a){URL.revokeObjectURL(a.src);activeAudio=null;}if(seq===voiceSeq)$('voiceStatus').textContent='선택한 '+d.voiceName+' 목소리로 재생했어요.';return;}catch(e){if(seq!==voiceSeq)return;const message=e.message||'오디오 재생에 실패했습니다. 미리듣기를 다시 눌러주세요.';$('keyStatus').textContent=message;$('voiceStatus').textContent=message;toast(message+' · 기기 음성으로 대체합니다.');if(route?.syntheticRiskDemo)dummyUI?.brief('Google 음성 실패 · 기기 음성 대체',{voiceText:t});}}
+ if(seq!==voiceSeq)return;if(!window.speechSynthesis){$('voiceStatus').textContent='음성을 지원하지 않는 기기입니다. 화면 안내를 확인해주세요.';return;}
+ try{speechSynthesis.resume?.();const u=new SpeechSynthesisUtterance(t);activeUtterance=u;u.lang='ko-KR';u.rate=Number($('speed').value);u.volume=1;const voices=speechSynthesis.getVoices?.()||[];const korean=voices.find(v=>v.lang?.toLowerCase()==='ko-kr'&&v.localService)||voices.find(v=>v.lang?.toLowerCase()==='ko-kr');if(korean)u.voice=korean;u.onstart=()=>{if(seq===voiceSeq){$('voiceStatus').textContent='🔊 음성 출력 중';if(route?.syntheticRiskDemo)dummyUI?.brief('음성 출력 시작',{voiceText:t,voiceEngine:'device'});}};u.onend=()=>{if(seq===voiceSeq){$('voiceStatus').textContent='안내를 마쳤어요.';activeUtterance=null;if(route?.syntheticRiskDemo)dummyUI?.brief('음성 출력 완료',{voiceText:t,voiceEngine:'device'});}};u.onerror=e=>{if(seq===voiceSeq){activeUtterance=null;if(route?.syntheticRiskDemo)dummyUI?.brief('음성 출력 실패',{error:e.error||'기기 설정',voiceText:t});$('voiceStatus').textContent='음성 실패: '+(e.error||'기기 설정');toast('기기 음량·무음 설정과 한국어 음성 지원 여부를 확인해주세요.');}};speechSynthesis.speak(u);}catch(e){$('voiceStatus').textContent='기기 음성 지원 오류';}
+}
+async function session(){const r=await fetch('/api/session',{credentials:'same-origin',cache:'no-store'});const d=await r.json();if(!r.ok)throw Error(d.error);csrf=d.csrf;advanced=d.connected;if(d.voiceProvider)$('voiceProvider').value=d.voiceProvider;loadVoices();mapConfig=d.mapConfig;connections=d.connections;kmaMapOverlay.availability(connections.kma);gk2aOverlay.setAvailable(Boolean(connections.gk2a));roadWeatherOverlay.setAvailable(Boolean(connections.kma));roadRiskOverlay.setAvailable(connections.roadRisk);koroadHotspots.setAvailable(false);taasPedestrianWms.setAvailable(Boolean(connections.koroad&&connections.route));if(itsControl){itsControl.disabled=!connections.its;itsControl.closest('.nav-layer-row')?.classList.toggle('nav-layer-unavailable',!connections.its);itsControl.checked=!!connections.its;if(!connections.its)itsSay('ROAD_API_KEY 미설정 · ITS 실시간 돌발정보 미조회');else itsSay('ITS 인증키 설정됨 · 실제 자동차 경로 탐색 시 수신 검사');}if(floodControl){floodControl.disabled=!connections.safemap;if(!connections.safemap){floodControl.checked=false;clearFlood();floodMessage('SAFEMAP_API_KEY 미설정');}else floodMessage('서버 키 등록됨 · 실제 WMS 응답은 검사 전');}keyStatus();connectionStatus();return d;}
 function keyStatus(){$('keyStatus').textContent=advanced?'암호화해 임시 연결됨 · 최대 30분 · 재생 시 사용 가능 여부 확인':'연결 안 됨 · 기기 기본 음성을 사용합니다.';}
-async function api(path,data,method='POST',retried=false){await sessionPromise;if(!csrf)throw Error('보안 세션이 준비되지 않았습니다. 새로고침 후 다시 시도해주세요.');const r=await fetchWithReception(fetch,path,{method,credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:data?JSON.stringify(data):undefined,cache:'no-store'});let d;try{d=await r.json();}catch{throw Error('서버 응답을 확인하지 못했습니다.');}if(r.status===401){csrf='';advanced=false;keyStatus();if(!retried&&['/api/weather','/api/route','/api/search','/api/map-health','/api/map-forecast','/api/road-risk','/api/weather-warnings'].includes(path)){sessionPromise=session();await sessionPromise;return api(path,data,method,true);}}if(!r.ok)throw Object.assign(Error(d.error||'요청을 처리하지 못했습니다.'),{reception:d.reception});return d;}
-function connectionStatus(){$('weatherConnection').textContent=connections.kma?'기상청 서버 키 설정됨 · 실제 응답은 경로 조회 후 확인':'기상청 키 설정 대기 · 자동 모드에서는 Open-Meteo 예보를 표시합니다.';const rows=[['카카오 장소 검색·차량 경로',connections.route?'키 설정됨 · 실제 호출 확인 필요':'운영자 REST 키 필요'],['카카오 지도',mapConfig.kakao?'키 설정됨 · '+providerState.kakao:'운영자 JavaScript 키 필요'],['브이월드 위성 배경',mapConfig.vworld?'키 설정됨 · '+providerState.vworld:'운영자 키 필요'],['기상청 API허브',connections.kma?'서버 키 설정됨 · 경로 선택 후 호출 확인':'KMA_API_KEY 설정 대기'],['기상청 도로살얼음·저시정',connections.roadRisk?'서버 키 설정됨 · 위험정보 ZIP 별도 승인 및 위치정보 검증 필요':'KMA_API_KEY 설정 대기'],['생활안전지도 국가하천 WMS',connections.safemap?'서버 키 설정됨 · 실제 응답 검증 필요':'SAFEMAP_API_KEY 설정 대기'],['대체 기상예보','Open-Meteo · 출처 별도 표시'],['GK2A·공사·통제·지형','미연결 · 실시간 판단에 사용하지 않음']];$('connectionList').innerHTML=rows.map(([a,b])=>`<div class="connection-row"><b>${escape(a)}</b><span>${escape(b)}</span></div>`).join('');}
+async function api(path,data,method='POST',retried=false){await sessionPromise;if(!csrf)throw Error('보안 세션이 준비되지 않았습니다. 새로고침 후 다시 시도해주세요.');const r=await fetchWithReception(fetch,path,{method,credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:data?JSON.stringify(data):undefined,cache:'no-store'});let d;try{d=await r.json();}catch{throw Error('서버 응답을 확인하지 못했습니다.');}if(r.status===401){csrf='';advanced=false;keyStatus();if(!retried&&['/api/weather','/api/route','/api/pedestrian-route-context','/api/its-route-context','/api/search','/api/map-health','/api/map-forecast','/api/road-risk','/api/weather-warnings'].includes(path)){sessionPromise=session();await sessionPromise;return api(path,data,method,true);}}if(!r.ok)throw Object.assign(Error(d.error||'요청을 처리하지 못했습니다.'),{reception:d.reception});return d;}
+function connectionStatus(){$('weatherConnection').textContent=connections.kma?'기상청 서버 키 설정됨 · 실제 응답은 경로 조회 후 확인':'기상청 키 설정 대기 · 자동 모드에서는 Open-Meteo 예보를 표시합니다.';const rows=[['한국도로교통공단 과거 사고지도 (TAAS REST)',connections.koroad?'2024년 보행자·어린이·노인 REST 키 설정됨 · 실제 수신은 지도 선택 후 검사':'KOROAD/카카오 서버 키 미등록'],['국가교통정보센터 ITS 사고·공사·소통',connections.its?'ROAD_API_KEY 등록됨 · 실제 경로조회 후 수신·위치검증':'ROAD_API_KEY 미설정'],['한국도로교통공단 보행자 사고다발지역 (TAAS REST)',connections.koroad?'키 등록됨 · 2024년 과거 통계는 표출 기능 선택 후 실제 수신 확인':'KOROAD_API_KEY 미설정'],['카카오 장소 검색·차량 경로',connections.route?'키 설정됨 · 실제 호출 확인 필요':'운영자 REST 키 필요'],['TMAP 도보 길찾기',connections.tmap?'TMAP 키 등록 · 환경설정에서 실제 도보 경로 응답 검사':connections.walkingProvider==='kakao'?'TMAP 미등록 · 카카오 도보 대체 이용 여부 미검증':'TMAP_API_KEY 등록 필요'],['보행로 현장 위험정보','실제 침수·결빙·통제 자료 미연결 · 기상예보 기반 판단만 가능'],['카카오 지도',mapConfig.kakao?'키 설정됨 · '+providerState.kakao:'운영자 JavaScript 키 필요'],['브이월드 위성 배경',mapConfig.vworld?'키 설정됨 · '+providerState.vworld:'운영자 키 필요'],['기상청 API허브',connections.kma?'서버 키 설정됨 · 경로 선택 후 호출 확인':'KMA_API_KEY 설정 대기'],['기상청 도로살얼음·저시정',connections.roadRisk?'서버 키 설정됨 · 위험정보 ZIP 별도 승인 및 위치정보 검증 필요':'KMA_API_KEY 설정 대기'],['생활안전지도 국가하천 WMS',connections.safemap?'서버 키 설정됨 · 실제 응답 검증 필요':'SAFEMAP_API_KEY 설정 대기'],['대체 기상예보','Open-Meteo · 출처 별도 표시'],['GK2A·공사·통제·지형','미연결 · 실시간 판단에 사용하지 않음']];$('connectionList').innerHTML=rows.map(([a,b])=>`<div class="connection-row"><b>${escape(a)}</b><span>${escape(b)}</span></div>`).join('');}
 sessionPromise=session().catch(e=>{$('keyStatus').textContent=e.message;connectionStatus();});
 // The environment settings now contain a real, read-only source health dashboard.
 // Tests only run when the user presses refresh, avoiding extra provider/API usage.
-const connectionPanel=initConnectionStatusPanel({document,waitForSession:async()=>{await sessionPromise;}});
+const architecturePanel=initArchitecturePanel({document,waitForSession:async()=>{await sessionPromise;}});
+const connectionPanel=initConnectionStatusPanel({document,waitForSession:async()=>{await sessionPromise;},
+ onUpdate:(values,meta)=>{
+  layerHealth.update(values);
+  const label=$('navLayerStatusCheckedAt');
+  if(label)label.textContent=meta.checking?'실제 공급기관 자료 확인 중…':meta.checkedAt?
+   '마지막 확인: '+new Date(meta.checkedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})+' KST':
+   'API 키 상태만 확인 · 실제 수신은 검사 전';
+ }});
+$('navLayerStatusRefresh')?.addEventListener('click',async()=>{
+ const button=$('navLayerStatusRefresh');if(connectionPanel.isChecking())return;
+ if(button)button.disabled=true;
+ try{await connectionPanel.refresh();}finally{if(button)button.disabled=false;}
+});
 void sessionPromise.then(session=>connectionPanel.setSession(session));
+$('settingNationalWalkCheck')?.addEventListener('click',async()=>{
+ const btn=$('settingNationalWalkCheck'),label=$('settingNationalWalkStatus');
+ btn.disabled=true;label.textContent='서울·부산·대전 TMAP 실제 보행경로 응답 검사 중…';
+ try{
+  const data=await api('/api/pedestrian-national-diagnostic',null,'GET');
+  const entries=(data.cases||[]).map(item=>item.case+': '+
+   (item.status==='received'?'경로 좌표 수신 · '+Math.round((item.distanceMeters||0)/1000*10)/10+'km':
+    item.reason||item.status));
+  label.textContent='검증 '+(data.regionsReceived||0)+'/'+(data.regionsChecked||0)+
+   '개 지역 · '+entries.join(' / ')+' · 3개 도시 시험이며 전국 보장 아님';
+ }catch(e){label.textContent='도보 API 지역별 진단 실패 · '+String(e.message||'서버 응답 오류');}
+ finally{btn.disabled=false;}
+});
 $('checkDataSources').onclick=async()=>{
  const button=$('checkDataSources'),target=$('dataHealth');button.disabled=true;target.textContent='기상청·생활안전지도 서버에 실제 조회 중입니다.';
  try{const result=await api('/api/data-health',{});target.replaceChildren();
@@ -665,7 +919,7 @@ $('checkDataSources').onclick=async()=>{
 };
 $('checkMaps').onclick=async()=>{$('checkMaps').disabled=true;$('mapHealth').textContent='현재 서비스 도메인으로 SDK·위성 응답을 검사하고 있어요.';try{const d=await api('/api/map-health',{});$('mapHealth').replaceChildren();const p=document.createElement('p');p.textContent='등록할 서비스 도메인: '+d.origin;$('mapHealth').append(p);for(const check of d.checks){const row=document.createElement('p');row.textContent=check.name+': '+check.message;$('mapHealth').append(row);}const caution=document.createElement('small');caution.textContent=d.caution+' · 검사 '+fmt(d.checkedAt);$('mapHealth').append(caution);}catch(e){$('mapHealth').textContent=e.message;}finally{$('checkMaps').disabled=false;}};
 $('settingsOpen').onclick=()=>$('settings').showModal();$('sourcesOpen').onclick=()=>$('sources').showModal();$('settings').addEventListener('close',()=>$('googleKey').value='');
-$('repeat').onclick=()=>speak($('reply').textContent);$('stop').onclick=()=>{stopVoice();recognition?.abort();$('voiceStatus').textContent='음성을 멈췄어요.';};
+$('repeat').onclick=()=>speak($('reply').textContent);$('stop').onclick=()=>{syntheticVoiceQueue.clear();stopVoice();recognition?.abort();$('voiceStatus').textContent='음성을 멈췄어요.';};
 $('connect').onclick=async()=>{const key=$('googleKey').value.trim();$('googleKey').value='';$('connect').disabled=true;try{const d=await api('/api/voice/key',{key,provider:$('voiceProvider').value});advanced=d.connected;if(d.provider)$('voiceProvider').value=d.provider;keyStatus();$('keyStatus').textContent=d.message;await loadVoices();}catch(e){$('keyStatus').textContent=e.message;}finally{$('connect').disabled=false;}};
 $('disconnect').onclick=async()=>{try{await api('/api/voice/key',null,'DELETE');advanced=false;stopVoice();keyStatus();loadVoices();}catch(e){$('keyStatus').textContent=e.message;}};
 function loadVoices(){const provider=$('voiceProvider').value,voices=voiceCatalog(provider);$('voiceChoice').replaceChildren();for(const v of voices){const o=document.createElement('option');o.value=v.name;o.textContent=v.label;$('voiceChoice').append(o);}let saved;try{saved=localStorage.getItem('sunnyVoice:'+provider);}catch{}if(voices.some(v=>v.name===saved))$('voiceChoice').value=saved;$('voiceChoice').disabled=false;}
@@ -701,7 +955,7 @@ studioQuery?.addEventListener('input',()=>{clearTimeout(studioTimer);studioRun++
 studioQuery?.addEventListener('focus',()=>{if(!studioResults.hidden)return;const q=studioQuery.value.trim();if(q.length>=2)studioSearch(q);else studioShow();});
 $('studioSearchClear')?.addEventListener('click',()=>{studioQuery.value='';studioRun++;studioShow();studioQuery.focus();});
 $('studioSwap')?.addEventListener('click',()=>{if(!originPlace||!destPlace){toast('출발지와 목적지를 모두 선택한 뒤 바꿀 수 있습니다.');return;}const prev=originPlace;originPlace=destPlace;destPlace=prev;$('origin').value=originPlace.name;$('destination').value=destPlace.name;studioSync();});
-$('studioRouteSearch')?.addEventListener('click',()=>{if(!originPlace){const pos=studioCurrent();if(pos){originPlace=pos;$('origin').value=pos.name;}else{toast('출발지를 선택하거나 현재 위치 권한을 허용해주세요.');studioQuery.focus();return;}}if(!destPlace){toast('목적지를 먼저 선택해주세요.');studioQuery.focus();return;}studioSync();$('searchForm')?.requestSubmit();});
+$('studioRouteSearch')?.addEventListener('click',()=>{if(routeSearchPending)return;if(!originPlace){const pos=studioCurrent();if(pos){originPlace=pos;$('origin').value=pos.name;}else{toast('출발지를 선택하거나 현재 위치 권한을 허용해주세요.');studioQuery.focus();return;}}if(!destPlace){toast('목적지를 먼저 선택해주세요.');studioQuery.focus();return;}studioSync();$('searchForm')?.requestSubmit();});
 $('origin')?.addEventListener('change',studioSync);$('destination')?.addEventListener('change',studioSync);
 function readFavorites(){try{const a=JSON.parse(localStorage.getItem(favoritesKey)||'[]');return Array.isArray(a)?a.filter(p=>p&&typeof p.name==='string'&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)).slice(0,6):[];}catch{return [];}}
 function saveFavorites(a){try{localStorage.setItem(favoritesKey,JSON.stringify(a.slice(0,6)));}catch{}renderFavorites();}
@@ -741,76 +995,276 @@ async function choose(field){
  const token=++searchSeq;reply((field==='origin'?'출발지':'도착지')+' 검색 결과에서 장소를 선택해주세요.');
  return new Promise((resolve,reject)=>showSuggestions(field,places,p=>{if(token!==searchSeq){reject(Error('검색이 변경되었습니다.'));return;}setPlace(field,p);resolve(p);}));
 }
-$('searchForm').onsubmit=async e=>{e.preventDefault();stopRain();if(playing)return;const run=++routeSeq;$('routeSearch').disabled=true;pauseDrive();try{if(!originPlace)originPlace=await choose('origin');if(!destPlace)destPlace=await choose('destination');rememberQuery($('destination').value);if(run!==routeSeq)return;const departure=new Date($('departure').value).toISOString();reply('차량 경로와 예상 통과시각을 확인하고 있어요.');const d=await api('/api/route',{origin:originPlace,destination:destPlace,departure});if(run!==routeSeq)return;route={...d,demo:false};weather=null;progress=0;gate.reset();renderRoute();rememberDestination(destPlace);showNavSearch(false);showNavRouteResult();reply('차량 경로를 찾았어요. 구간별 예보를 확인합니다.');await Promise.all([loadWeather(),showMap('kakao')]);}catch(e){if(run===routeSeq)reply(e.message,true);}finally{if(run===routeSeq)$('routeSearch').disabled=false;}};
+let routeSearchPending=false;
+$('searchForm').onsubmit=async e=>{
+ e.preventDefault();
+ if(playing||routeSearchPending)return;
+ routeSearchPending=true;
+ stopRain();
+ const run=++routeSeq;
+ $('routeSearch').disabled=true;
+ if($('studioRouteSearch'))$('studioRouteSearch').disabled=true;
+ pauseDrive();
+ try{
+ if(!originPlace&&/현재 위치 확인 중|위치 확인 실패|^현재 위치$/.test($('origin').value.trim())){
+  showNavSearch(true);
+  throw Error('출발지가 선택되지 않았습니다. 출발지 검색 버튼 또는 현재 위치 버튼으로 먼저 위치를 정해주세요.');
+ }
+ if(!originPlace)originPlace=await choose('origin');if(!destPlace)destPlace=await choose('destination');rememberQuery($('destination').value);if(run!==routeSeq)return;const selected=resolveRouteDeparture(departureInput.value,{
+  userEdited:departureEdited||departureInput.value!==autoDepartureValue
+ });
+ if(selected.refreshed){
+  // The original 2-minute default is stale after leaving a mobile tab open.
+  departureInput.min=localInput(new Date());
+  departureInput.max=localInput(new Date(Date.now()+86400000));
+  departureInput.value=localInput(new Date(selected.iso));
+  autoDepartureValue=departureInput.value;
+ }
+ const departure=selected.iso;const mode=selectedTravelMode();reply((mode==='walking'?'도보':'차량')+' 경로와 예상 통과시각을 확인하고 있어요.');const d=await api('/api/route',{origin:originPlace,destination:destPlace,departure,travelMode:mode,walkingPriority:mode==='walking'?$('walkingPriority').value:'BROAD_FIRST'});if(run!==routeSeq)return;
+ // Fail closed: a walking request must never render or navigate a car route.
+ if(d.travelMode!==mode||d.mode!==mode||
+    (mode==='walking'&&d.provider!=='TMAP'&&d.source!=='Kakao Maps Walking')||
+    !Array.isArray(d.vertices)||d.vertices.length<2||
+    !Array.isArray(d.rainPath)||d.rainPath.length<2)
+  throw Error('도보/차량 경로 제공자 또는 경로 좌표가 요청한 이동수단과 일치하지 않습니다. 잘못된 노선을 표시하지 않습니다.');
+ route={...d,demo:false,walkingPriority:mode==='walking'?$('walkingPriority').value:null,
+  itsEvidenceStatus:mode==='driving'?'checking':'not-checked',
+  roadEvidenceStatus:mode==='driving'?'checking':'not-checked',
+  warningEvidenceStatus:'checking',
+  pedestrianEvidenceStatus:mode==='walking'?'checking':'not-checked'};weather=null;progress=0;gate.reset();koroadHotspots.setData(null);route.itsRiskEvents=[];renderRoute();rememberDestination(destPlace);showNavSearch(false);showNavRouteResult();reply((mode==='walking'?'보행로':'차량')+' 경로를 찾았어요. 구간별 예보를 확인합니다.');
+ if(mode==='driving'){
+  void loadItsRouteEvidence(route);
+ }
+ // Official warnings are collected for the risk engine independently of map visibility.
+ void refreshAdditionalRouteEvidence(route);
+ const afterRoute=await Promise.allSettled([loadWeather(),showMap('kakao')]);
+ if(run===routeSeq&&afterRoute.some(task=>task.status==='rejected')){
+  // Routing succeeded; weather/map rendering failures must not be shown as a TMAP failure.
+  const remarks=[];
+  if(afterRoute[0].status==='rejected')remarks.push('기상예보를 확인하지 못했습니다.');
+  if(afterRoute[1].status==='rejected')remarks.push('지도를 표시하지 못했습니다.');
+  reply((mode==='walking'?'도보':'차량')+' 경로는 찾았습니다. '+remarks.join(' ')+' 경로 탐색을 다시 할 필요는 없습니다.');
+ }
+ }catch(e){
+ if(run===routeSeq){
+  const walking=selectedTravelMode()==='walking';
+  reply(walking?'도보 경로 탐색에 실패했습니다. '+e.message+' 환경설정의 데이터 연결 상태에서 TMAP 도보 길찾기를 검사해주세요.':e.message,!walking);
+  // If the API is unauthorized or unavailable, offer the official Kakao Map
+  // walking view. Do not substitute car-road geometry.
+  if(selectedTravelMode()==='walking')updateTravelModeUI();
+ }
+  }finally{
+  routeSearchPending=false;
+  if(run===routeSeq){
+   $('routeSearch').disabled=false;
+   if($('studioRouteSearch'))$('studioRouteSearch').disabled=false;
+  }
+ }
+};
 $('locate').onclick=()=>{if(!navigator.geolocation){toast('위치를 지원하지 않는 기기입니다. 출발지를 입력해주세요.');return;}$('locate').disabled=true;navigator.geolocation.getCurrentPosition(p=>{originPlace={lat:p.coords.latitude,lng:p.coords.longitude,name:'현재 위치'};homePosition={lat:p.coords.latitude,lng:p.coords.longitude};updateRouteCurrentMarker();$('origin').value='현재 위치';$('origin').readOnly=true;$('locate').disabled=false;toast('현재 위치를 출발지로 설정했어요. 검색 시 지도·기상 제공자에게 전달됩니다.');},()=>{$('locate').disabled=false;$('origin').value='위치 확인 실패 · 검색 버튼 사용';toast('위치를 확인하지 못했습니다. 출발지를 검색해주세요.');},{timeout:12000,maximumAge:30000,enableHighAccuracy:true});};
 async function demoRoute(){
+ const drivingRadio=document.querySelector('input[name="travelMode"][value="driving"]');if(drivingRadio)drivingRadio.checked=true;updateTravelModeUI();
  stopRain();const run=++routeSeq;searchSeq++;pauseDrive();stopVoice();
  $('demo').disabled=true;$('routeSearch').disabled=true;$('places').replaceChildren();
  reply('서울시청에서 부산시청까지 주행 시연 경로를 준비하고 있어요.');
  try{
   // Fixed endpoints and fictional risk layers: NEVER borrow a user's GPS or real weather.
   const start={...DEMO_SEOUL_BUSAN.origin},end={...DEMO_SEOUL_BUSAN.destination};
-  const d=await api('/api/route',{origin:start,destination:end,departure:new Date().toISOString()});
+  const d=await api('/api/route',{origin:start,destination:end,travelMode:'driving',departure:new Date().toISOString()});
   if(run!==routeSeq)return;
-  if(!d.vertices?.length||!d.rainPath?.length)throw Error('시연용 실제 도로 좌표를 받지 못했습니다.');
+  if(d.travelMode!=='driving'||d.mode!=='driving'||!d.vertices?.length||!d.rainPath?.length)throw Error('실제 카카오 자동차 경로를 확인하지 못했습니다.');
   originPlace=start;destPlace=end;
   $('origin').value=start.name;$('destination').value=end.name;studioSync();
   route={...d,demo:true};
   const scenario=makeDemoScenario(route);
-  route.demoHazards=scenario.hazards;route.samples=scenario.samples;
+  route.demoHazards=scenario.hazards;route.samples=scenario.samples;route.demoWarningIssued=false;initialDemoRoute=route;
   weather={samples:scenario.samples,source:'시연 모드 · 실제 기상관측 아님',fetchedAt:new Date().toISOString()};
   progress=0;gate.reset();renderRoute();renderCards();
   showNavSearch(false);showNavRouteResult();
   await showMap('kakao');
-  reply('서울에서 부산까지 강수·안개·침수 위험지점을 배치했습니다. 아이콘을 누르거나 주행 시연을 시작해 보세요.');
+  reply('이천에 비, 구미에 돌발 호우특보, 밀양에 안개를 배치했습니다. 특보 발생 시 짧은 우회경로 후보를 비교합니다.');
  }catch(e){if(run===routeSeq)reply('시연 경로를 불러오지 못했어요. '+e.message);}
  finally{if(run===routeSeq){$('demo').disabled=false;$('routeSearch').disabled=false;}}
 }
+async function walkingDemoRoute(){
+ // Demo events are fictional, but all displayed geometry comes from the real TMAP pedestrian route API.
+ const walkingRadio=document.querySelector('input[name="travelMode"][value="walking"]');
+ if(walkingRadio)walkingRadio.checked=true;
+ updateTravelModeUI();
+ stopRain();const run=++routeSeq;searchSeq++;pauseDrive();stopVoice();
+ $('demoWalk').disabled=true;$('navDemoWalk').disabled=true;$('routeSearch').disabled=true;$('places').replaceChildren();
+ reply('서울역에서 서울시청까지 도보 이동 장면을 준비하고 있습니다.');
+ try{
+  const start={...WALK_DEMO.origin},end={...WALK_DEMO.destination};
+  const d=await api('/api/route',{origin:start,destination:end,departure:new Date().toISOString(),travelMode:'walking',walkingPriority:'BROAD_FIRST'});
+  if(run!==routeSeq)return;
+  if(d.travelMode!=='walking'||d.mode!=='walking'||d.provider!=='TMAP'||!d.rainPath?.length||!d.vertices?.length)
+   throw Error('TMAP 실제 도보 경로를 받지 못했습니다. 자동차/직선 경로로 대체하지 않습니다.');
+  originPlace=start;destPlace=end;
+  $('origin').value=start.name;$('destination').value=end.name;studioSync();
+  route={...d,demo:true,demoWalking:true,demoWarningIssued:false};initialWalkingDemoRoute=route;
+  const scenario=makeWalkingDemoScenario(route);
+  route.demoHazards=scenario.hazards;route.samples=scenario.samples;
+  route.demoBreakingWarning=null;initialDemoRoute=null;
+  weather={samples:scenario.samples,source:'시연용 기상정보 · 실제 관측 아님',fetchedAt:new Date().toISOString()};
+  progress=0;gate.reset();renderRoute();renderCards();
+  showNavSearch(false);showNavRouteResult();
+  await showMap('kakao');
+  reply('서울역에서 서울시청까지 빗길, 보행자 사고다발지역, 돌발 무더위와 쉼터 이동을 재현합니다.');
+ }catch(e){
+  if(run===routeSeq)reply('도보 시연 경로를 불러오지 못했어요. '+e.message);
+ }finally{
+  if(run===routeSeq){$('demoWalk').disabled=false;$('navDemoWalk').disabled=false;$('routeSearch').disabled=false;}
+ }
+}
+$('demoWalk')?.addEventListener('click',walkingDemoRoute);
+$('navDemoWalk')?.addEventListener('click',walkingDemoRoute);
 $('demo').onclick=demoRoute;
 $('navDemoSeoulBusan')?.addEventListener('click',demoRoute);
+async function syntheticRiskDemoRoute(config){
+ if(!config?.origin||!config?.destination)return false;
+ const mode=config.mode==='walking'?'walking':'driving';
+ const drivingRadio=document.querySelector('input[name="travelMode"][value="'+mode+'"]');
+ if(drivingRadio)drivingRadio.checked=true;updateTravelModeUI();
+ stopRain();const run=++routeSeq;searchSeq++;pauseDrive();stopVoice();
+ for(const id of ['demoLiveRisk','navDemoLiveRisk','routeSearch','studioRouteSearch'])if($(id))$(id).disabled=true;
+ $('places').replaceChildren();
+ reply(config.origin.name+'에서 '+config.destination.name+'까지 '+(mode==='walking'?'도보':'차량')+' 경로를 준비합니다.');
+ try{
+  const start={...config.origin},end={...config.destination};
+  const d=await api('/api/route',{origin:start,destination:end,departure:new Date().toISOString(),travelMode:mode,walkingPriority:'BROAD_FIRST'});
+  if(run!==routeSeq)return false;
+  if(d.travelMode!==mode||d.mode!==mode||(mode==='walking'&&d.provider!=='TMAP')||!Array.isArray(d.vertices)||d.vertices.length<2||
+     !Array.isArray(d.rainPath)||d.rainPath.length<2)throw Error('선택한 이동수단의 실제 경로를 받지 못했습니다.');
+  originPlace=start;destPlace=end;$('origin').value=start.name;$('destination').value=end.name;studioSync();
+  const fixture=makeSyntheticRiskFixture({...d,demo:true,syntheticRiskDemo:true,dummyScenario:config.scenario},'initial');
+  route={...fixture.route,demo:true,demoWalking:mode==='walking',demoRiskEngine:true,
+   demoWarningIssued:false,syntheticAlertIssued:false,syntheticRiskPhase:'initial',
+   syntheticRiskHazards:fixture.signals,demoHazards:fixture.signals};
+  initialDemoRoute={...route,samples:[...route.samples],demoHazards:[...route.demoHazards],syntheticRiskHazards:[...route.syntheticRiskHazards]};
+  weather={...fixture,source:SYNTHETIC_RISK_SOURCE+' · 최초 더미 예보',fetchedAt:new Date().toISOString()};
+  progress=0;gate.reset();renderRoute();renderCards();
+  showNavSearch(false);showNavRouteResult();await showMap('kakao');drawDemoOverlays();
+  dummyUI.begin({scenario:config.scenario,mode,origin:start,destination:end,route:{rainPath:d.rainPath,duration:d.duration,distance:d.distance},engine:fixture.profile.engine});
+  dummyUI.brief('경로 조회 완료 · '+(mode==='walking'?'TMAP 도보':'카카오 차량'));
+  dummyUI.brief('초기 API 자료 수신(더미)',{input:fixture.weatherSamples,signals:fixture.inputSignals,profile:fixture.profile});
+  reply('선택한 경로와 더미 시나리오를 준비했습니다. 안내를 시작하면 새 자료가 입력됩니다.');return true;
+ }catch(e){if(run===routeSeq)reply('더미 위험 시연 경로를 준비하지 못했습니다. '+e.message);return false;}
+ finally{if(run===routeSeq)for(const id of ['demoLiveRisk','navDemoLiveRisk','routeSearch','studioRouteSearch'])if($(id))$(id).disabled=false;}
+}
+dummyUI=initDummyScenarioUI({document,storage:(()=>{try{return window.localStorage}catch{return null}})(),search:async query=>(await api('/api/search',{query})).places||[],onStart:syntheticRiskDemoRoute,isActive:()=>drivingUI.isActive(),onInject:()=>{if(route?.syntheticRiskDemo&&drivingUI.isActive())injectSyntheticRiskWarning();}});
+llmUI=initLLMExplanation({document,api,onSpeak:text=>reply(text,true),onStopSpeak:stopVoice,onEvent:(value,automatic)=>{if(route?.syntheticRiskDemo)dummyUI.brief(value.status==='llm'?'LLM 브리핑: '+value.text:'정형 근거 설명: '+value.text,{llm:value,automatic});}});
+void llmUI.refresh();
+for(const id of ['demoLiveRisk','navDemoLiveRisk'])$(id)?.addEventListener('click',async()=>{if(!await dummyUI.open())toast('안내를 종료한 뒤 더미 시나리오를 설정해주세요.');});
 $('realTrip').onclick=()=>{if(playing||$('routeSearch').disabled)return;originPlace={name:'진천군청',lat:36.855,lng:127.436};destPlace={name:'서울시청',lat:37.566,lng:126.978};$('origin').value=originPlace.name;$('destination').value=destPlace.name;$('departure').value=localInput(new Date(Date.now()+120000));$('searchForm').requestSubmit();};
 
-function renderRoute(){if($('navRouteHazardDetail'))$('navRouteHazardDetail').hidden=true;clearWeatherOverlays();pickTarget=null;updatePick();$('cards').innerHTML='<article class="empty-card"><h3>새 경로의 구간별 예보를 확인하고 있어요.</h3></article>';$('cardCount').textContent='조회 중';$('driveControls').hidden=true;$('kakaoDirections').hidden=true;selectedSample=null;$('roadInspector').hidden=true;$('actualRoute').setAttribute('hidden','');renderActualRoute();if(!route.demo){$('kakaoDirections').href=kakaoRouteLink(originPlace,destPlace);$('kakaoDirections').hidden=false;renderActualRoute();}$('modeBadge').textContent=route.demo?'시연 모드':'실제 경로';$('mapTitle').textContent=route.demo?'실제 도로 · 상황 시연':'카카오모빌리티 경로';$('duration').innerHTML=Math.round(route.duration/60)+'<small> 분</small>';$('distance').innerHTML=(route.distance/1000).toFixed(1)+'<small> km</small>';$('arrival').textContent=fmt(new Date(Date.parse(route.departure)+route.duration*1000));$('drive').disabled=!route.demo;$('drive').textContent=route.demo?'▷ 시연 재생':'실제 주행 추적 준비 중';$('refresh').disabled=route.demo;$('originLabel').textContent='출발';$('destLabel').textContent='도착';$('demoMarkers').style.display=route.demo?'':'none';$('schematic').querySelector('svg').setAttribute('aria-label',route.demo?'시연용 서울 부산 경로 개요도. 실제 지도와 도로 형상이 아닙니다.':'추상적인 경로 개요도. 실제 도로 형상이 아닙니다.');$('floatingTitle').textContent=originPlace.name+' → '+destPlace.name;$('floatingSub').textContent=route.demo?'시연 모드 · 실제 기상관측/특보 아님':'도로별 소요시간을 누적한 예상 통과시각';$('progress').value='0';moveCar();}
+async function loadPedestrianRouteEvidence(activeRoute){
+ const status=$('navPedestrianRiskEvidenceStatus');
+ if(activeRoute?.demo||activeRoute?.travelMode!=='walking')return;
+ if(status){status.hidden=false;status.textContent='전국 보행자 과거 사고집중구역 조회 중…';}
+ const points=routeHistoryQueryPoints(activeRoute);
+ if(points.length<2){activeRoute.pedestrianEvidenceStatus='unavailable';if(status)status.textContent='경로의 구간좌표가 부족해 사고이력을 확인하지 못했습니다.';return;}
+ try{
+  const result=await api('/api/pedestrian-route-context',{points,path:activeRoute.rainPath.map(p=>({lat:p.lat,lng:p.lng}))});
+  if(route!==activeRoute)return;
+  activeRoute.pedestrianEvidenceStatus=result.status;
+  activeRoute.pedestrianRiskEvents=buildPedestrianHistoryHazards(activeRoute,result);
+  koroadHotspots.setAvailable(['received','partial','empty'].includes(result.status));
+  koroadHotspots.setData(result);
+  const count=activeRoute.pedestrianRiskEvents.length;
+  if(status)status.textContent=['received','partial','empty'].includes(result.status)
+   ?'2024년 TAAS 과거 사고집중구역: 경로 120m 이내 '+count+'곳 · '+(result.regionsChecked||0)+'개 시군구 조사'+(result.status==='partial'?' · 일부 지역 미수신':'')+' · 실시간 사고 아님'
+   :'사고이력 미확인 · '+(result.reason||'기관자료 수신 실패')+' · 안전 판정 아님';
+  drawWeatherOverlays();renderRouteHazards();drivingUI.render();
+ }catch(e){
+  if(route!==activeRoute)return;
+  activeRoute.pedestrianEvidenceStatus='failed';
+  activeRoute.pedestrianRiskEvents=[];
+  koroadHotspots.setAvailable(false);
+  koroadHotspots.setData(null);
+  if(status)status.textContent='과거 사고이력 미확인 · '+String(e.message||'조회 실패')+' · 안전 판정 아님';
+  drawWeatherOverlays();renderRouteHazards();drivingUI.render();
+ }
+}
+function renderRoute(){if($('navRouteHazardDetail'))$('navRouteHazardDetail').hidden=true;clearWeatherOverlays();pickTarget=null;updatePick();$('cards').innerHTML='<article class="empty-card"><h3>새 경로의 구간별 예보를 확인하고 있어요.</h3></article>';$('cardCount').textContent='조회 중';$('driveControls').hidden=true;$('kakaoDirections').hidden=true;selectedSample=null;$('roadInspector').hidden=true;$('actualRoute').setAttribute('hidden','');renderActualRoute();if(!route.demo){$('kakaoDirections').href=kakaoRouteLink(originPlace,destPlace,route.travelMode);$('kakaoDirections').textContent=route.travelMode==='walking'?'카카오맵 도보 길찾기 ↗':'카카오맵에서 길안내 ↗';$('kakaoDirections').hidden=false;renderActualRoute();}$('modeBadge').textContent=route.syntheticRiskDemo?'더미 위험 시연':route.demo?(route.demoWalking?'도보 시연':'시연 모드'):route.travelMode==='walking'?'도보 경로':'차량 경로';if($('mapRouteLegendLabel'))$('mapRouteLegendLabel').textContent=route.travelMode==='walking'?'도보 경로':'차량 경로';$('mapTitle').textContent=route.syntheticRiskDemo?originPlace.name+' → '+destPlace.name+' · 더미 시연':route.demo?(route.demoWalking?(route.demoShelterRerouted?'무더위쉼터 경로 · 도보 상황 시연':'실제 TMAP 보행 경로 · 도보 상황 시연'):'실제 도로 · 상황 시연'):route.travelMode==='walking'?(route.provider==='TMAP'?'TMAP 보행로 경로':'카카오 보행로 경로'):'카카오모빌리티 차량 경로';$('duration').innerHTML=Math.round(route.duration/60)+'<small> 분</small>';$('distance').innerHTML=(route.distance/1000).toFixed(1)+'<small> km</small>';$('arrival').textContent=fmt(new Date(Date.parse(route.departure)+route.duration*1000));$('drive').disabled=!route.demo;$('drive').textContent=route.syntheticRiskDemo?'▷ 위험자료 시연 재생':route.demo?(route.demoWalking?'▷ 도보 시연 재생':'▷ 시연 재생'):'실제 주행 추적 준비 중';$('refresh').disabled=route.demo;$('originLabel').textContent='출발';$('destLabel').textContent='도착';$('demoMarkers').style.display=route.demo?'':'none';$('schematic').querySelector('svg').setAttribute('aria-label',route.demo?(route.demoWalking?'시연용 서울역 서울시청 도보 경로 개요도. 실제 지도와 도로 형상이 아닙니다.':'시연용 경로 개요도. 실제 지도 형상이 아닙니다.'):'추상적인 경로 개요도. 실제 도로 형상이 아닙니다.');$('floatingTitle').textContent=originPlace.name+' → '+destPlace.name;$('floatingSub').textContent=route.syntheticRiskDemo?'실제 도로 경로 형상 · 날씨/침수 자료는 더미 시뮬레이션':route.demo?'시연 모드 · 실제 기상관측/특보 아님':route.travelMode==='walking'?(route.etaMethod||'도보 예상 통과시각'):'도로별 소요시간을 누적한 예상 통과시각';$('progress').value='0';moveCar();typeof walkingFacilities!=='undefined'&&walkingFacilities.repaint();typeof koroadHotspots!=='undefined'&&koroadHotspots.repaint();typeof taasPedestrianWms!=='undefined'&&taasPedestrianWms.repaint();}
 
 function renderRouteHazards(){
+ expireItsEvidence(route);
  const rail=$('navRouteRiskMarks'),status=$('navRouteRiskStatus'),detail=$('navRouteHazardDetail');
  if(!rail||!status)return;
- const isDemo=!!route?.demo;
+ const isDemo=!!route?.demo,syntheticDemo=!!route?.syntheticRiskDemo;
+ const context=currentRiskWeatherContext();
  const hazards=routeWeatherEnabled()?(isDemo?route.demoHazards||[]:
-  [...buildRouteHazards(weather?.samples),...routeExtraHazards(route)].sort((a,b)=>a.seconds-b.seconds)):[];
+  [...buildRouteHazards(context.weatherSamples),...remainingRiskHazards(context,routeExtraHazards(route))].sort((a,b)=>a.seconds-b.seconds)):[];
  if(vectorDriving.isActive())vectorDriving.refreshHazards(hazards);
  const count=renderHazardRail(rail,hazards,route?.rainPath,{
   fractionAt:routeFraction,max:isDemo?hazards.length:appPrefs.alertCount,
   onSelect:h=>showHazardDetail(detail,h,fmt)
  });
- if(!routeWeatherEnabled())status.textContent='';
- else if(isDemo)status.textContent='위험지점 '+count+'개 · 🌧️ 강수 / 🌫️ 안개 / 🌊 침수 · 아이콘 선택';
- else if(count)status.textContent='기상청 위험지점 '+count+'개 · 아이콘을 눌러 상세정보 확인';
- else if(!weather)status.textContent='경로 기상예보 조회 중 · 실제 위험예보만 표시';
- else if(!weather.samples?.some(p=>p.status==='forecast'&&p.forecast?.provider==='kma'))
-  status.textContent='기상청 예보 미수신 · 위험 여부 판단 불가';
- else status.textContent='조회된 기상청 예보 지점에 비·눈 위험 표시 없음 · 미조회 구간은 판단 불가';
+ // Risk assessment reads the received provider samples regardless of whether
+ // the user hides hazard icons. Sources not yet collected still remain unknown.
+ const riskProfile=isDemo&&!syntheticDemo?null:syntheticDemo?
+  evaluateSyntheticDrivingRisk(context.route,{weatherSamples:context.weatherSamples,
+   extraHazards:remainingRiskHazards(context,routeExtraHazards(route)),now:context.now}):{...riskModels.evaluate(context.route,{
+  modelId:appPrefs.riskModel,mode:route?.travelMode||'driving',
+  weatherSamples:context.weatherSamples,
+  extraHazards:remainingRiskHazards(context,[
+   ...(route?.travelMode==='walking'?[]:roadRiskOverlay.routeHazards(route,{forRisk:true})),
+   ...warningOverlay.routeHazards(route,{forRisk:true}),
+   ...gk2aOverlay.routeHazards(route),
+ ...roadWeatherOverlay.routeHazards(route),
+   ...(route?.travelMode==='driving'?(route?.itsRiskEvents||[]):[]),
+   ...(route?.travelMode==='walking'?(route?.pedestrianRiskEvents||[]):[])]),
+  // Each dedicated risk entrypoint supplies the correct mobility mode and provider filter.
+ }),assessmentScope:context.scope};
+ architecturePanel.update({route:context.route,weather:{...weather,samples:context.weatherSamples},profile:riskProfile});
+ if(typeof llmUI!=='undefined')llmUI?.update(riskProfile,route);
+ if(syntheticDemo){route.syntheticRiskProfile=riskProfile;status.textContent='더미 시연 · Risk Engine 2.0 '+(riskProfile?.state==='evaluated'?'판정 '+riskProfile.coveredSamples+'/'+riskProfile.totalSamples+' 지점 · 위험 신호 '+riskProfile.signalCount+'건 · 상대지수 '+riskProfile.signalIndex:'평가 보류')+(route.demoDetourSelected?' · 우회경로로 재안내':' · 시연자료 전용');}
+ else if(isDemo)status.textContent=route.demoWalking?'도보 시연 위험지점 '+count+'개 · 🌧️ 강수 / ⚠️ 빗길 주의'+(route.demoBreakingWarning?' / 🚨 강수 강화':' · 보행 중 🚨 상황 변화')+' · 아이콘 선택':'시연 위험지점 '+count+'개 · 🌧️ 강수 / 🌫️ 안개'+(route.demoBreakingWarning?' / 🚨 긴급특보':' · 주행 중 🚨 특보 추가')+' · 아이콘 선택';
+ else{
+  const summary=formatRouteRiskSummary(riskProfile);
+  status.textContent=summary+(routeWeatherEnabled()&&count?' · 아이콘에서 판정 근거 확인':
+   routeWeatherEnabled()?'':' · 지도 표시 OFF, 위험평가는 유지');
+ }
  if(detail)detail.hidden=true;
 }
 function showNavRouteResult(){
  const sheet=$('navRouteResult');if(!sheet||!route)return;
+ const historyStatus=$('navPedestrianRiskEvidenceStatus');if(historyStatus)historyStatus.hidden=route.demo||route.travelMode!=='walking';
  $('navRouteDuration').textContent=Math.round(route.duration/60)+'분';
  $('navRouteDistance').textContent=(route.distance/1000).toFixed(1)+'km';
  $('navRouteArrival').textContent='도착 '+fmt(new Date(Date.parse(route.departure)+route.duration*1000));
  const disclaimer=$('navDemoDisclaimer');
- if(disclaimer)disclaimer.hidden=!route.demo;
- $('navStartGuidance').textContent=route.demo?'▶ 주행 시연 시작':'Sunny SAI 안내 시작 ▶';
+ if(disclaimer){disclaimer.hidden=!route.demo;disclaimer.textContent=route.syntheticRiskDemo?'더미 시연 · 기상·위험 정보는 가상 자료입니다.':route.demoWalking?'⚠️ 서울역 → 서울시청 도보 시연 · 실제 기상 관측·통행 위험정보가 아닙니다.':'⚠️ 서울 → 부산 시연 모드 · 위험표시와 기상특보는 실제 관측 및 발표 정보가 아닙니다.';}
+ $('navRouteModeBadge').textContent=route.syntheticRiskDemo?'🚗 위험자료 시연':route.demo?(route.demoWalking?'🚶 도보 시연':'🚗 주행 시연'):route.travelMode==='walking'?'🚶 도보':'🚗 자동차';
+ const facilities=$('navRouteFacilitySummary');
+ if(facilities){
+  const walking=route.travelMode==='walking';
+  const all=walking&&Array.isArray(route.facilities)?route.facilities:[];
+  const crosswalks=all.filter(x=>x.kind==='횡단보도').length;
+  const underpasses=all.filter(x=>x.kind==='지하보도').length;
+  const stairs=all.filter(x=>x.kind==='계단').length;
+  facilities.hidden=!walking;
+  if(walking)facilities.textContent=all.length
+   ?'보행시설 위치 참고 · 횡단보도 '+crosswalks+'곳 · 지하보도 '+underpasses+'곳'+(stairs?' · 계단 '+stairs+'곳':'')+' · 통행상태 미확인'
+   :'보행시설 세부정보 미수신 · 현장 통행상태 확인 필요';
+ }
+ if($('sunnyDriveReroute'))$('sunnyDriveReroute').setAttribute('aria-label',route.travelMode==='walking'?'보행 경로 다시 조회':'차량 경로 다시 조회');
+ if($('sunnyDriveStop'))$('sunnyDriveStop').setAttribute('aria-label',route.travelMode==='walking'?'도보 안내 종료':'주행 안내 종료');
+ $('navRouteDescription').textContent=route.syntheticRiskDemo?'실제 도로 경로 위 더미 기상·침수 자료 입력 · Risk Engine 판정 후 우회 비교':route.demo?(route.demoWalking?(route.demoShelterRerouted?'현재 위치에서 TMAP 도보 경로 재탐색 · 쉼터 위치/운영 미검증':'실제 TMAP 보행 경로 · 위험 이벤트만 가상'):'시연용 경로 · 특보 발생 시 가상 우회 선택 화면 표시'):route.travelMode==='walking'?(route.provider==='TMAP'?'TMAP 도보 경로 · 보행시설 위치는 참고용 · 실제 안전 미검증':'카카오 보행로 1개 경로 · 보도·횡단보도 상태와 안전은 미검증'):'조회된 차량 경로 1개 · 다른 경로 대안은 아직 제공하지 않습니다.';
+ $('navStartGuidance').textContent=route.syntheticRiskDemo?'▶ 위험자료 시연 시작':route.demo?(route.demoWalking?'▶ 도보 시연 시작':'▶ 주행 시연 시작'):route.travelMode==='walking'?'Sunny SAI 도보 안내 시작 ▶':'Sunny SAI 차량 안내 시작 ▶';
+ $('navStartGuidance').disabled=false;
  renderRouteHazards();sheet.hidden=false;document.body.classList.add('nav-route-open');
  setNavTab('navRoute');ensureNavigationKakao();
  if(!route.demo)watchPreviewPosition();
 }
 $('navRouteResultClose')?.addEventListener('click',goToInitialHome);
-$('navStartGuidance')?.addEventListener('click',()=>route?.demo?startDemoGuidance():startRainGuidance());
+$('navStartGuidance')?.addEventListener('click',()=>{if(!route?.demo&&route?.travelMode!==selectedTravelMode()){toast('이동수단에 맞는 새 경로를 먼저 탐색해주세요.');return;}route?.demo?startDemoGuidance():startRainGuidance();});
 async function loadWeather(){if(!route||route.demo)return;const current=route;const run=routeSeq;const weatherRun=++weatherSeq;$('refresh').disabled=true;$('weatherDetail').textContent='예보 확인 중';setLayerReception('navLayerWeather','loading');try{const d=await api('/api/weather',{samples:route.samples,provider:$('weatherProvider').value});if(route!==current||run!==routeSeq||weatherRun!==weatherSeq)return;weather=d;setLayerReception('navLayerWeather',forecastReception(d.samples,p=>p.forecast));renderCards();drivingUI.setWeather(weather);reply(d.samples.some(p=>p.forecast)?d.source+'를 확인했어요. 공사·통제는 별도 확인이 필요합니다.':'기상 예보를 확인하지 못했어요. '+(d.samples.find(p=>p.error)?.error||'자료 제공 범위를 확인해주세요.'));}catch(e){if(route!==current||run!==routeSeq||weatherRun!==weatherSeq)return;weather={provider:$('weatherProvider').value==='kma'?'kma':'open-meteo',samples:route.samples.map(p=>({...p,forecast:null,error:e.message})),source:'조회 실패',fetchedAt:new Date().toISOString()};setLayerReception('navLayerWeather',e.reception||'failed');renderCards();drivingUI.setWeather(weather);reply(e.message);}finally{if(route===current&&run===routeSeq&&weatherRun===weatherSeq)$('refresh').disabled=false;}}
 $('refresh').onclick=loadWeather;$('weatherProvider').onchange=()=>{if(route&&!route.demo)loadWeather();};
-function renderCards(){drawWeatherOverlays();renderRouteHazards();const list=weather?.samples||[];$('cardCount').textContent=list.length+'개 구간';$('cards').innerHTML=list.map((p,i)=>{const a=route?.demo&&p.demoHazard?{kind:'attention',icon:p.demoHazard.icon,title:p.demoHazard.title,text:p.demoHazard.measure+' · '+p.demoHazard.description}:p.event?{kind:'attention',icon:'⚒',title:'공사 안내 시연',text:p.event}:assess(p.forecast);return `<article class="weather-card ${a.kind}"><div class="card-top"><span>${escape(p.label)}</span><span class="weather-icon">${a.icon}</span></div><h3>${fmt(p.eta)} 예상 통과 · ${escape(a.title)}</h3><p>${escape(a.text)}</p><div class="source">${escape(weather.source)}${route.demo?' · 실제 자료 아님':''}<br>조회 ${fmt(weather.fetchedAt)}${p.forecast?.time?' · 예보 유효 '+fmt(p.forecast.time):''}${p.forecast?.issuedAt?' · 발표 '+escape(p.forecast.issuedAt.slice(4,6)+'/'+p.forecast.issuedAt.slice(6,8)+' '+p.forecast.issuedAt.slice(8,10)+':'+p.forecast.issuedAt.slice(10,12))+' KST':''}${p.grid?' · 격자 '+p.grid.nx+','+p.grid.ny:''}${p.error?'<br>'+escape(p.error):''}</div>${route.demo?'':`<button type="button" class="road-button" data-road="${i}" aria-pressed="false">도로 구간 살펴보기 ↗</button>`}<button type="button" class="detail-button" data-card="${i}">이 구간 안내 듣기 ↗</button></article>`;}).join('');document.querySelectorAll('[data-road]').forEach(b=>b.onclick=()=>selectRoad(Number(b.dataset.road)));document.querySelectorAll('[data-card]').forEach(b=>b.onclick=()=>{const p=list[Number(b.dataset.card)];const a=p.demoHazard?{text:p.demoHazard.measure+' · '+p.demoHazard.description}:p.event?{text:p.event}:assess(p.forecast);reply(p.label+', '+fmt(p.eta)+' 예상 통과. '+a.text,true);});$('weatherStatus').textContent=route.demo?'시연 기상정보':!list.some(p=>p.forecast)?'기상 자료 조회 실패':weather.provider==='kma'?'기상청 격자 예보':'Open-Meteo 예보';$('weatherDetail').textContent=route.demo?'실제 기상자료 아님':list.some(p=>p.forecast)?'모델 예보 · 조회 '+fmt(weather.fetchedAt):'조회 실패 · 추가 확인 필요';}
-function renderActualRoute(){const pts=projectRoute(route.vertices||[]),ns='http://www.w3.org/2000/svg',svg=$('actualRoute');svg.replaceChildren();if(!pts.length)return;const line=document.createElementNS(ns,'path');line.setAttribute('d',pts.map((p,i)=>(i?'L':'M')+p.x.toFixed(2)+' '+p.y.toFixed(2)).join(' '));line.setAttribute('class','actual-road-line');svg.append(line);[pts[0],pts[pts.length-1]].forEach((p,i)=>{const c=document.createElementNS(ns,'circle');c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r',i?'8':'6');c.setAttribute('class','route-endpoint');svg.append(c);});const label=document.createElementNS(ns,'text');label.setAttribute('x','24');label.setAttribute('y','466');label.setAttribute('class','route-vector-label');label.textContent='카카오모빌리티 실제 도로 형상 · 배경지도 아님';svg.append(label);if(selectedSample!==null){const sample=route.samples[selectedSample],section=roadSection(route.vertices,sample).map(p=>pts[route.vertices.indexOf(p)]);const focus=document.createElementNS(ns,'path');focus.setAttribute('d',section.map((p,i)=>(i?'L':'M')+p.x.toFixed(2)+' '+p.y.toFixed(2)).join(' '));focus.setAttribute('class','selected-road-line');svg.append(focus);}}
-function selectRoad(i){const p=route?.samples?.[i];if(!p||route.demo)return;selectedSample=i;$('roadInspector').hidden=false;$('roadName').textContent=p.label;$('roadInfo').textContent=fmt(p.eta)+' 예상 통과 · '+p.lat.toFixed(5)+', '+p.lng.toFixed(5)+' · 예보는 도로 현장 측정값이 아닙니다.';document.querySelectorAll('[data-road]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.road)===i)));focusRoad();$('roadInspector').scrollIntoView({behavior:'smooth',block:'nearest'});}
+function renderCards(){drawWeatherOverlays();renderRouteHazards();const list=weather?.samples||[];$('cardCount').textContent=list.length+'개 구간';$('cards').innerHTML=list.map((p,i)=>{const a=route?.demo&&p.demoHazard?{kind:'attention',icon:p.demoHazard.icon,title:p.demoHazard.title,text:p.demoHazard.measure+' · '+p.demoHazard.description}:p.event?{kind:'attention',icon:'⚒',title:'공사 안내 시연',text:p.event}:assess(p.forecast);return `<article class="weather-card ${a.kind}"><div class="card-top"><span>${escape(p.label)}</span><span class="weather-icon">${a.icon}</span></div><h3>${fmt(p.eta)} 예상 통과 · ${escape(a.title)}</h3><p>${escape(a.text)}</p><div class="source">${escape(weather.source)}${route.demo?' · 실제 자료 아님':''}<br>조회 ${fmt(weather.fetchedAt)}${p.forecast?.time?' · 예보 유효 '+fmt(p.forecast.time):''}${p.forecast?.issuedAt?' · 발표 '+escape(p.forecast.issuedAt.slice(4,6)+'/'+p.forecast.issuedAt.slice(6,8)+' '+p.forecast.issuedAt.slice(8,10)+':'+p.forecast.issuedAt.slice(10,12))+' KST':''}${p.grid?' · 격자 '+p.grid.nx+','+p.grid.ny:''}${p.error?'<br>'+escape(p.error):''}</div>${route.demo?'':`<button type="button" class="road-button" data-road="${i}" aria-pressed="false">${route?.travelMode==='walking'?'보행 구간 살펴보기':'도로 구간 살펴보기'} ↗</button>`}<button type="button" class="detail-button" data-card="${i}">이 구간 안내 듣기 ↗</button></article>`;}).join('');document.querySelectorAll('[data-road]').forEach(b=>b.onclick=()=>selectRoad(Number(b.dataset.road)));document.querySelectorAll('[data-card]').forEach(b=>b.onclick=()=>{const p=list[Number(b.dataset.card)];const a=p.demoHazard?{text:p.demoHazard.measure+' · '+p.demoHazard.description}:p.event?{text:p.event}:assess(p.forecast);reply(p.label+', '+fmt(p.eta)+' 예상 통과. '+a.text,true);});$('weatherStatus').textContent=route.demo?'시연 기상정보':!list.some(p=>p.forecast)?'기상 자료 조회 실패':weather.provider==='kma'?'기상청 격자 예보':'Open-Meteo 예보';$('weatherDetail').textContent=route.demo?'실제 기상자료 아님':list.some(p=>p.forecast)?'모델 예보 · 조회 '+fmt(weather.fetchedAt):'조회 실패 · 추가 확인 필요';}
+function renderActualRoute(){const pts=projectRoute(route.vertices||[]),ns='http://www.w3.org/2000/svg',svg=$('actualRoute');svg.replaceChildren();if(!pts.length)return;const line=document.createElementNS(ns,'path');line.setAttribute('d',pts.map((p,i)=>(i?'L':'M')+p.x.toFixed(2)+' '+p.y.toFixed(2)).join(' '));line.setAttribute('class','actual-road-line');svg.append(line);[pts[0],pts[pts.length-1]].forEach((p,i)=>{const c=document.createElementNS(ns,'circle');c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r',i?'8':'6');c.setAttribute('class','route-endpoint');svg.append(c);});const label=document.createElementNS(ns,'text');label.setAttribute('x','24');label.setAttribute('y','466');label.setAttribute('class','route-vector-label');label.textContent=(route?.travelMode==='walking'?(route.provider==='TMAP'?'TMAP 실제 보행 경로 형상':'카카오맵 실제 보행 경로 형상'):'카카오모빌리티 실제 자동차 경로 형상')+' · 배경지도 아님';svg.append(label);if(selectedSample!==null){const sample=route.samples[selectedSample],section=roadSection(route.vertices,sample).map(p=>pts[route.vertices.indexOf(p)]);const focus=document.createElementNS(ns,'path');focus.setAttribute('d',section.map((p,i)=>(i?'L':'M')+p.x.toFixed(2)+' '+p.y.toFixed(2)).join(' '));focus.setAttribute('class','selected-road-line');svg.append(focus);}}
+function selectRoad(i){const p=route?.samples?.[i];if(!p||route.demo)return;selectedSample=i;$('roadInspector').hidden=false;$('roadName').textContent=p.label;$('roadInfo').textContent=fmt(p.eta)+' 예상 통과 · '+p.lat.toFixed(5)+', '+p.lng.toFixed(5)+' · 예보는 '+(route?.travelMode==='walking'?'보행로':'도로')+' 현장 측정값이 아닙니다.';document.querySelectorAll('[data-road]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.road)===i)));focusRoad();$('roadInspector').scrollIntoView({behavior:'smooth',block:'nearest'});}
 function clearFocus(){kfocus?.setMap(null);ksection?.setMap(null);kfocus=null;ksection=null;if(lfocus&&lmap)lmap.removeLayer(lfocus);if(lsection&&lmap)lmap.removeLayer(lsection);lfocus=null;lsection=null;}
 function focusRoad(){clearFocus();if(route)renderActualRoute();if(selectedSample===null||route?.demo)return;const p=route?.samples?.[selectedSample];if(!p)return;const section=roadSection(route.vertices,p);
  if((activeMap==='kakao'||activeMap==='skyview')&&kmap){kmap.setLevel(4);kmap.setCenter(new kakao.maps.LatLng(p.lat,p.lng));kfocus=new kakao.maps.Marker({map:kmap,position:new kakao.maps.LatLng(p.lat,p.lng)});ksection=new kakao.maps.Polyline({map:kmap,path:section.map(x=>new kakao.maps.LatLng(x.lat,x.lng)),strokeWeight:9,strokeColor:'#dc9f40'});}
@@ -844,7 +1298,7 @@ function drawDemoOverlays(){
   marker.className='hazard-pin sunny-demo-pin'+(h.breaking?' sunny-demo-breaking-pin':'');marker.title=h.title+' · 상세보기';
   marker.setAttribute('aria-label',h.title+' 상세보기');
   const icon=document.createElement('span');icon.textContent=h.icon;
-  const label=document.createElement('small');label.textContent=({rain:'강수',fog:'안개',flood:'침수',warning:'특보'})[h.kind]||'위험';
+  const label=document.createElement('small');label.textContent=({rain:'강수',fog:'안개',flood:'침수',warning:'특보'})[h.kind]||'위험';if(route.demoWalking)label.textContent=({slip:'빗길',hotspot:'사고 주의',heat:'무더위'})[h.kind]||label.textContent;
   marker.append(icon,label);
   const explain=()=>{
    const panel=drivingUI.isActive()?$('sunnyDriveHazardDetail'):$('navRouteHazardDetail');
@@ -854,15 +1308,285 @@ function drawDemoOverlays(){
   marker.addEventListener('click',explain);
   add(h,marker,explain);
  }
- carOverlay=add(route.rainPath?.[0]||route.vertices[0],'<div class="car-pin" aria-label="시연 자동차">🚙</div>');
+ carOverlay=add(route.rainPath?.[0]||route.vertices[0],route.demoWalking?'<div class="car-pin" aria-label="시연 보행자">🚶</div>':'<div class="car-pin" aria-label="시연 자동차">🚙</div>');
 }
-function moveCar(){if(route?.vertices?.length){const p=route.demo?demoPointAtSeconds(route.rainPath,route.duration*progress/100):pointAlong(route.vertices,progress/100);if(carOverlay?.setPosition)carOverlay.setPosition(new kakao.maps.LatLng(p.lat,p.lng));else if(carOverlay?.setLatLng)carOverlay.setLatLng([p.lat,p.lng]);if(activeMap==='schematic'){let car=$('vectorCar');if(!car){car=document.createElementNS('http://www.w3.org/2000/svg','text');car.id='vectorCar';car.textContent='🚙';car.setAttribute('font-size','30');$('actualRoute').append(car);}const points=projectRoute(route.vertices),nearest=route.vertices.reduce((best,v,i)=>Math.hypot(v.lat-p.lat,v.lng-p.lng)<Math.hypot(route.vertices[best].lat-p.lat,route.vertices[best].lng-p.lng)?i:best,0);car.setAttribute('x',points[nearest].x-15);car.setAttribute('y',points[nearest].y+10);}return;}const path=$('routeLine'),point=path.getPointAtLength(path.getTotalLength()*progress/100);$('carMarker').setAttribute('transform',`translate(${point.x},${point.y})`);}
+function moveCar(){if(route?.vertices?.length){const p=route.demo?demoPointAtSeconds(route.rainPath,route.duration*progress/100):pointAlong(route.vertices,progress/100);if(carOverlay?.setPosition)carOverlay.setPosition(new kakao.maps.LatLng(p.lat,p.lng));else if(carOverlay?.setLatLng)carOverlay.setLatLng([p.lat,p.lng]);if(activeMap==='schematic'){let car=$('vectorCar');if(!car){car=document.createElementNS('http://www.w3.org/2000/svg','text');car.id='vectorCar';car.textContent=route.demoWalking?'🚶':'🚙';car.setAttribute('font-size','30');$('actualRoute').append(car);}const points=projectRoute(route.vertices),nearest=route.vertices.reduce((best,v,i)=>Math.hypot(v.lat-p.lat,v.lng-p.lng)<Math.hypot(route.vertices[best].lat-p.lat,route.vertices[best].lng-p.lng)?i:best,0);car.textContent=route.demoWalking?'🚶':'🚙';car.setAttribute('x',points[nearest].x-15);car.setAttribute('y',points[nearest].y+10);}return;}const path=$('routeLine'),point=path.getPointAtLength(path.getTotalLength()*progress/100);$('carMarker').setAttribute('transform',`translate(${point.x},${point.y})`);}
 // Inject an entirely new event into an already running fictional journey.
 // No remote weather-warning request or actual public alert is generated.
+// Explicitly fictional reroute UI. Do not substitute an unverified road
+// geometry or claim a real safe alternative was calculated by Kakao.
+let demoDetourAutoTimer=null,demoDetourHideTimer=null,demoDetourPending=false;
+const demoAnnounced=new Set();
+function clearDemoDetourPopup(){
+ clearTimeout(demoDetourAutoTimer);clearTimeout(demoDetourHideTimer);
+ demoDetourAutoTimer=null;demoDetourHideTimer=null;demoDetourPending=false;
+ if($('sunnyDemoDetourPopup'))$('sunnyDemoDetourPopup').hidden=true;
+ if($('sunnyDemoDetourYes'))$('sunnyDemoDetourYes').onclick=null;
+ if($('sunnyDemoDetourNo'))$('sunnyDemoDetourNo').onclick=null;
+}
+function demoDetourStatus(title,description,showChoices=false){
+ $('sunnyDemoDetourPopup').hidden=false;
+ $('sunnyDemoDetourTitle').textContent=title;
+ $('sunnyDemoDetourDescription').textContent=description;
+ $('sunnyDemoDetourChoices').hidden=!showChoices;
+ if(showChoices){$('sunnyDemoDetourYes').textContent='예 · 우회 탐색';$('sunnyDemoDetourNo').textContent='아니오';}
+}
+function finishDemoDetourPopup(trip,resumePlayback){
+ demoDetourHideTimer=setTimeout(()=>{
+  if(route!==trip&&!route?.demoDetourSelected)return;
+  $('sunnyDemoDetourPopup').hidden=true;
+  demoDetourPending=false;
+  if(resumePlayback&&route?.demo&&progress<100&&drivingUI.isActive())startDemoPlayback();
+ },3000);
+}
+async function chooseDemoDetourYes(trip,resumePlayback){
+ if(demoDetourPending)return;
+ clearTimeout(demoDetourAutoTimer);demoDetourPending=true;
+ const synthetic=!!trip.syntheticRiskDemo;
+ const alertPoint=synthetic?trip.syntheticFloodSignal:trip.demoBreakingWarning;
+ const target=synthetic?destPlace:DEMO_SEOUL_BUSAN.destination;
+ demoDetourStatus('카카오 우회경로 비교 중…',synthetic?'Risk Engine이 표시한 가상 침수 지점을 피하는 실제 도로 후보를 확인합니다.':'구미 특보지점에서 벗어나는 도로 경로 후보의 거리와 예상 시간을 비교합니다.');
+ try{
+  const current=demoPointAtSeconds(trip.rainPath,trip.duration*progress/100);
+  if(!current)throw Error('현재 시연 차량 위치가 없습니다.');
+  const departure=new Date().toISOString();
+  let candidates,chosen;
+  if(synthetic){
+   const report=await searchSyntheticDetour({trip,current,destination:target,
+    query:params=>api('/api/route',params),isCurrent:()=>route===trip&&drivingUI.isActive(),
+    onProgress:(name,count)=>{demoDetourStatus('우회경로 탐색 중',name+' 후보 조회 · '+count+'개 도로 확인');dummyUI.brief('우회 탐색: '+name);}});
+   if(report.canceled)return;
+   candidates=report.attempts;trip.syntheticDetourAttempts=report.attempts;chosen=report.chosen;
+  }else{
+   const queryCandidate=async candidate=>({candidate,route:await api('/api/route',{
+    origin:{name:'구미 접근 중 · 시연 차량',lat:current.lat,lng:current.lng},destination:target,
+    waypoints:candidate.waypoints,travelMode:'driving',departure})});
+   candidates=await Promise.allSettled(DEMO_DETOUR_CANDIDATES.map(queryCandidate));
+   if(route!==trip||!drivingUI.isActive())return;
+   const validRoadCandidates=candidates.filter(item=>item.status==='fulfilled').map(item=>item.value).filter(item=>item.route?.travelMode==='driving'&&item.route?.mode==='driving'&&item.route?.rainPath?.length>1);
+   chosen=selectOptimalDemoDetour(validRoadCandidates,trip.demoBreakingWarning);
+  }
+  if(synthetic&&!chosen&&candidates.length&&candidates.every(c=>c.status==='request-failed'))throw Error('경로 API 응답 실패 · '+candidates[0].reason);
+  if(!chosen)
+   throw Error(synthetic?'가상 침수 지점과 충분히 떨어지는 실제 도로 후보를 찾지 못했습니다. 기존 경로를 안전하다고 판단하지 않고 안내를 중단합니다.':'위험 구간에서 3km 이상 떨어지는 실제 도로 우회경로를 찾지 못했습니다. 기존 경로를 안전하다고 판단하지 않고 안내를 중단합니다.');
+  const result=chosen.route,clearance=chosen.clearance;
+  const samples=[];
+  const updated={...result,demo:true,syntheticRiskDemo:synthetic,dummyScenario:trip.dummyScenario,syntheticEventCount:trip.syntheticEventCount||0,demoWalking:synthetic&&trip.travelMode==='walking',demoWarningIssued:true,
+   syntheticAlertIssued:true,demoDetourSelected:true,demoHazards:[],syntheticRiskHazards:[],
+   samples,demoDetourClearanceMeters:Math.round(clearance),
+   demoArchivedHazards:trip.demoHazards||[],demoBreakingWarning:trip.demoBreakingWarning,
+   syntheticArchivedSignals:trip.syntheticRiskHazards||[]};
+  const clearFixture=synthetic?makeSyntheticRiskFixture(updated,'clear'):null;
+  if(clearFixture)updated.samples=clearFixture.route.samples;
+  // Replace the actual provider polyline, timeline, vehicle path and map line.
+  route=updated;weather=synthetic?{...clearFixture,source:SYNTHETIC_RISK_SOURCE+' · 우회 뒤 새 경로 자료',fetchedAt:new Date().toISOString()}:
+   {samples,source:'우회경로 시연 · 가상 기상 이벤트',fetchedAt:new Date().toISOString()};
+  progress=0;gate.reset();demoAnnounced.add('rain');demoAnnounced.add('breaking-warning');
+  $('progress').value='0';$('driveStatus').textContent='0%';
+  $('distance').innerHTML=(updated.distance/1000).toFixed(1)+'<small> km</small>';
+  $('duration').innerHTML=Math.round(updated.duration/60)+'<small> 분</small>';
+  $('arrival').textContent=fmt(new Date(Date.parse(updated.departure)+updated.duration*1000));
+  $('mapTitle').textContent=synthetic?'가상 침수경보 회피 · 실제 도로 우회경로':'카카오 조회 우회경로 · 시연';
+  renderActualRoute();renderCards();
+  drivingUI.start(route,weather);drivingUI.update(0,null,false);
+  if(vectorDriving.isActive()){
+   vectorDriving.setRoute(route);vectorDriving.refreshHazards(route.demoHazards);
+   demoVectorCourse=null;vectorDriving.update(route.rainPath[0],demoCourseAt(0),appPrefs.headingMode,false);
+  }
+  await showMap('kakao',{preserveCamera:true});
+  if(route!==updated||!drivingUI.isActive())return;
+  drawDemoOverlays();moveCar();
+  if(synthetic)dummyUI.brief('우회경로 선택 완료 · 안내 계속',{action:'reroute',candidate:chosen.candidate,attempts:trip.syntheticDetourAttempts,profile:chosen.engineCheck?.profile,clearance,route:{rainPath:updated.rainPath,duration:updated.duration,distance:updated.distance}});
+  demoDetourStatus(synthetic?'Risk Engine 권고 우회경로 선택':'최적 우회 후보 선택 완료',
+   'Risk Engine 대안 확인 '+(chosen.engineCheck?chosen.engineCheck.profile.coveredSamples+'/'+chosen.engineCheck.profile.totalSamples+' 지점 · 경로상 경보 신호 '+chosen.engineCheck.profile.signalCount+'건':'')+
+    ' · 실제 '+(synthetic&&trip.travelMode==='walking'?'보행':'차량')+' 경로 후보 '+candidates.length+'개 비교 · '+chosen.candidate.label+' · 남은 '+(updated.distance/1000).toFixed(1)+'km · 약 '+Math.round(updated.duration/60)+'분 · 가상 경보지점에서 약 '+(clearance/1000).toFixed(1)+'km 거리');
+  if(synthetic)reply('위험 구간을 피하는 '+(trip.travelMode==='walking'?'보행':'차량')+' 경로를 찾았습니다. '+destPlace.name+'까지 남은 거리 '+(updated.distance/1000).toFixed(1)+'킬로미터, 약 '+Math.round(updated.duration/60)+'분입니다.',appPrefs.voiceAlerts);
+  finishDemoDetourPopup(updated,resumePlayback);
+ }catch(error){
+  if(route!==trip||!drivingUI.isActive())return;
+  if(trip.syntheticRiskDemo)dummyUI.brief('우회경로 재탐색 필요 · 이동 대기',{action:'wait',attempts:trip.syntheticDetourAttempts,error:String(error?.message||'')});
+  demoDetourStatus('우회경로 탐색 실패',
+   '검증된 우회경로가 없어 주행 시연을 정지했습니다. 기존 경로가 안전하다는 뜻이 아닙니다. '+String(error?.message||'도로 경로 정보를 확인할 수 없습니다.'));
+  if(synthetic){
+   demoDetourPending=false;$('sunnyDemoDetourChoices').hidden=false;
+   $('sunnyDemoDetourYes').textContent='다시 탐색';$('sunnyDemoDetourYes').onclick=()=>void chooseDemoDetourYes(trip,resumePlayback);
+   $('sunnyDemoDetourNo').textContent='대기';$('sunnyDemoDetourNo').onclick=()=>clearDemoDetourPopup();
+  }else finishDemoDetourPopup(trip,false);
+ }
+}
+function simulateDemoDetourSelection(){
+ const trip=route,popup=$('sunnyDemoDetourPopup');
+ if(!trip?.demo||!popup||!drivingUI.isActive())return;
+ clearDemoDetourPopup();
+ const resumePlayback=playing;
+ if(resumePlayback)pauseDrive();
+ demoDetourStatus(trip.syntheticRiskDemo?'새 더미자료 수신 · 폭우와 침수경보':'구미 부근 긴급 호우특보 발생',
+  trip.syntheticRiskDemo?'Risk Engine 2.0이 '+(trip.syntheticRiskProfile?.signalCount||0)+'개 위험 신호와 상대지수 '+(trip.syntheticRiskProfile?.signalIndex||0)+'을 평가했습니다. 폭우·침수 더미 지점을 피하는 실제 도로 후보를 비교합니다. (시연 자동 선택)':'호우특보 구간을 피해 우회경로를 탐색하시겠습니까? (시연에서는 예 자동 선택)',true);
+ $('sunnyDemoDetourYes').onclick=()=>{void chooseDemoDetourYes(trip,resumePlayback);};
+ $('sunnyDemoDetourNo').onclick=()=>{
+  clearTimeout(demoDetourAutoTimer);
+  demoDetourStatus('우회경로를 선택하지 않았습니다','기존 도로 경로를 유지합니다. 실제 도로 위험은 별도로 확인하세요.');
+  finishDemoDetourPopup(trip,resumePlayback);
+ };
+ // Show both choices to the presenter, then simulate tapping 'Yes'.
+ demoDetourAutoTimer=setTimeout(()=>{
+  if(route===trip&&drivingUI.isActive()&&!popup.hidden)$('sunnyDemoDetourYes')?.click();
+ },1600);
+}
+// Demonstration-only emergency choice; maps use verified POI and TMAP geometry.
+let walkHeatAutoTimer=null,walkHeatHideTimer=null,walkHeatPending=false;
+function clearWalkHeatPopup(){
+ clearTimeout(walkHeatAutoTimer);clearTimeout(walkHeatHideTimer);
+ walkHeatAutoTimer=null;walkHeatHideTimer=null;walkHeatPending=false;
+ if($('sunnyWalkHeatPopup'))$('sunnyWalkHeatPopup').hidden=true;
+ if($('sunnyWalkHeatYes'))$('sunnyWalkHeatYes').onclick=null;
+ if($('sunnyWalkHeatNo'))$('sunnyWalkHeatNo').onclick=null;
+}
+function walkHeatStatus(title,description,choices=false){
+ $('sunnyWalkHeatPopup').hidden=false;
+ $('sunnyWalkHeatTitle').textContent=title;
+ $('sunnyWalkHeatDescription').textContent=description;
+ $('sunnyWalkHeatChoices').hidden=!choices;
+}
+function showWalkingHeatDecision(trip){
+ if(!trip?.demoWalking||trip.demoShelterRerouted)return;
+ pauseDrive();
+ walkHeatStatus('☀️ 무더위 위험 발생','무더위가 심해지고 있습니다. 가까운 무더위쉼터로 이동하시겠습니까?',true);
+ $('sunnyWalkHeatYes').onclick=()=>void chooseWalkingShelterYes(trip);
+ $('sunnyWalkHeatNo').onclick=()=>{clearWalkHeatPopup();if(route===trip&&drivingUI.isActive())startDemoPlayback();};
+ walkHeatAutoTimer=setTimeout(()=>{
+  if(route===trip&&drivingUI.isActive()&&!$('sunnyWalkHeatPopup').hidden)$('sunnyWalkHeatYes').click();
+ },1800);
+}
+async function chooseWalkingShelterYes(trip){
+ if(walkHeatPending||route!==trip)return;
+ clearTimeout(walkHeatAutoTimer);walkHeatPending=true;pauseDrive();
+ walkHeatStatus('무더위쉼터로 경로 변경 중…','현재 보행 위치에서 TMAP 보행자 경로를 새로 조회합니다. 목적지 쉼터는 시연용 지정 좌표입니다.');
+ try{
+  const current=demoPointAtSeconds(trip.rainPath,trip.duration*progress/100);
+  if(!current)throw Error('현재 보행자 좌표가 없습니다.');
+  const shelter={name:WALK_DEMO_SHELTER.name,lat:WALK_DEMO_SHELTER.lat,lng:WALK_DEMO_SHELTER.lng};
+  const next=await api('/api/route',{origin:{...current,name:'현재 보행 위치'},destination:shelter,
+   departure:new Date().toISOString(),travelMode:'walking',walkingPriority:'BROAD_FIRST'});
+  if(next.travelMode!=='walking'||next.mode!=='walking'||next.provider!=='TMAP'||
+    !next.rainPath?.length||!next.vertices?.length)
+   throw Error('쉼터까지 실제 TMAP 도보 경로를 확인하지 못했습니다.');
+  if(route!==trip||!drivingUI.isActive())return;
+  const changed={...next,demo:true,demoWalking:true,demoShelterRerouted:true,demoWarningIssued:true,
+   demoHazards:[],samples:[],demoBreakingWarning:null};
+  route=changed;originPlace={name:'현재 보행 위치(가상)',lat:current.lat,lng:current.lng};
+  destPlace={name:WALK_DEMO_SHELTER.name,lat:WALK_DEMO_SHELTER.lat,lng:WALK_DEMO_SHELTER.lng};
+  $('origin').value=originPlace.name;$('destination').value=destPlace.name;studioSync();
+  weather={samples:[],source:'무더위 상황 가상 재현 · 실제 쉼터 운영정보 아님',fetchedAt:new Date().toISOString()};
+  progress=0;gate.reset();demoAnnounced.clear();$('progress').value='0';
+  $('driveStatus').textContent='무더위쉼터 새 경로 · 0%';
+  renderRoute();renderCards();
+  drivingUI.start(route,weather);drivingUI.update(0,null,false);
+  if(vectorDriving.isActive()){
+   vectorDriving.setRoute(route);vectorDriving.refreshHazards([]);
+   demoVectorCourse=null;vectorDriving.update(route.rainPath[0],demoCourseAt(0),appPrefs.headingMode,false);
+  }
+  await showMap('kakao');
+  if(route!==changed||!drivingUI.isActive())return;
+  walkHeatStatus('무더위쉼터로 목적지 변경 완료',
+   '현재 위치부터 TMAP 도보 경로 '+(next.distance/1000).toFixed(1)+'km, 약 '+Math.round(next.duration/60)+'분. 목적지는 시연용 지정 좌표이며 쉼터 운영 여부는 미확인입니다.');
+  walkHeatHideTimer=setTimeout(()=>{
+   if(route!==changed||!drivingUI.isActive())return;
+   clearWalkHeatPopup();reply('목적지를 가까운 무더위쉼터로 변경했습니다. 새로운 경로로 안내합니다.',appPrefs.voiceAlerts);startDemoPlayback();
+  },2300);
+ }catch(error){
+  if(route!==trip||!drivingUI.isActive())return;
+  walkHeatStatus('쉼터 경로 확인 실패','쉼터까지 실제 TMAP 도보 경로를 확인하지 못해 이동 시연을 정지했습니다. 기존 경로가 안전하다는 뜻이 아닙니다. '+String(error?.message||'도보 경로 조회 실패'));
+  walkHeatHideTimer=setTimeout(()=>{
+   if(route===trip&&drivingUI.isActive())clearWalkHeatPopup();
+  },2500);
+ }
+}
+function injectWalkingDemoWarning(){
+ if(!route?.demoWalking||route.demoWarningIssued||!drivingUI.isActive())return false;
+ const hazard=makeWalkingDemoBreakingWarning(route);
+ route.demoBreakingWarning=hazard;route.demoWarningIssued=true;
+ route.demoHazards=[...route.demoHazards,hazard].sort((a,b)=>a.seconds-b.seconds);
+ const sample={...hazard,status:'demo',demoHazard:hazard,forecast:null};
+ route.samples=[...(route.samples||[]),sample].sort((a,b)=>a.seconds-b.seconds);
+ weather={...weather,samples:route.samples};
+ renderCards();drawDemoOverlays();moveCar();drivingUI.render();
+ const ahead=walkingDemoAheadMeters(route,progress,hazard);
+ const notice=walkingDemoSpokenWarning(hazard,ahead??100);
+ if(notice)reply(notice,appPrefs.voiceAlerts);
+ showWalkingHeatDecision(route);
+ return true;
+}
+async function offerDummyShelter(trip){
+ const resume=playing;pauseDrive();clearDemoDetourPopup();
+ demoDetourStatus('고온 주의 · 가까운 쉼터 후보 확인','실제 장소검색 결과를 조회합니다. 운영 여부는 별도 확인이 필요합니다.');
+ try{
+  const current=demoPointAtSeconds(trip.rainPath,trip.duration*progress/100);
+  const result=await api('/api/search',{query:'무더위쉼터'});
+  if(route!==trip||!drivingUI.isActive())return;
+  const places=(result.places||[]).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng)&&segmentMeters(current,p)<=3000)
+   .sort((a,b)=>segmentMeters(current,a)-segmentMeters(current,b));
+  const shelter=places[0];
+  if(!shelter){dummyUI.brief('가까운 쉼터 후보 미확인 · 고온 주의 안내 유지');demoDetourStatus('쉼터 후보 미확인','3km 이내 실제 검색 결과가 없습니다. 휴식 장소를 직접 확인해주세요.');finishDemoDetourPopup(trip,resume);return;}
+  dummyUI.brief('쉼터 후보 확인: '+shelter.name+' · 운영 미확인',{place:shelter});
+  demoDetourStatus('고온 주의 · 쉼터로 목적지 변경',shelter.name+'까지 실제 도보 경로를 조회할까요? 쉼터 운영·개방 여부는 확인되지 않았습니다.',true);
+  $('sunnyDemoDetourYes').textContent='예 · 쉼터 경로';$('sunnyDemoDetourNo').onclick=()=>{clearDemoDetourPopup();dummyUI.brief('쉼터 이동 보류 · 경로 유지');if(resume)startDemoPlayback();};
+  $('sunnyDemoDetourYes').onclick=async()=>{
+   $('sunnyDemoDetourYes').disabled=true;
+   try{
+    const next=await api('/api/route',{origin:{...current,name:'현재 가상 보행 위치'},destination:shelter,departure:new Date().toISOString(),travelMode:'walking',walkingPriority:'BROAD_FIRST'});
+    if(route!==trip||!drivingUI.isActive())return;
+    if(next.provider!=='TMAP'||next.travelMode!=='walking'||next.mode!=='walking')throw Error('TMAP 실제 보행 경로를 확인하지 못했습니다.');
+    const fixture=makeSyntheticRiskFixture({...next,demo:true,syntheticRiskDemo:true,dummyScenario:trip.dummyScenario,syntheticEventCount:trip.syntheticEventCount||0},'clear');
+    route={...fixture.route,demo:true,demoWalking:true,demoDetourSelected:true,syntheticAlertIssued:true,demoWarningIssued:true,demoHazards:[],syntheticRiskHazards:[]};
+    originPlace={...current,name:'현재 가상 보행 위치'};destPlace=shelter;weather={...fixture,fetchedAt:new Date().toISOString()};
+    progress=0;gate.reset();renderRoute();renderCards();drivingUI.start(route,weather);
+    if(vectorDriving.isActive()){vectorDriving.setRoute(route);vectorDriving.refreshHazards([]);}
+    await showMap('kakao',{preserveCamera:true});drawDemoOverlays();moveCar();clearDemoDetourPopup();
+    dummyUI.brief('쉼터로 목적지 변경 · 도보 안내 계속',{action:'destination-change',destination:shelter,route:next});if(resume)startDemoPlayback();
+   }catch(e){if(route===trip){dummyUI.brief('쉼터 경로 조회 실패',{error:e.message});demoDetourStatus('쉼터 경로 미확인',e.message);finishDemoDetourPopup(trip,false);}}
+   finally{$('sunnyDemoDetourYes').disabled=false;$('sunnyDemoDetourYes').textContent='예 · 우회 탐색';}
+  };
+ }catch(e){if(route===trip){dummyUI.brief('쉼터 검색 실패',{error:e.message});demoDetourStatus('쉼터 검색 실패',e.message);finishDemoDetourPopup(trip,resume);}}
+}
+function nextSyntheticTrigger(trip){
+ if(Array.isArray(trip?.dummyScenario?.emergencies))return trip.dummyScenario.emergencies[trip.syntheticEventCount||0]?.trigger??null;
+ return trip?.syntheticAlertIssued?null:trip?.dummyScenario?.trigger||SYNTHETIC_RISK_TRIGGER;
+}
+function injectSyntheticRiskWarning(){
+ if(!route?.syntheticRiskDemo||(route.dummyScenario?.emergencies? (route.syntheticEventCount||0)>=route.dummyScenario.emergencies.length:route.syntheticAlertIssued)||!drivingUI.isActive())return false;
+ const activeRoute=route;
+ try{
+  const fixture=makeSyntheticRiskFixture({...activeRoute,syntheticEventCount:(activeRoute.syntheticEventCount||0)+1},'alert'),profile=fixture.profile;
+  dummyUI.brief('API 자료 수신(더미)',{input:fixture.weatherSamples,signals:fixture.inputSignals});
+  Object.assign(activeRoute,fixture.route,{demo:true,demoRiskEngine:true,syntheticAlertIssued:true,demoWarningIssued:true,
+   syntheticEventCount:(activeRoute.syntheticEventCount||0)+1,syntheticRiskPhase:'alert',syntheticRiskHazards:fixture.signals,demoHazards:fixture.signals,syntheticRiskProfile:profile,
+   syntheticFloodSignal:fixture.signals.find(h=>h.kind==='warning')||null});
+  weather={...fixture,source:SYNTHETIC_RISK_SOURCE+' · 이동 중 새로 수신',fetchedAt:new Date().toISOString()};
+  renderCards();drawDemoOverlays();moveCar();renderRouteHazards();drivingUI.setWeather(weather);
+  dummyUI.brief(profile.state==='evaluated'?'경로·시각 검증 완료':'자료 검증 불충분',{profile});
+  if(syntheticRiskRecommendsDetour(profile,fixture.signals)){
+   dummyUI.brief('엔진 판단: 우회 권고',{decision:'reroute',profile});
+   reply('전방 폭우와 침수경보 위험이 확인되었습니다. 우회경로를 비교합니다.',appPrefs.voiceAlerts);
+   dummyUI.brief('우회 후보 비교 중');simulateDemoDetourSelection();
+  }else if(profile.state!=='evaluated'){
+   dummyUI.brief('엔진 판단: 자료 부족 · 판정 보류',{decision:'abstain',profile});
+   reply('자료가 부족하여 위험판단을 보류합니다. 안전하다는 뜻은 아닙니다.',appPrefs.voiceAlerts);
+  }else if(profile.signals.some(h=>h.kind==='heat'&&h.assessment?.level==='caution')){
+   dummyUI.brief('엔진 판단: 고온 주의 · 대피 검토',{decision:'heat-advisory',profile});
+   reply('고온 위험이 예상됩니다. 휴식과 가까운 쉼터 이동을 검토하세요.',appPrefs.voiceAlerts);
+   if(activeRoute.travelMode==='walking')void offerDummyShelter(activeRoute);
+  }else{
+   dummyUI.brief('엔진 판단: 주의 안내 · 경로 유지',{decision:'advisory',profile});
+   reply('수신된 더미자료를 평가했습니다. 우회 조건에 해당하지 않아 경로를 유지합니다.',appPrefs.voiceAlerts);
+  }
+  return true;
+ }catch(error){dummyUI.brief('자료 처리 오류 · 판정 보류',{error:String(error?.message||'')});return false;}
+}
 function injectDemoBreakingWarning(){
  if(!route?.demo||route.demoBreakingWarning||!drivingUI.isActive())return false;
  const hazard=makeDemoBreakingWarning(route);
- route.demoBreakingWarning=hazard;
+ route.demoBreakingWarning=hazard;route.demoWarningIssued=true;
  route.demoHazards=[...route.demoHazards,hazard].sort((a,b)=>a.seconds-b.seconds);
  const sample={...hazard,status:'demo',demoHazard:hazard,forecast:null};
  route.samples=[...(route.samples||[]),sample].sort((a,b)=>a.seconds-b.seconds);
@@ -870,12 +1594,26 @@ function injectDemoBreakingWarning(){
  renderCards();
  drawDemoOverlays();moveCar();
  drivingUI.render();
- reply('긴급 기상특보가 발효됐습니다. 전방 '+hazard.label+
-  '에 호우 위험정보가 추가됐습니다. 속도를 줄이고 주의하세요.',appPrefs.voiceAlerts);
+ const aheadMeters=demoDistanceMeters(route.rainPath,route.duration*progress/100,hazard.seconds);
+ reply(demoSpokenWarning(hazard,aheadMeters??0)||'전방에 강한 비 주의입니다.',appPrefs.voiceAlerts);
+ simulateDemoDetourSelection();
  return true;
 }
 function resetDemoBreakingWarning(){
+ clearDemoDetourPopup();clearWalkHeatPopup();
+ demoAnnounced.clear();
  if(!route?.demo)return;
+ if(route.syntheticRiskDemo){
+  const fixture=makeSyntheticRiskFixture(route,'initial');
+  Object.assign(route,fixture.route,{demo:true,demoRiskEngine:true,syntheticAlertIssued:false,
+   demoWarningIssued:false,demoDetourSelected:false,syntheticRiskPhase:'initial',
+   syntheticRiskHazards:fixture.signals,demoHazards:fixture.signals,syntheticFloodSignal:null,
+   syntheticEventCount:0,syntheticRiskProfile:fixture.profile});
+  weather={...fixture,source:SYNTHETIC_RISK_SOURCE+' · 최초 더미 예보',fetchedAt:new Date().toISOString()};
+  renderCards();drawDemoOverlays();moveCar();renderRouteHazards();drivingUI.setWeather(weather);drivingUI.render();
+  return;
+ }
+ route.demoDetourSelected=false;route.demoWarningIssued=false;
  route.demoBreakingWarning=null;
  route.demoHazards=(route.demoHazards||[]).filter(h=>!h.breaking);
  route.samples=(route.samples||[]).filter(s=>!s.breaking);
@@ -895,21 +1633,33 @@ function advance(value){
  const elapsed=route.duration*progress/100;
  if(drivingUI.isActive())drivingUI.update(elapsed,null,false);
  // Place new warning on the ahead-of-driver route only when it is issued mid-trip.
- const justIssued=shouldTriggerDemoBreakingWarning(previous,progress,!!route.demoBreakingWarning)
-  &&injectDemoBreakingWarning();
+ const justIssued=route.syntheticRiskDemo?
+  (nextSyntheticTrigger(route)!==null&&progress>=nextSyntheticTrigger(route)&&injectSyntheticRiskWarning()):
+  route.demoWalking?(!route.demoWarningIssued&&previous<WALK_DEMO_TRIGGER&&progress>=WALK_DEMO_TRIGGER&&injectWalkingDemoWarning()):
+  (!route.demoWarningIssued&&shouldTriggerDemoBreakingWarning(previous,progress,false,demoBreakingTiming(route).triggerPercent)
+  &&injectDemoBreakingWarning());
+ const syntheticNotices=[];
  for(const h of route.demoHazards||[]){
-  if(previous*route.duration/100<h.seconds&&elapsed>=h.seconds&&gate.take('demo:'+h.id) &&
-    !justIssued)
-   reply('전방 '+h.title+'. '+h.measure+'. '+h.description,appPrefs.voiceAlerts);
+  if(h.breaking||demoAnnounced.has(h.id))continue;
+  const warnAt=demoLeadSeconds(route.rainPath,h.seconds,route.demoWalking?500:3000);
+  if(previous*route.duration/100<=warnAt&&elapsed>=warnAt&&gate.take('demo:'+h.id) &&
+    !justIssued){
+   demoAnnounced.add(h.id);
+   const aheadMeters=demoDistanceMeters(route.rainPath,elapsed,h.seconds);
+   const speech=route.syntheticRiskDemo?syntheticSpokenWarning(h,aheadMeters??0):route.demoWalking?walkingDemoSpokenWarning(h,aheadMeters??90):demoSpokenWarning(h,aheadMeters??500);
+   if(speech){if(route.syntheticRiskDemo)syntheticNotices.push(speech);else reply(speech,appPrefs.voiceAlerts);}
+  }
  }
+ if(syntheticNotices.length)reply(syntheticNotices.join(' '),appPrefs.voiceAlerts);
  if(progress>=100){
+  if(route.syntheticRiskDemo)dummyUI.brief('목적지 도착 · 더미 시연 완료',{action:'arrived'});
   pauseDrive();$('driveStatus').textContent='시연 완료';
-  reply('부산시청에 도착했습니다. 주행 안내를 종료합니다.',appPrefs.voiceAlerts);
+  reply(route.syntheticRiskDemo?destPlace.name+'에 도착했습니다. 더미 시연을 마쳤습니다.':route.demoWalking?(route.demoShelterRerouted?'무더위쉼터에 도착했습니다.':'서울시청에 도착했습니다.'):'부산시청에 도착했습니다. 주행 안내를 종료합니다.',appPrefs.voiceAlerts);
  }
 }
 function pauseDrive(){
  clearInterval(timer);timer=null;playing=false;document.body.classList.remove('driving');
- if(route?.demo)$('drive').textContent='▷ 시연 재생';
+ if(route?.demo)$('drive').textContent=route.syntheticRiskDemo?'▷ 위험자료 시연 재생':route.demoWalking?'▷ 도보 시연 재생':'▷ 시연 재생';
  if($('sunnyDemoPause'))$('sunnyDemoPause').textContent='▶ 재생';
 }
 function startDemoPlayback(){
@@ -922,6 +1672,13 @@ function startDemoPlayback(){
 }
 function startDemoGuidance(){
  if(!route?.demo)return;
+ try{window.speechSynthesis?.resume?.();window.speechSynthesis?.getVoices?.();}catch{}
+ if(route.demoWalking&&route.demoShelterRerouted&&initialWalkingDemoRoute){
+  route=initialWalkingDemoRoute;originPlace={...WALK_DEMO.origin};destPlace={...WALK_DEMO.destination};
+  $('origin').value=originPlace.name;$('destination').value=destPlace.name;studioSync();
+  weather={samples:route.samples,source:'가상 기상 위험정보'};renderRoute();renderCards();
+ }
+ if(route.demoDetourSelected&&initialDemoRoute){route=initialDemoRoute;weather={samples:route.samples,source:'시연용 기상·도로위험 자료',fetchedAt:new Date().toISOString()};renderRoute();renderCards();}
  pauseDrive();rainGridOverlay.disableRouteRadar();
  // Clear previously issued synthetic warning when restarting a demo.
  resetDemoBreakingWarning();
@@ -934,19 +1691,43 @@ function startDemoGuidance(){
  $('driveControls').hidden=false;
  progress=0;gate.reset();advance(0);
  void showMap('kakao');
- reply('서울에서 부산까지 주행 안내를 시작합니다. 강수·안개·침수 위험 구간을 확인합니다.',appPrefs.voiceAlerts);
+ // Speak synchronously in the click handler to unlock iOS Safari speech synthesis.
+ if(!appPrefs.voiceAlerts)toast('음성안내가 꺼져 있습니다. 환경설정에서 음성안내를 켜주세요.');
+ else reply(route.syntheticRiskDemo?originPlace.name+'에서 '+destPlace.name+'까지 더미 시연을 시작합니다.':route.demoWalking?'도보 안내를 시작합니다. 전방의 빗길과 사고다발지역을 주의하세요.':'안내를 시작합니다. 이동 경로의 강수와 안개에 주의하세요.',true);
  startDemoPlayback();
 }
 $('sunnyDemoNext')?.addEventListener('click',()=>{
  if(!route?.demo)return;
  pauseDrive();
+ if(!$('sunnyDemoDetourPopup').hidden||route.demoDetourPending||!$('sunnyWalkHeatPopup').hidden||walkHeatPending)return;
+ if(route.syntheticRiskDemo){
+  if(nextSyntheticTrigger(route)!==null)advance(Math.min(100,Math.max(progress,nextSyntheticTrigger(route))+.02));
+  else{advance(100);toast('위험자료 시연의 도착 지점으로 이동했습니다.');}
+  return;
+ }
+ if(route.demoWalking){
+  if(route.demoShelterRerouted){advance(100);toast('무더위쉼터 도착 장면을 표시했습니다.');return;}
+  const elapsed=route.duration*progress/100;
+  const next=(route.demoHazards||[]).find(h=>!h.breaking&&!demoAnnounced.has(h.id));
+  const notice=next?demoLeadSeconds(route.rainPath,next.seconds,500):Infinity;
+  const trigger=route.demoWarningIssued?Infinity:route.duration*WALK_DEMO_TRIGGER/100;
+  if(trigger>elapsed+1&&trigger<notice)advance(Math.min(100,trigger/route.duration*100+.03));
+  else if(next&&notice>=elapsed)advance(Math.min(100,(notice+.01)/route.duration*100));
+  else if(!route.demoWarningIssued)advance(Math.min(100,WALK_DEMO_TRIGGER+.03));
+  else{advance(100);toast('도보 시연의 모든 위험 이벤트를 확인했습니다.');}
+  return;
+ }
  const elapsed=route.duration*progress/100;
- const next=(route.demoHazards||[]).find(h=>h.seconds>elapsed+1);
- const triggerAt=route.duration*DEMO_BREAKING_TRIGGER;
- // Step-by-step playback also automatically injects a new warning after fog.
- if(!route.demoBreakingWarning&&triggerAt>elapsed+1&&(!next||triggerAt<next.seconds))
-  advance(DEMO_BREAKING_TRIGGER*100+0.01);
- else if(next)advance(Math.min(100,(next.seconds/route.duration)*100+0.01));
+ const next=(route.demoHazards||[]).find(h=>!h.breaking&&!demoAnnounced.has(h.id));
+ const nextNotice=next?demoLeadSeconds(route.rainPath,next.seconds,3000):Infinity;
+ const triggerAt=route.demoWarningIssued?Infinity:demoBreakingTiming(route).triggerSeconds;
+ // The third and final demo event is the surprise warning and scripted detour.
+ if(!route.demoWarningIssued&&triggerAt>elapsed+1&&triggerAt<nextNotice)
+  advance(Math.min(100,triggerAt/route.duration*100+0.01));
+ else if(next&&nextNotice>=elapsed)
+  advance(Math.min(100,(nextNotice+.01)/route.duration*100));
+ else if(!route.demoWarningIssued)
+  advance(Math.min(100,triggerAt/route.duration*100+0.01));
  else{advance(100);toast('모든 위험 이벤트를 확인했습니다.');}
 });
 $('sunnyDemoPause')?.addEventListener('click',()=>{
@@ -958,12 +1739,13 @@ $('drive').onclick=()=>{
 };
 $('progress').oninput=e=>advance(Number(e.target.value));
 $('endDrive').onclick=()=>{
- pauseDrive();stopVoice();progress=0;gate.reset();
+ pauseDrive();stopVoice();progress=0;gate.reset();clearWalkHeatPopup();
  $('progress').value='0';moveCar();$('driveControls').hidden=true;
+ clearDemoDetourPopup();
  vectorDriving.stop();if(drivingUI.isActive())drivingUI.stop();
  $('sunnyDemoNext').hidden=true;$('sunnyDemoPause').hidden=true;
  showNavRouteResult();
- reply('주행 시연을 종료했어요.');
+ reply(route?.demoWalking?'도보 시연을 종료했어요.':'주행 시연을 종료했어요.');
 };
 document.addEventListener('visibilitychange',()=>{
  if(document.hidden&&playing){pauseDrive();stopVoice();$('driveStatus').textContent='화면이 닫혀 일시정지';}
@@ -1034,25 +1816,25 @@ async function showOpenStreetMap(){
   if(!osmMap){osmMap=L.map('osmMap',{zoomControl:false}).setView([36.5,127.8],7);osmMap.on('moveend',scheduleFlood);osmMap.on('moveend',kmaMapOverlay.schedule);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(osmMap);/* OSM zoom controls omitted; touch gestures work on Home. */osmMap.on('click',e=>mapClick({lat:e.latlng.lat,lng:e.latlng.lng}));}
   osmMap.invalidateSize();if(osmRoute){osmRoute.remove();osmRoute=null;}
   if(route?.vertices?.length){osmRoute=L.polyline(route.vertices.map(p=>[p.lat,p.lng]),{color:'#1768ed',weight:7}).addTo(osmMap);osmMap.fitBounds(osmRoute.getBounds(),{padding:[35,35]});}
-  else if(viewport)restoreMapViewport(viewport);updateFlood();kmaMapOverlay.schedule();roadRiskOverlay.repaint();warningOverlay.repaint();
+  else if(viewport)restoreMapViewport(viewport);updateFlood();kmaMapOverlay.schedule();roadRiskOverlay.repaint();warningOverlay.repaint();typeof walkingFacilities!=='undefined'&&walkingFacilities.repaint();typeof koroadHotspots!=='undefined'&&koroadHotspots.repaint();typeof taasPedestrianWms!=='undefined'&&taasPedestrianWms.repaint();
  }catch(e){if(run!==mapRun)return;notice('기본 도로지도 연결 실패: 네트워크 또는 지도 타일 접근을 확인해주세요.');$('osmMap').hidden=true;$('schematic').hidden=false;activeMap='schematic';}
 }
 async function showMap(type,{preserveCamera=false}={}){const keepKakaoCamera=preserveCamera&&type==='kakao'&&activeMap==='kakao'&&!!kmap;if(document.body.dataset.sunnyNav!=='home'&&type!=='kakao')type='kakao';const viewport=mapSwitchViewport||captureMapViewport();mapSwitchViewport=null;if(type==='osm'){mapSwitchViewport=viewport;return showOpenStreetMap();}$('osmMap').hidden=true;const run=++mapRun;activeMap=type;updateMobileMapLayer();await sessionPromise;if(run!==mapRun)return;clearDemoOverlays();clearFocus();const isKakao=type==='kakao'||type==='skyview';$('actualRoute').toggleAttribute('hidden',type!=='schematic'||!route);$('schematic').hidden=type!=='schematic'||!!route;$('kakaoMap').hidden=!isKakao;$('vworldMap').hidden=type!=='vworld';['schematic','kakao','vworld','skyview'].forEach(x=>$(x+'Toggle').setAttribute('aria-pressed',String(x===type)));notice(isKakao&&!kmap?'카카오맵을 연결하고 있습니다. 실제 지도를 불러오는 중입니다.':'');$('mapProvider').textContent=type==='schematic'?'도로 형상 · 배경지도 아님':type==='vworld'?'VWorld · 연결 중':type==='skyview'?'Kakao · 항공 배경':'Kakao · 도로 지도';
- if(type==='schematic'){rainGridOverlay.setMap(null);kmaMapOverlay.clear();roadRiskOverlay.clear();focusRoad();drawWeatherOverlays();drawDemoOverlays();moveCar();return;}
+ if(type==='schematic'){rainGridOverlay.setMap(null);gk2aOverlay.setMap(null);roadWeatherOverlay.setMap(null);kmaMapOverlay.clear();roadRiskOverlay.clear();focusRoad();drawWeatherOverlays();drawDemoOverlays();moveCar();typeof walkingFacilities!=='undefined'&&walkingFacilities.repaint();typeof koroadHotspots!=='undefined'&&koroadHotspots.repaint();typeof taasPedestrianWms!=='undefined'&&taasPedestrianWms.repaint();return;}
  // Demo mode has its own persistent disclaimer and labeled hazard markers; no map popup.
- try{if(isKakao){if(!mapConfig.kakao)throw Error('운영자의 카카오 JavaScript 키가 필요합니다.');if(!kmap){await script('https://dapi.kakao.com/v2/maps/sdk.js?autoload=false&appkey='+encodeURIComponent(mapConfig.kakao));await new Promise((resolve,reject)=>{if(!window.kakao?.maps)return reject(Error('카카오 지도 SDK 응답을 확인해주세요.'));const timeout=setTimeout(()=>reject(Error('카카오 지도 초기화 시간 초과')),12000);kakao.maps.load(()=>{clearTimeout(timeout);resolve();});});if(run!==mapRun)return;kmap=new kakao.maps.Map($('kakaoMap'),{center:new kakao.maps.LatLng(36.85,127.44),level:10});/* Kakao zoom sidebar removed; home can still pinch/double-tap to zoom. */kakao.maps.event.addListener(kmap,'click',e=>mapClick({lat:e.latLng.getLat(),lng:e.latLng.getLng()}));kakao.maps.event.addListener(kmap,'idle',kmaMapOverlay.schedule);}
- if(run!==mapRun)return;if(!keepKakaoCamera){kmap.relayout();rainGridOverlay.setMap(kmap);kmap.setMapTypeId(type==='skyview'?kakao.maps.MapTypeId.HYBRID:kakao.maps.MapTypeId.ROADMAP);}providerState.kakao='SDK 초기화 확인';connectionStatus();routePolyline?.setMap(null);kmarker?.setMap(null);kend?.setMap(null);routeCurrentMarker?.setMap(null);routePolyline=null;kmarker=null;kend=null;routeCurrentMarker=null;
- if(route?.demo){const bounds=new kakao.maps.LatLngBounds();[originPlace,destPlace].forEach(p=>bounds.extend(new kakao.maps.LatLng(p.lat,p.lng)));kmap.setBounds(bounds);}if(route?.vertices?.length){const pts=remainingRoutePoints().map(p=>new kakao.maps.LatLng(p.lat,p.lng));routePolyline=new kakao.maps.Polyline({map:kmap,path:pts,zIndex:10,strokeWeight:7,strokeColor:type==='skyview'?'#ffda7d':'#315fce',strokeOpacity:.95});kakao.maps.event.addListener(routePolyline,'click',e=>mapClick({lat:e.latLng.getLat(),lng:e.latLng.getLng()}));const bounds=new kakao.maps.LatLngBounds();pts.forEach(p=>bounds.extend(p));if(!keepKakaoCamera)kmap.setBounds(bounds);homeLocationMarker?.setMap(null);homeLocationMarker=null;
+ try{if(isKakao){if(!mapConfig.kakao)throw Error('운영자의 카카오 JavaScript 키가 필요합니다.');if(!kmap){await script('https://dapi.kakao.com/v2/maps/sdk.js?autoload=false&appkey='+encodeURIComponent(mapConfig.kakao));await new Promise((resolve,reject)=>{if(!window.kakao?.maps)return reject(Error('카카오 지도 SDK 응답을 확인해주세요.'));const timeout=setTimeout(()=>reject(Error('카카오 지도 초기화 시간 초과')),12000);kakao.maps.load(()=>{clearTimeout(timeout);resolve();});});if(run!==mapRun)return;kmap=new kakao.maps.Map($('kakaoMap'),{center:new kakao.maps.LatLng(36.85,127.44),level:10});/* Kakao zoom sidebar removed; home can still pinch/double-tap to zoom. */kakao.maps.event.addListener(kmap,'click',e=>mapClick({lat:e.latLng.getLat(),lng:e.latLng.getLng()}));kakao.maps.event.addListener(kmap,'idle',kmaMapOverlay.schedule);kakao.maps.event.addListener(kmap,'idle',()=>taasPedestrianWms.schedule());}
+ if(run!==mapRun)return;if(!keepKakaoCamera){kmap.relayout();rainGridOverlay.setMap(kmap);gk2aOverlay.setMap(kmap);roadWeatherOverlay.setMap(kmap);kmap.setMapTypeId(type==='skyview'?kakao.maps.MapTypeId.HYBRID:kakao.maps.MapTypeId.ROADMAP);}providerState.kakao='SDK 초기화 확인';connectionStatus();routePolyline?.setMap(null);kmarker?.setMap(null);kend?.setMap(null);routeCurrentMarker?.setMap(null);routePolyline=null;kmarker=null;kend=null;routeCurrentMarker=null;
+ if(route?.demo){const bounds=new kakao.maps.LatLngBounds();[originPlace,destPlace].forEach(p=>bounds.extend(new kakao.maps.LatLng(p.lat,p.lng)));kmap.setBounds(bounds);}if(route?.vertices?.length){const pts=remainingRoutePoints().map(p=>new kakao.maps.LatLng(p.lat,p.lng));routePolyline=new kakao.maps.Polyline({map:kmap,path:pts,zIndex:10,strokeWeight:route?.travelMode==='walking'?6:7,strokeColor:route?.travelMode==='walking'?'#10a56b':type==='skyview'?'#ffda7d':'#315fce',strokeOpacity:.95});kakao.maps.event.addListener(routePolyline,'click',e=>mapClick({lat:e.latLng.getLat(),lng:e.latLng.getLng()}));const bounds=new kakao.maps.LatLngBounds();pts.forEach(p=>bounds.extend(p));if(!keepKakaoCamera)kmap.setBounds(bounds);homeLocationMarker?.setMap(null);homeLocationMarker=null;
  kmarker=new kakao.maps.CustomOverlay({map:kmap,position:pts[0],content:createRoutePin('start'),xAnchor:.5,yAnchor:.3,zIndex:21});
  kend=new kakao.maps.CustomOverlay({map:kmap,position:pts[pts.length-1],content:createRoutePin('destination'),xAnchor:.5,yAnchor:.3,zIndex:21});
  updateRouteCurrentMarker();}if(!route?.vertices?.length&&viewport)restoreMapViewport(viewport);else if(!route?.vertices?.length&&homePosition)centerHomeMap();}
  else {rainGridOverlay.setMap(null);if(!mapConfig.vworld)throw Error('운영자의 브이월드 키와 서비스 도메인 등록이 필요합니다.');if(!window.L){const c=document.createElement('link');c.rel='stylesheet';c.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.append(c);await script('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');}if(run!==mapRun)return;if(!lmap){lmap=L.map('vworldMap').setView([36.85,127.44],8);lmap.on('moveend',scheduleFlood);lmap.on('moveend',kmaMapOverlay.schedule);lmap.on('click',e=>mapClick({lat:e.latlng.lat,lng:e.latlng.lng}));const base='https://api.vworld.kr/req/wmts/1.0.0/'+encodeURIComponent(mapConfig.vworld);L.tileLayer(base+'/Satellite/{z}/{y}/{x}.jpeg',{maxZoom:19,attribution:'© VWorld / 국토교통부 · 촬영시점은 위치별로 다름'}).on('tileload',()=>{tileLoaded++;satelliteStatus();}).on('tileerror',()=>{tileFailed++;satelliteStatus();}).on('loading',()=>{tileLoaded=0;tileFailed=0;}).addTo(lmap);L.tileLayer(base+'/Hybrid/{z}/{y}/{x}.png',{maxZoom:19,attribution:'도로명 © VWorld'}).addTo(lmap);L.control.scale({imperial:false}).addTo(lmap);}
  lmap.invalidateSize();if(!route?.vertices?.length&&viewport)restoreMapViewport(viewport);if(lroute)lmap.removeLayer(lroute);if(lmarker)lmap.removeLayer(lmarker);if(lend)lmap.removeLayer(lend);lroute=null;lmarker=null;lend=null;if(route?.demo)lmap.fitBounds([originPlace,destPlace].map(p=>[p.lat,p.lng]),{padding:[25,25]});if(route?.vertices?.length){const pts=route.vertices.map(p=>[p.lat,p.lng]);lroute=L.polyline(pts,{color:'#ffda7d',weight:7}).addTo(lmap);lmarker=L.circleMarker(pts[0],{radius:8,color:'#fff',fillColor:'#315fce',fillOpacity:1}).bindTooltip('출발').addTo(lmap);lend=L.circleMarker(pts[pts.length-1],{radius:8,color:'#fff',fillColor:'#c87046',fillOpacity:1}).bindTooltip('도착').addTo(lmap);lmap.fitBounds(lroute.getBounds(),{padding:[25,25]});}satelliteStatus();}
- if(isKakao)notice('');focusRoad();drawWeatherOverlays();drawDemoOverlays();moveCar();drawGps();if(drivingUI.isActive())followDrivingGps();updateFlood();kmaMapOverlay.schedule();roadRiskOverlay.repaint();warningOverlay.repaint();}catch(e){if(run!==mapRun)return;providerState[isKakao?'kakao':'vworld']='연결 실패';connectionStatus();let message=isKakao?(type==='skyview'?'카카오 항공지도':'카카오맵')+' 연결 실패: '+(e?.message||'SDK 응답 오류')+'.':'브이월드 지도 연결 실패: '+(e?.message||'지도 응답 오류')+'.';if(isKakao){$('kakaoMap').hidden=false;$('schematic').hidden=true;$('osmMap').hidden=true;$('vworldMap').hidden=true;$('mapProvider').textContent='카카오맵 · 연결 확인 필요';kakaoConnectError(message+' 현재 접속 도메인 '+location.origin+' 이 카카오디벨로퍼스 JavaScript SDK 허용 도메인에 등록되어 있는지 확인하세요. 테스트는 고정 프리뷰 주소 https://sunny-sai-preview.vercel.app 를 사용하세요.');}else{toast(message);notice(message);}}}
+ if(isKakao)notice('');focusRoad();drawWeatherOverlays();drawDemoOverlays();moveCar();drawGps();if(drivingUI.isActive())followDrivingGps();updateFlood();kmaMapOverlay.schedule();roadRiskOverlay.repaint();warningOverlay.repaint();typeof walkingFacilities!=='undefined'&&walkingFacilities.repaint();typeof koroadHotspots!=='undefined'&&koroadHotspots.repaint();typeof taasPedestrianWms!=='undefined'&&taasPedestrianWms.repaint();}catch(e){if(run!==mapRun)return;providerState[isKakao?'kakao':'vworld']='연결 실패';connectionStatus();let message=isKakao?(type==='skyview'?'카카오 항공지도':'카카오맵')+' 연결 실패: '+(e?.message||'SDK 응답 오류')+'.':'브이월드 지도 연결 실패: '+(e?.message||'지도 응답 오류')+'.';if(isKakao){$('kakaoMap').hidden=false;$('schematic').hidden=true;$('osmMap').hidden=true;$('vworldMap').hidden=true;$('mapProvider').textContent='카카오맵 · 연결 확인 필요';kakaoConnectError(message+' 현재 접속 도메인 '+location.origin+' 이 카카오디벨로퍼스 JavaScript SDK 허용 도메인에 등록되어 있는지 확인하세요. 테스트는 고정 프리뷰 주소 https://sunny-sai-preview.vercel.app 를 사용하세요.');}else{toast(message);notice(message);}}}
 ['schematic','kakao','vworld','skyview'].forEach(type=>$(type+'Toggle').onclick=()=>{if(document.body.dataset.sunnyNav!=='home')return;void showMap(type);});
 // Start the real Kakao map first on all devices; request GPS only after map initialization.
 Promise.resolve(sessionPromise).then(async()=>{await showMap('kakao');if(window.matchMedia('(max-width:900px)').matches)requestHomeLocation(false);}).catch(e=>kakaoConnectError('카카오맵 준비 실패: '+(e?.message||'세션 상태를 확인해주세요.')));
-new ResizeObserver(()=>{vectorDriving.resize();if(kmap&&(activeMap==='kakao'||activeMap==='skyview')){kmap.relayout();rainGridOverlay.redraw();}if(lmap&&activeMap==='vworld')lmap.invalidateSize();}).observe($('kakaoMap').parentElement);
+new ResizeObserver(()=>{vectorDriving.resize();if(kmap&&(activeMap==='kakao'||activeMap==='skyview')){kmap.relayout();rainGridOverlay.redraw();gk2aOverlay.redraw();taasPedestrianWms.repaint();}if(lmap&&activeMap==='vworld')lmap.invalidateSize();}).observe($('kakaoMap').parentElement);
 updatePick();
 const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(Recognition){recognition=new Recognition();recognition.lang='ko-KR';recognition.continuous=false;recognition.interimResults=false;recognition.onstart=()=>{$('mic').setAttribute('aria-pressed','true');$('voiceStatus').textContent='목적지를 말씀해주세요.';};recognition.onend=()=>{$('mic').setAttribute('aria-pressed','false');};recognition.onerror=()=>{$('voiceStatus').textContent='음성을 듣지 못했습니다. 권한을 확인하거나 직접 입력해주세요.';};recognition.onresult=e=>{const t=e.results[0][0].transcript;if(/다시.*듣|다시.*알려/.test(t)){$('repeat').click();return;}if(/멈춰|그만/.test(t)){$('stop').click();return;}$('destination').value=t.replace(/(?:으로|로)?\s*(?:가고\s*싶어(?:요)?|가자|가줘|찾아줘(?:요)?)\s*[.!?]?$/,'').trim();destPlace=null;reply('목적지를 '+$('destination').value+'로 들었어요. 출발지를 확인하고 경로 살펴보기를 눌러주세요.');};$('mic').onclick=()=>{if(playing)return;stopVoice();if($('mic').getAttribute('aria-pressed')==='true'){recognition.abort();return;}try{recognition.start();}catch{toast('잠시 뒤 다시 눌러주세요.');}};}else $('mic').onclick=()=>{toast('이 브라우저는 음성 입력을 지원하지 않습니다. 목적지를 직접 입력해주세요.');$('destination').focus();};
 $('share').onclick=async()=>{const url=location.origin;try{if(navigator.share)await navigator.share({title:'Sunny SAI',text:'가는 길의 날씨를 함께 살펴보세요.',url});else{await navigator.clipboard.writeText(url);toast('앱 링크를 복사했어요.');}}catch(e){if(e.name!=='AbortError')toast('앱 주소: '+url);}};

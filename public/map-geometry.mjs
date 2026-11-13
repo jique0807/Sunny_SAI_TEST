@@ -13,6 +13,14 @@ export function roadSection(vertices,sample,radius=8){
  const index=vertices.reduce((best,p,i)=>distance(p)<distance(vertices[best])?i:best,0);
  return vertices.slice(Math.max(0,index-radius),Math.min(vertices.length,index+radius+1));
 }
-export function kakaoRouteLink(start,end){
+export function kakaoRouteLink(start,end,mode='driving'){
+ if(mode==='walking'){
+  // Kakao Maps public mobile deep-link; opens authentic foot directions.
+  const url=new URL('https://m.map.kakao.com/scheme/route');
+  url.searchParams.set('sp',start.lat+','+start.lng);
+  url.searchParams.set('ep',end.lat+','+end.lng);
+  url.searchParams.set('by','foot');
+  return url.toString();
+ }
  return 'https://map.kakao.com/link/by/car/'+[start,end].map(p=>encodeURIComponent(p.name)+','+p.lat+','+p.lng).join('/');
 }

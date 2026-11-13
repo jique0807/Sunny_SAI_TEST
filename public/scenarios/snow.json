@@ -1,0 +1,13 @@
+{
+  "schema": "sunny-dummy-scenario-v1",
+  "scenario": {
+    "id": "snow",
+    "name": "눈 예보 · 미끄럼 주의",
+    "type": "snow",
+    "initialRain": 0,
+    "rain": 0,
+    "temperature": -1,
+    "warning": false,
+    "trigger": 20
+  }
+}

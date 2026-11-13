@@ -76,7 +76,7 @@ test('mobile navigation does not display the provider basemap image: real rain i
   assert.ok(ui.includes('id="'+id+'"'),id);
  assert.doesNotMatch(ui,/id="navRadarPanel"/);
  assert.doesNotMatch(ui,/id="navRadarImage"/);
- assert.match(ui,/실제 5km 예보 · 결측은 무강수가 아닙니다/);
+ assert.match(ui,/id="navRainGridDisclaimer"[^>]*hidden/);
  assert.match(app,/initNationalRainOverlay/);
  assert.match(app,/rainGridOverlay\.setMap\(kmap\)/);
  assert.match(css,/\.sunny-rain-grid-timeline\{/);

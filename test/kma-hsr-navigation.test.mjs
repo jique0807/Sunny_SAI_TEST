@@ -76,14 +76,14 @@ test('shared HSR mesh draws true source image exclusively over Kakao with WGS84 
   if(original===undefined)delete globalThis.kakao;else globalThis.kakao=original;
  }
 });
-test('forecast popup exposes forecast only',()=>{
+test('HSR and nationwide RN1 share one Kakao popup',()=>{
  for(const id of ['navRainGridMinimize','navRainSourceTitle',
   'navRainGridLead','navRainGridTicks','navRainLegendTitle','navRainGridDisclaimer'])
   assert.equal(ui.split('id="'+id+'"').length-1,1,id);
- assert.match(ui,/초단기 예보/);
- assert.doesNotMatch(ui,/id="navNationalRadar"/);
- assert.match(overlay,/source='forecast'/);
- assert.match(overlay,/setSource\('forecast'\)/);
+ assert.match(ui,/초단기 강수예측/);
+ assert.match(ui,/id="navNationalRadar"/);
+ assert.match(overlay,/source='grid'/);
+ assert.match(overlay,/selectRainSource\('grid'\)/);
  assert.match(overlay,/\[nationalRadar,'radar'\]/);
  assert.match(overlay,/loadHSRFrame\(frame,\{signal:controller.signal,waitForSession,mode:routeRadar\?'nearest':'latest'\}\)/);
  assert.match(overlay,/drawHSROverKakao\(ctx,radarFrame,projection,density\)/);

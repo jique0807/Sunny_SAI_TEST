@@ -53,7 +53,7 @@ test('Kakao initialization does not accidentally enter the VWorld branch',async(
   providerState,connectionStatus(){},focusRoad(){},drawWeatherOverlays(){},
   drawDemoOverlays(){},moveCar(){},drawGps(){},updateFlood(){},
   drivingUI:{isActive(){return false;}},followDrivingGps(){},
-  kmaMapOverlay:{schedule(){}},rainGridOverlay:{setMap(){},redraw(){}},roadRiskOverlay:{repaint(){}},warningOverlay:{repaint(){}},
+  roadWeatherOverlay:{setMap(){}},kmaMapOverlay:{schedule(){}},rainGridOverlay:{setMap(){},redraw(){}},gk2aOverlay:{setMap(){},redraw(){}},roadRiskOverlay:{repaint(){}},warningOverlay:{repaint(){}},
   notice:t=>calls.push(t),toast:t=>calls.push('toast:'+t),
   kakaoConnectError:t=>calls.push('error:'+t),
   showOpenStreetMap:()=>{throw Error('No alternate map should initialize');},
@@ -72,3 +72,5 @@ test('initial map failure never invokes OSM or schematic fallback',()=>{
  assert.doesNotMatch(app,/await showMap\(window\.matchMedia\('\(max-width:900px\)'\)\.matches\?'osm':'schematic'\)/);
  assert.match(app,/button\.textContent='카카오맵 다시 연결'/);
 });
+
+test('app entry parses as the classic browser script served by the page',()=>{assert.doesNotThrow(()=>new vm.Script(app));});

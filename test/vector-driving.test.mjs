@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {VECTOR_STYLE,vectorCameraPadding,vectorCameraOptions,vectorRouteGeojson} from '../public/vector-driving.mjs';
+import {initVectorDriving,VECTOR_STYLE,vectorCameraPadding,vectorCameraOptions,vectorRouteGeojson} from '../public/vector-driving.mjs';
 
 const html=readFileSync(new URL('../lib/ui.ts',import.meta.url),'utf8');
 const css=readFileSync(new URL('../app/navigation-ui.css',import.meta.url),'utf8');
@@ -62,4 +62,35 @@ test('danger pins are viewport-aligned and synthetic alerts never call official 
  assert.match(app,/function updateDemoVector\(animate=true\)/);
  assert.match(app,/startVectorGuidance\(route\.rainPath\[0\],demoCourseAt\(0\)\)/);
  assert.doesNotMatch(vector,/\/api\/weather-warnings|\/api\/weather/);
+});
+
+
+test('MapLibre without optional supported export starts and updates heading; constructor failure falls back',async t=>{
+ const oldWindow=globalThis.window,oldDocument=globalThis.document;
+ t.after(()=>{globalThis.window=oldWindow;globalThis.document=oldDocument;});
+ const cameras=[],sources=[];let removed=0;
+ class MapStub {
+  addControl(){} once(event,callback){if(event==='load')queueMicrotask(callback);}
+  getStyle(){return {layers:[]};} addSource(id,source){sources.push(source.data);}
+  addLayer(){} resize(){} jumpTo(camera){cameras.push(camera);} easeTo(camera){cameras.push(camera);}
+  remove(){removed++;}
+ }
+ class MarkerStub {
+  constructor({element}){this.element=element;} setLngLat(){return this;}
+  addTo(){return this;} getElement(){return this.element;} remove(){}
+ }
+ globalThis.document={createElement:()=>({style:{},setAttribute(){}})};
+ globalThis.window={maplibregl:{Map:MapStub,Marker:MarkerStub,AttributionControl:class {}}};
+ const failures=[],element={hidden:true,clientHeight:800,dataset:{},replaceChildren(){}};
+ const ui=initVectorDriving({element,onFailure:error=>failures.push(error.message)});
+ const route={rainPath:[{lat:37,lng:127},{lat:36,lng:128}]};
+ assert.equal(await ui.start(route,route.rainPath[0],90),true);
+ assert.equal(ui.isActive(),true);assert.equal(element.hidden,false);
+ assert.equal(sources[0].geometry.coordinates.length,2);
+ ui.update(route.rainPath[1],135);assert.equal(cameras.at(-1).bearing,135);
+ ui.update(route.rainPath[1],135,'north');assert.equal(cameras.at(-1).bearing,0);
+ ui.stop();assert.equal(ui.isActive(),false);assert.equal(removed,1);
+ globalThis.window.maplibregl.Map=class {constructor(){throw Error('WebGL unavailable');}};
+ assert.equal(await ui.start(route,route.rainPath[0],90),false);
+ assert.equal(element.hidden,true);assert.equal(element.dataset.navigationState,'error');assert.deepEqual(failures,['WebGL unavailable']);
 });

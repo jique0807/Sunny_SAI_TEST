@@ -60,8 +60,8 @@ test('screenshot: rain forecast and radar sheet is wide and shorter without repl
  for(const id of ['navRainGridMinimize','navRainGridClose',
   'navRainGridRefresh','navRainGridReset'])
   assert.equal(ui.split('id="'+id+'"').length-1,1,id);
- assert.match(ui,/초단기 예보/);
- assert.doesNotMatch(ui,/id="navNationalRadar"/);
+ assert.match(ui,/초단기 강수예측/);
+ assert.match(ui,/id="navNationalRadar"/);
 });
 test('driving panel fills the configured slots with distinct status or weather cards',()=>{
  const original=globalThis.document;
@@ -118,6 +118,17 @@ test('reroute uses live GPS point, does not replace route on stale response, and
  assert.match(app,/origin,destination,departure:new Date\(\)\.toISOString\(\)/);
  assert.match(app,/sessionRun!==rainRun\|\|route!==previous/);
  assert.match(app,/drivingUI\.start\(route,null\);renderRoute\(\)/);
- assert.match(app,/Promise\.all\(\[loadWeather\(\),showMap\('kakao'\)\]\)/);
+ assert.match(app,/Promise\.allSettled\(\[loadWeather\(\),showMap\('kakao'\)\]\)/);
  assert.match(ui,/id="sunnyDriveReroute" type="button" hidden/);
+});
+
+
+test('mobile demo buttons present car first, and driving route header says car driving demo',()=>{
+ const car=ui.indexOf('id="navDemoSeoulBusan"');
+ const walk=ui.indexOf('id="navDemoWalk"');
+ assert.ok(car>=0&&walk>=0&&car<walk,'driving simulation must appear above walking simulation');
+ assert.match(ui,/id="navDemoSeoulBusan"[^>]*>🚗 서울 - 부산 주행 시연/);
+ assert.match(ui,/id="navDemoWalk"[^>]*>🚶 서울역 → 서울시청 도보 시연/);
+ assert.match(app,/route\.demo\?\(route\.demoWalking\?'🚶 도보 시연':'🚗 주행 시연'\)/);
+ assert.doesNotMatch(app,/route\.demo\?\(route\.demoWalking\?'🚶 도보 시연':'🎬 시연'\)/);
 });

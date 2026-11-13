@@ -42,7 +42,7 @@ test('KMA map requests official grid records and deduplicates cells without leak
   assert.match(url.pathname,/getUltraSrtFcst$/);
   return Response.json({response:{header:{resultCode:'00'},body:{items:{item:items}}}});
  },now);
- assert.equal(calls,1);assert.equal(d.cells.length,1);assert.equal(d.cells[0].status,'forecast');assert.equal(d.validTimes.length,6);assert.equal(d.cells[0].forecasts.length,6);
+ assert.equal(calls,2);assert.equal(d.cells.length,1);assert.equal(d.cells[0].status,'forecast');assert.equal(d.validTimes.length,6);assert.equal(d.cells[0].forecasts.length,6);
  assert.equal(d.cells[0].forecast.precipitationType,2);
  assert.equal(d.cells[0].forecast.rainLabel,'1.0mm 미만');
  assert.deepEqual(d.cells[0].grid,{nx:60,ny:127});
@@ -82,7 +82,7 @@ test('KMA series returns distinct valid forecast hours from a single real grid r
  const data=await kmaMapForecast([{lat:37.5665,lng:126.978}],'key',async()=>{
   calls++;return Response.json({response:{header:{resultCode:'00'},body:{items:{item:frames}}}});
  },now);
- assert.equal(calls,1);
+ assert.equal(calls,2);
  assert.deepEqual(data.cells[0].forecasts.map(f=>f?.temperature),[10,11,12,13,14,15]);
  assert.equal(data.validTimes.length,6);
 });

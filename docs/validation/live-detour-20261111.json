@@ -1,0 +1,110 @@
+{
+  "testedCommit": "185261b78449dfb2df3f178d0d942732430c3005",
+  "scope": "서울역→강남역 실제 제공자 경로 + 합성 위험 지점. 실제 침수·통제/도로 안전/기기 스피커 청취 확인은 아님.",
+  "driving": {
+    "status": "reroute-received",
+    "mode": "driving",
+    "checkedAt": "2026-11-11T03:03:32.734Z",
+    "syntheticHazard": true,
+    "original": {
+      "distance": 10783,
+      "duration": 1772
+    },
+    "attempts": [
+      {
+        "id": "near--1",
+        "status": "intersects-hazard",
+        "clearance": 0,
+        "minutes": 29
+      },
+      {
+        "id": "recommended",
+        "status": "intersects-hazard",
+        "clearance": 0,
+        "minutes": 19
+      },
+      {
+        "id": "near-1",
+        "status": "intersects-hazard",
+        "clearance": 0,
+        "minutes": 28
+      },
+      {
+        "id": "wide-3.5--1",
+        "status": "eligible",
+        "clearance": 1430,
+        "minutes": 29
+      },
+      {
+        "id": "wide-3.5-1",
+        "status": "eligible",
+        "clearance": 1196,
+        "minutes": 41
+      }
+    ],
+    "chosen": {
+      "candidate": "우측 연결 도로",
+      "provider": "Kakao Mobility",
+      "travelMode": "driving",
+      "distance": 12726,
+      "duration": 1766,
+      "clearance": 1430,
+      "minimumClearance": 450,
+      "engineState": "evaluated"
+    },
+    "caution": "실제 제공자 경로와 가상 위험 지점의 회피 검증입니다. 실제 침수·통제 또는 도로 안전성 검증이 아닙니다."
+  },
+  "walking": {
+    "status": "reroute-received",
+    "mode": "walking",
+    "checkedAt": "2026-11-11T03:03:46.808Z",
+    "syntheticHazard": true,
+    "original": {
+      "distance": 10151,
+      "duration": 7989
+    },
+    "attempts": [
+      {
+        "id": "recommended",
+        "status": "intersects-hazard",
+        "clearance": 0,
+        "minutes": 83
+      },
+      {
+        "id": "near--1",
+        "status": "intersects-hazard",
+        "clearance": 0,
+        "minutes": 107
+      },
+      {
+        "id": "near-1",
+        "status": "intersects-hazard",
+        "clearance": 54,
+        "minutes": 109
+      },
+      {
+        "id": "wide-3.5--1",
+        "status": "eligible",
+        "clearance": 1491,
+        "minutes": 102
+      },
+      {
+        "id": "wide-3.5-1",
+        "status": "intersects-hazard",
+        "clearance": 54,
+        "minutes": 156
+      }
+    ],
+    "chosen": {
+      "candidate": "우측 연결 도로",
+      "provider": "TMAP",
+      "travelMode": "walking",
+      "distance": 7591,
+      "duration": 6149,
+      "clearance": 1491,
+      "minimumClearance": 450,
+      "engineState": "evaluated"
+    },
+    "caution": "실제 제공자 경로와 가상 위험 지점의 회피 검증입니다. 실제 침수·통제 또는 도로 안전성 검증이 아닙니다."
+  }
+}

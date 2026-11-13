@@ -1,0 +1,13 @@
+{
+  "schema": "sunny-dummy-scenario-v1",
+  "scenario": {
+    "id": "stale",
+    "name": "오래된 예보 · 유효시각 불일치",
+    "type": "stale",
+    "initialRain": 0,
+    "rain": 0,
+    "temperature": 25,
+    "warning": false,
+    "trigger": 20
+  }
+}

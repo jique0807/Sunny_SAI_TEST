@@ -4,7 +4,7 @@ import {setLayerReception} from './layer-reception.mjs';
 export const RISK_COLOR=Object.freeze({1:'#eab432',2:'#ee851b',3:'#d52d36'});
 export function displayableRisks(locations,showIce,showVisibility){
  if(!Array.isArray(locations))return [];
- return locations.filter(x=>x&&[1,2,3].includes(x.risk)&&
+ return locations.filter(x=>x&&x.gradeMeaningVerified===true&&[1,2,3].includes(x.risk)&&
   ((showIce&&x.kind==='ice')||(showVisibility&&x.kind==='visibility'))&&
   Array.isArray(x.geometry?.points)&&x.geometry.points.length>0&&
   x.geometry.points.every(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng)&&p.lat>=32&&p.lat<=40&&p.lng>=123&&p.lng<=133));
@@ -32,7 +32,7 @@ export function matchRouteRoadRisks(records,path,departure,now=Date.now()){
  return records.flatMap(record=>{
   const age=now-Date.parse(record.dataTime);
   const points=record.geometry.points;
-  if(!record.linkId||!Number.isFinite(age)||age<0||age>15*60000||points.length!==2)return [];
+  if(record.gradeMeaningVerified!==true||!record.linkId||!Number.isFinite(age)||age<0||age>15*60000||points.length!==2)return [];
   const from=project(points[0]),to=project(points[1]);
   if(!from||!to||!(to.seconds>from.seconds))return [];
   const eta=Date.parse(departure)+from.seconds*1000;
@@ -40,7 +40,7 @@ export function matchRouteRoadRisks(records,path,departure,now=Date.now()){
   return [{...from,kind:record.kind,icon:ice?'🧊':'🌫️',
    title:ice?'도로 살얼음 위험':'도로 안개 위험',
    label:'도로 링크 '+record.linkId,eta:Number.isFinite(eta)?new Date(eta).toISOString():null,
-   validTime:record.dataTime,roadRisk:record.risk,provider:'기상청 도로위험기상'}];
+   validTime:record.dataTime,roadRisk:record.risk,riskGradeVerified:true,provider:'기상청 도로위험기상'}];
  }).sort((a,b)=>a.seconds-b.seconds);
 }
 
@@ -50,7 +50,7 @@ export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
  const button=document.getElementById('navRoadRiskRefresh');
  const status=document.getElementById('navRoadRiskStatus');
  let available=false,data=null,items=[],pending=0,loading=false;
- let routeMatch;
+ let routeMatch,riskPending=null,lastRiskAttempt=0,riskReceivedAt=0;
  const enabled=()=>Boolean(ice?.checked||visibility?.checked);
  const message=s=>{if(status)status.textContent='기상청 도로위험: '+s;};
  function clear(){
@@ -66,9 +66,11 @@ export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
   const records=displayableRisks(data.locations,ice.checked,visibility.checked);
   const coverage=data.roadName+' · '+data.receivedRoads+'/'+data.totalRoads+'개 노선 응답';
   if(!records.length){
-   const reason=data.status==='unmapped'?'ZIP에 위험도는 있으나 좌표·도로 형상이 확인되지 않았습니다. 잘못된 지도 표시는 하지 않습니다':
+   const reason=data.gradeSummary?.noInformation>0&&data.gradeSummary?.riskRecords===0?'도로위험 등급 0(정보 없음) · 안전 여부 판단 불가':
+    data.status==='unmapped'?'ZIP의 위험등급 또는 도로 좌표 확인이 필요합니다':
     data.status==='unsupported_format'?'원본 ZIP 자료구조가 확인되지 않아 위치 표출을 중단했습니다':
-    '선택한 유형에서 위치가 검증된 위험구간 없음 (안전하다는 뜻이 아님)';
+    data.locations.some(item=>item.gradeMeaningVerified!==true)?'기상청 숫자 위험코드의 공식 등급 의미가 미확인되어 경고 표출을 보류했습니다':
+    '선택한 유형에서 검증된 위험구간 없음 (안전하다는 뜻이 아님)';
    message(coverage+' · '+reason);return;
   }
   for(const item of records){
@@ -98,17 +100,36 @@ export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
   message(coverage+' · '+records.length+'개 위치 검증 위험 '+(records.some(x=>x.kind==='ice')?'살얼음 ':'')+
    (records.some(x=>x.kind==='visibility')?'가시거리':'')+' 표출 · 기상청 예측, 실제 결빙 확정 아님');
  }
+ // Fetch once for the route risk engine even if the map's ice/fog switches are OFF.
+ // Failed or unverified provider data must never become an empty/safe risk signal.
+ async function collectForRisk(){
+  if(!available)return {status:'missing'};
+  if(data&&Date.now()-riskReceivedAt<=180000)
+   return {status:'received',verifiedLocations:displayableRisks(data.locations,true,true).length};
+  if(data){data=null;routeMatch=null;clear();onChange?.();}
+  if(riskPending){await riskPending;return {status:data?'received':'unavailable'};}
+  if(Date.now()-lastRiskAttempt<180000)return {status:'unavailable'};
+  lastRiskAttempt=Date.now();
+  riskPending=query('all').then(d=>{data=d;riskReceivedAt=Date.now();return d;}).catch(()=>null)
+   .finally(()=>{riskPending=null;});
+  const result=await riskPending;
+  if(result)repaint();
+  return {status:result?'received':'unavailable',
+   verifiedLocations:result?displayableRisks(result.locations,true,true).length:0};
+ }
  async function load(){
-  clear();data=null;onChange?.();const request=++pending;loading=true;
+  clear();onChange?.();const request=++pending;loading=true;
   if(!enabled()){loading=false;return;}
   if(!available){loading=false;message('KMA_API_KEY 미설정');return;}
   for(const id of ['navLayerroad','navLayerfog'])setLayerReception(id,'loading');
   message('기상청 도로위험 노선별 ZIP 수신·위치 확인 중');
   if(button)button.disabled=true;
   try{
-   const d=await query('all');
+   const cached=data&&Date.now()-riskReceivedAt<=180000?data:null;
+   const d=cached||(riskPending?await riskPending:await query('all'));
+   if(!d)throw Error('도로위험 자료를 수신하지 못했습니다.');
    if(request!==pending)return;
-   data=d;
+   data=d;if(!cached)riskReceivedAt=Date.now();
    for(const id of ['navLayerroad','navLayerfog'])setLayerReception(id,d.receivedRoads===0||d.status==='unsupported_format'?'failed':d.locations.some(item=>item.kind===(id==='navLayerroad'?'ice':'visibility'))?'received':d.status==='georeferenced'?'empty':'received');
    await ensureMap();
    if(request===pending)repaint();
@@ -135,12 +156,12 @@ export function initRoadRiskOverlay({query,getContext,ensureMap,onChange}){
   if(!loading)load();
  });
  button?.addEventListener('click',load);
- return {setAvailable,load,repaint,clear,hasData:()=>Boolean(data),
-  routeHazards(route){
-   if(!route||route.demo||!data||!enabled())return [];
-   const now=Date.now(),mask=Number(ice?.checked)+2*Number(visibility?.checked);
+ return {setAvailable,load,collectForRisk,repaint,clear,hasData:()=>Boolean(data),
+  routeHazards(route,{forRisk=false}={}){
+   if(!route||route.demo||!data||Date.now()-riskReceivedAt>180000||(!forRisk&&!enabled()))return [];
+   const now=Date.now(),mask=forRisk?3:Number(ice?.checked)+2*Number(visibility?.checked);
    if(routeMatch?.route!==route||routeMatch.data!==data||routeMatch.mask!==mask){
-    const records=displayableRisks(data.locations,ice?.checked,visibility?.checked);
+    const records=displayableRisks(data.locations,Boolean(mask&1),Boolean(mask&2));
     routeMatch={route,data,mask,hazards:matchRouteRoadRisks(records,route.rainPath,route.departure,now)};
    }
    return routeMatch.hazards.filter(h=>now-Date.parse(h.validTime)<=15*60000);

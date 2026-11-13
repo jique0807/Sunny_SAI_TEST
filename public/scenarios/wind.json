@@ -1,0 +1,14 @@
+{
+  "schema": "sunny-dummy-scenario-v1",
+  "scenario": {
+    "id": "wind",
+    "name": "강풍 · 이동 주의",
+    "type": "wind",
+    "initialRain": 0,
+    "rain": 0,
+    "temperature": 20,
+    "windSpeed": 18,
+    "warning": false,
+    "trigger": 20
+  }
+}

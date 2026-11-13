@@ -1,0 +1,13 @@
+{
+  "schema": "sunny-dummy-scenario-v1",
+  "scenario": {
+    "id": "dry",
+    "name": "위험 신호 없음",
+    "type": "flood",
+    "initialRain": 0,
+    "rain": 0,
+    "temperature": 25,
+    "warning": false,
+    "trigger": 20
+  }
+}
